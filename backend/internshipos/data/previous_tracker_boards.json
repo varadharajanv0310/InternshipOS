@@ -1,0 +1,606 @@
+[
+  {
+    "company": "ABB",
+    "provider": "workday",
+    "url": "https://abb.wd3.myworkdayjobs.com/external_career_page",
+    "config": {
+      "tenant": "abb",
+      "site": "external_career_page",
+      "country_name": "India",
+      "early_career": true
+    },
+    "evidence": {
+      "source": "https://github.com/varadharajanv0310/Internship-Tracker",
+      "snapshot": "2026-08-20",
+      "original_method": "tracker apply link",
+      "association_status": "candidate"
+    }
+  },
+  {
+    "company": "Accenture",
+    "provider": "workday",
+    "url": "https://accenture.wd103.myworkdayjobs.com/accenturecareers",
+    "config": {
+      "tenant": "accenture",
+      "site": "accenturecareers",
+      "country_name": "India",
+      "early_career": true
+    },
+    "evidence": {
+      "source": "https://github.com/varadharajanv0310/Internship-Tracker",
+      "snapshot": "2026-08-20",
+      "original_method": "tracker apply link",
+      "association_status": "candidate"
+    }
+  },
+  {
+    "company": "Analog Devices",
+    "provider": "workday",
+    "url": "https://analogdevices.wd1.myworkdayjobs.com/external",
+    "config": {
+      "tenant": "analogdevices",
+      "site": "external",
+      "country_name": "India",
+      "early_career": true
+    },
+    "evidence": {
+      "source": "https://github.com/varadharajanv0310/Internship-Tracker",
+      "snapshot": "2026-08-20",
+      "original_method": "tracker apply link",
+      "association_status": "candidate"
+    }
+  },
+  {
+    "company": "Barclays",
+    "provider": "workday",
+    "url": "https://barclays.wd3.myworkdayjobs.com/external_career_site_barclays",
+    "config": {
+      "tenant": "barclays",
+      "site": "external_career_site_barclays",
+      "country_name": "India",
+      "early_career": true
+    },
+    "evidence": {
+      "source": "https://github.com/varadharajanv0310/Internship-Tracker",
+      "snapshot": "2026-08-20",
+      "original_method": "tracker apply link",
+      "association_status": "candidate"
+    }
+  },
+  {
+    "company": "BlackRock",
+    "provider": "workday",
+    "url": "https://blackrock.wd1.myworkdayjobs.com/blackrock_professional",
+    "config": {
+      "tenant": "blackrock",
+      "site": "blackrock_professional",
+      "country_name": "India",
+      "early_career": true
+    },
+    "evidence": {
+      "source": "https://github.com/varadharajanv0310/Internship-Tracker",
+      "snapshot": "2026-08-20",
+      "original_method": "tracker apply link",
+      "association_status": "candidate"
+    }
+  },
+  {
+    "company": "Bosch",
+    "provider": "smartrecruiters",
+    "url": "https://careers.smartrecruiters.com/BoschGroup",
+    "config": {
+      "token": "BoschGroup"
+    },
+    "evidence": {
+      "source": "https://github.com/varadharajanv0310/Internship-Tracker",
+      "snapshot": "2026-08-20",
+      "original_method": "tracker apply link",
+      "association_status": "candidate"
+    }
+  },
+  {
+    "company": "BrowserStack",
+    "provider": "workday",
+    "url": "https://browserstack.wd3.myworkdayjobs.com/External",
+    "config": {
+      "tenant": "browserstack",
+      "site": "External",
+      "country_name": "India",
+      "early_career": true
+    },
+    "evidence": {
+      "source": "https://github.com/varadharajanv0310/Internship-Tracker",
+      "snapshot": "2026-08-20",
+      "original_method": "https://www.browserstack.com/careers",
+      "association_status": "candidate"
+    }
+  },
+  {
+    "company": "Canonical",
+    "provider": "greenhouse",
+    "url": "https://job-boards.greenhouse.io/canonical",
+    "config": {
+      "token": "canonical"
+    },
+    "evidence": {
+      "source": "https://github.com/varadharajanv0310/Internship-Tracker",
+      "snapshot": "2026-08-20",
+      "original_method": "tracker apply link",
+      "association_status": "candidate"
+    }
+  },
+  {
+    "company": "Canva",
+    "provider": "smartrecruiters",
+    "url": "https://careers.smartrecruiters.com/Canva",
+    "config": {
+      "token": "Canva"
+    },
+    "evidence": {
+      "source": "https://github.com/varadharajanv0310/Internship-Tracker",
+      "snapshot": "2026-08-20",
+      "original_method": "tracker apply link",
+      "association_status": "candidate"
+    }
+  },
+  {
+    "company": "Capgemini",
+    "provider": "workable",
+    "url": "https://apply.workable.com/capgemini-insurance",
+    "config": {
+      "token": "capgemini-insurance"
+    },
+    "evidence": {
+      "source": "https://github.com/varadharajanv0310/Internship-Tracker",
+      "snapshot": "2026-08-20",
+      "original_method": "tracker apply link",
+      "association_status": "candidate"
+    }
+  },
+  {
+    "company": "Capital One",
+    "provider": "workday",
+    "url": "https://capitalone.wd12.myworkdayjobs.com/capital_one",
+    "config": {
+      "tenant": "capitalone",
+      "site": "capital_one",
+      "country_name": "India",
+      "early_career": true
+    },
+    "evidence": {
+      "source": "https://github.com/varadharajanv0310/Internship-Tracker",
+      "snapshot": "2026-08-20",
+      "original_method": "tracker apply link",
+      "association_status": "candidate"
+    }
+  },
+  {
+    "company": "Citi",
+    "provider": "workday",
+    "url": "https://citi.wd5.myworkdayjobs.com/2",
+    "config": {
+      "tenant": "citi",
+      "site": "2",
+      "country_name": "India",
+      "early_career": true
+    },
+    "evidence": {
+      "source": "https://github.com/varadharajanv0310/Internship-Tracker",
+      "snapshot": "2026-08-20",
+      "original_method": "tracker apply link",
+      "association_status": "candidate"
+    }
+  },
+  {
+    "company": "Cloudflare",
+    "provider": "greenhouse",
+    "url": "https://job-boards.greenhouse.io/cloudflare",
+    "config": {
+      "token": "cloudflare"
+    },
+    "evidence": {
+      "source": "https://github.com/varadharajanv0310/Internship-Tracker",
+      "snapshot": "2026-08-20",
+      "original_method": "tracker apply link",
+      "association_status": "candidate"
+    }
+  },
+  {
+    "company": "Commvault",
+    "provider": "greenhouse",
+    "url": "https://job-boards.greenhouse.io/commvault",
+    "config": {
+      "token": "commvault"
+    },
+    "evidence": {
+      "source": "https://github.com/varadharajanv0310/Internship-Tracker",
+      "snapshot": "2026-08-20",
+      "original_method": "tracker apply link",
+      "association_status": "candidate"
+    }
+  },
+  {
+    "company": "Deloitte",
+    "provider": "workday",
+    "url": "https://fina.wd103.myworkdayjobs.com/deloitterecrute",
+    "config": {
+      "tenant": "fina",
+      "site": "deloitterecrute",
+      "country_name": "India",
+      "early_career": true
+    },
+    "evidence": {
+      "source": "https://github.com/varadharajanv0310/Internship-Tracker",
+      "snapshot": "2026-08-20",
+      "original_method": "tracker apply link",
+      "association_status": "candidate"
+    }
+  },
+  {
+    "company": "FIS",
+    "provider": "workday",
+    "url": "https://fis.wd5.myworkdayjobs.com/searchjobs",
+    "config": {
+      "tenant": "fis",
+      "site": "searchjobs",
+      "country_name": "India",
+      "early_career": true
+    },
+    "evidence": {
+      "source": "https://github.com/varadharajanv0310/Internship-Tracker",
+      "snapshot": "2026-08-20",
+      "original_method": "tracker apply link",
+      "association_status": "candidate"
+    }
+  },
+  {
+    "company": "Fiserv",
+    "provider": "workday",
+    "url": "https://fiserv.wd5.myworkdayjobs.com/ext",
+    "config": {
+      "tenant": "fiserv",
+      "site": "ext",
+      "country_name": "India",
+      "early_career": true
+    },
+    "evidence": {
+      "source": "https://github.com/varadharajanv0310/Internship-Tracker",
+      "snapshot": "2026-08-20",
+      "original_method": "tracker apply link",
+      "association_status": "candidate"
+    }
+  },
+  {
+    "company": "Freshworks",
+    "provider": "smartrecruiters",
+    "url": "https://careers.smartrecruiters.com/Freshworks",
+    "config": {
+      "token": "Freshworks"
+    },
+    "evidence": {
+      "source": "https://github.com/varadharajanv0310/Internship-Tracker",
+      "snapshot": "2026-08-20",
+      "original_method": "https://www.freshworks.com/company/careers/",
+      "association_status": "candidate"
+    }
+  },
+  {
+    "company": "GE HealthCare",
+    "provider": "workday",
+    "url": "https://gehc.wd5.myworkdayjobs.com/gehc_externalsite",
+    "config": {
+      "tenant": "gehc",
+      "site": "gehc_externalsite",
+      "country_name": "India",
+      "early_career": true
+    },
+    "evidence": {
+      "source": "https://github.com/varadharajanv0310/Internship-Tracker",
+      "snapshot": "2026-08-20",
+      "original_method": "tracker apply link",
+      "association_status": "candidate"
+    }
+  },
+  {
+    "company": "Glance",
+    "provider": "greenhouse",
+    "url": "https://job-boards.greenhouse.io/glance",
+    "config": {
+      "token": "glance"
+    },
+    "evidence": {
+      "source": "https://github.com/varadharajanv0310/Internship-Tracker",
+      "snapshot": "2026-08-20",
+      "original_method": "https://glance.com/careers",
+      "association_status": "candidate"
+    }
+  },
+  {
+    "company": "Grafana Labs",
+    "provider": "greenhouse",
+    "url": "https://job-boards.greenhouse.io/grafanalabs",
+    "config": {
+      "token": "grafanalabs"
+    },
+    "evidence": {
+      "source": "https://github.com/varadharajanv0310/Internship-Tracker",
+      "snapshot": "2026-08-20",
+      "original_method": "tracker apply link",
+      "association_status": "candidate"
+    }
+  },
+  {
+    "company": "Hewlett Packard Enterprise",
+    "provider": "workday",
+    "url": "https://hpe.wd5.myworkdayjobs.com/jobsathpe",
+    "config": {
+      "tenant": "hpe",
+      "site": "jobsathpe",
+      "country_name": "India",
+      "early_career": true
+    },
+    "evidence": {
+      "source": "https://github.com/varadharajanv0310/Internship-Tracker",
+      "snapshot": "2026-08-20",
+      "original_method": "tracker apply link",
+      "association_status": "candidate"
+    }
+  },
+  {
+    "company": "Hitachi",
+    "provider": "workday",
+    "url": "https://hitachi.wd1.myworkdayjobs.com/hitachi",
+    "config": {
+      "tenant": "hitachi",
+      "site": "hitachi",
+      "country_name": "India",
+      "early_career": true
+    },
+    "evidence": {
+      "source": "https://github.com/varadharajanv0310/Internship-Tracker",
+      "snapshot": "2026-08-20",
+      "original_method": "tracker apply link",
+      "association_status": "candidate"
+    }
+  },
+  {
+    "company": "HP",
+    "provider": "workday",
+    "url": "https://hp.wd5.myworkdayjobs.com/exteu-ac-careersite",
+    "config": {
+      "tenant": "hp",
+      "site": "exteu-ac-careersite",
+      "country_name": "India",
+      "early_career": true
+    },
+    "evidence": {
+      "source": "https://github.com/varadharajanv0310/Internship-Tracker",
+      "snapshot": "2026-08-20",
+      "original_method": "tracker apply link",
+      "association_status": "candidate"
+    }
+  },
+  {
+    "company": "Intel",
+    "provider": "workday",
+    "url": "https://intel.wd1.myworkdayjobs.com/external",
+    "config": {
+      "tenant": "intel",
+      "site": "external",
+      "country_name": "India",
+      "early_career": true
+    },
+    "evidence": {
+      "source": "https://github.com/varadharajanv0310/Internship-Tracker",
+      "snapshot": "2026-08-20",
+      "original_method": "tracker apply link",
+      "association_status": "candidate"
+    }
+  },
+  {
+    "company": "Kong",
+    "provider": "ashby",
+    "url": "https://jobs.ashbyhq.com/kong",
+    "config": {
+      "token": "kong"
+    },
+    "evidence": {
+      "source": "https://github.com/varadharajanv0310/Internship-Tracker",
+      "snapshot": "2026-08-20",
+      "original_method": "tracker apply link",
+      "association_status": "candidate"
+    }
+  },
+  {
+    "company": "Mastercard",
+    "provider": "workday",
+    "url": "https://mastercard.wd1.myworkdayjobs.com/corporatecareers",
+    "config": {
+      "tenant": "mastercard",
+      "site": "corporatecareers",
+      "country_name": "India",
+      "early_career": true
+    },
+    "evidence": {
+      "source": "https://github.com/varadharajanv0310/Internship-Tracker",
+      "snapshot": "2026-08-20",
+      "original_method": "tracker apply link",
+      "association_status": "candidate"
+    }
+  },
+  {
+    "company": "Micron Technology",
+    "provider": "workday",
+    "url": "https://micron.wd1.myworkdayjobs.com/external",
+    "config": {
+      "tenant": "micron",
+      "site": "external",
+      "country_name": "India",
+      "early_career": true
+    },
+    "evidence": {
+      "source": "https://github.com/varadharajanv0310/Internship-Tracker",
+      "snapshot": "2026-08-20",
+      "original_method": "tracker apply link",
+      "association_status": "candidate"
+    }
+  },
+  {
+    "company": "Mistral AI",
+    "provider": "ashby",
+    "url": "https://jobs.ashbyhq.com/mistral.ai",
+    "config": {
+      "token": "mistral.ai"
+    },
+    "evidence": {
+      "source": "https://github.com/varadharajanv0310/Internship-Tracker",
+      "snapshot": "2026-08-20",
+      "original_method": "tracker apply link",
+      "association_status": "candidate"
+    }
+  },
+  {
+    "company": "NVIDIA",
+    "provider": "workday",
+    "url": "https://nvidia.wd5.myworkdayjobs.com/nvidiaexternalcareersite",
+    "config": {
+      "tenant": "nvidia",
+      "site": "nvidiaexternalcareersite",
+      "country_name": "India",
+      "early_career": true
+    },
+    "evidence": {
+      "source": "https://github.com/varadharajanv0310/Internship-Tracker",
+      "snapshot": "2026-08-20",
+      "original_method": "tracker apply link",
+      "association_status": "candidate"
+    }
+  },
+  {
+    "company": "Philips",
+    "provider": "workday",
+    "url": "https://philips.wd3.myworkdayjobs.com/jobs-and-careers",
+    "config": {
+      "tenant": "philips",
+      "site": "jobs-and-careers",
+      "country_name": "India",
+      "early_career": true
+    },
+    "evidence": {
+      "source": "https://github.com/varadharajanv0310/Internship-Tracker",
+      "snapshot": "2026-08-20",
+      "original_method": "tracker apply link",
+      "association_status": "candidate"
+    }
+  },
+  {
+    "company": "PhonePe",
+    "provider": "greenhouse",
+    "url": "https://job-boards.greenhouse.io/phonepe",
+    "config": {
+      "token": "phonepe"
+    },
+    "evidence": {
+      "source": "https://github.com/varadharajanv0310/Internship-Tracker",
+      "snapshot": "2026-08-20",
+      "original_method": "tracker apply link",
+      "association_status": "candidate"
+    }
+  },
+  {
+    "company": "PTC",
+    "provider": "workday",
+    "url": "https://ptc.wd1.myworkdayjobs.com/ptc",
+    "config": {
+      "tenant": "ptc",
+      "site": "ptc",
+      "country_name": "India",
+      "early_career": true
+    },
+    "evidence": {
+      "source": "https://github.com/varadharajanv0310/Internship-Tracker",
+      "snapshot": "2026-08-20",
+      "original_method": "tracker apply link",
+      "association_status": "candidate"
+    }
+  },
+  {
+    "company": "Razorpay",
+    "provider": "greenhouse",
+    "url": "https://job-boards.greenhouse.io/razorpaysoftwareprivatelimited",
+    "config": {
+      "token": "razorpaysoftwareprivatelimited"
+    },
+    "evidence": {
+      "source": "https://github.com/varadharajanv0310/Internship-Tracker",
+      "snapshot": "2026-08-20",
+      "original_method": "https://razorpay.com/jobs/",
+      "association_status": "candidate"
+    }
+  },
+  {
+    "company": "Salesforce",
+    "provider": "workday",
+    "url": "https://salesforce.wd12.myworkdayjobs.com/external_career_site",
+    "config": {
+      "tenant": "salesforce",
+      "site": "external_career_site",
+      "country_name": "India",
+      "early_career": true
+    },
+    "evidence": {
+      "source": "https://github.com/varadharajanv0310/Internship-Tracker",
+      "snapshot": "2026-08-20",
+      "original_method": "tracker apply link",
+      "association_status": "candidate"
+    }
+  },
+  {
+    "company": "Samsung",
+    "provider": "workday",
+    "url": "https://sec.wd3.myworkdayjobs.com/samsung_careers",
+    "config": {
+      "tenant": "sec",
+      "site": "samsung_careers",
+      "country_name": "India",
+      "early_career": true
+    },
+    "evidence": {
+      "source": "https://github.com/varadharajanv0310/Internship-Tracker",
+      "snapshot": "2026-08-20",
+      "original_method": "tracker apply link",
+      "association_status": "candidate"
+    }
+  },
+  {
+    "company": "Snowflake",
+    "provider": "ashby",
+    "url": "https://jobs.ashbyhq.com/snowflake",
+    "config": {
+      "token": "snowflake"
+    },
+    "evidence": {
+      "source": "https://github.com/varadharajanv0310/Internship-Tracker",
+      "snapshot": "2026-08-20",
+      "original_method": "tracker apply link",
+      "association_status": "candidate"
+    }
+  },
+  {
+    "company": "State Street",
+    "provider": "workday",
+    "url": "https://statestreet.wd1.myworkdayjobs.com/global",
+    "config": {
+      "tenant": "statestreet",
+      "site": "global",
+      "country_name": "India",
+      "early_career": true
+    },
+    "evidence": {
+      "source": "https://github.com/varadharajanv0310/Internship-Tracker",
+      "snapshot": "2026-08-20",
+      "original_method": "tracker apply link",
+      "association_status": "candidate"
+    }
+  }
+]

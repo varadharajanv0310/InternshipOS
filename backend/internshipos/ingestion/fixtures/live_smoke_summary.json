@@ -1,0 +1,200 @@
+[
+  {
+    "provider": "greenhouse",
+    "jobs": 21,
+    "descriptions": 21,
+    "complete": true,
+    "scope": "full",
+    "error": null,
+    "metadata": {
+      "provider": "greenhouse",
+      "source_url": "https://job-boards.greenhouse.io/razorpaysoftwareprivatelimited",
+      "observed_at": "2026-10-02T11:00:58.789638+00:00",
+      "reported_total": 21,
+      "requests": 1,
+      "http_statuses": {
+        "200": 1
+      },
+      "elapsed_seconds": 0.741,
+      "detail_requests": 0,
+      "description_count": 21,
+      "errors": [],
+      "warnings": []
+    }
+  },
+  {
+    "provider": "ashby",
+    "jobs": 8,
+    "descriptions": 8,
+    "complete": true,
+    "scope": "full",
+    "error": null,
+    "metadata": {
+      "provider": "ashby",
+      "source_url": "https://jobs.ashbyhq.com/posthog",
+      "observed_at": "2026-10-02T11:00:59.030704+00:00",
+      "reported_total": null,
+      "requests": 1,
+      "http_statuses": {
+        "200": 1
+      },
+      "elapsed_seconds": 0.77,
+      "detail_requests": 0,
+      "description_count": 8,
+      "errors": [],
+      "warnings": []
+    }
+  },
+  {
+    "provider": "lever",
+    "jobs": 57,
+    "descriptions": 57,
+    "complete": true,
+    "scope": "full",
+    "error": null,
+    "metadata": {
+      "provider": "lever",
+      "source_url": "https://jobs.lever.co/meesho",
+      "observed_at": "2026-10-02T11:01:03.905352+00:00",
+      "reported_total": null,
+      "requests": 1,
+      "http_statuses": {
+        "200": 1
+      },
+      "elapsed_seconds": 5.438,
+      "detail_requests": 0,
+      "description_count": 57,
+      "errors": [],
+      "warnings": []
+    }
+  },
+  {
+    "provider": "unstop",
+    "jobs": 20,
+    "descriptions": 20,
+    "complete": true,
+    "scope": "discovery",
+    "error": null,
+    "metadata": {
+      "provider": "unstop",
+      "source_url": "https://unstop.com/internships",
+      "observed_at": "2026-10-02T11:00:59.442795+00:00",
+      "reported_total": 10000,
+      "requests": 1,
+      "http_statuses": {
+        "200": 1
+      },
+      "elapsed_seconds": 0.447,
+      "detail_requests": 0,
+      "description_count": 20,
+      "errors": [],
+      "warnings": [
+        "bounded_discovery_window; not_a_full_inventory"
+      ]
+    }
+  },
+  {
+    "provider": "freehire",
+    "jobs": 3,
+    "descriptions": 3,
+    "complete": true,
+    "scope": "discovery",
+    "error": null,
+    "metadata": {
+      "provider": "freehire",
+      "source_url": "https://freehire.me/api/v1/agent/jobs/search",
+      "observed_at": "2026-10-02T11:00:59.653028+00:00",
+      "reported_total": 1432,
+      "requests": 1,
+      "http_statuses": {
+        "200": 1
+      },
+      "elapsed_seconds": 0.414,
+      "detail_requests": 0,
+      "description_count": 3,
+      "errors": [],
+      "warnings": [
+        "bounded_discovery_window; not_a_full_inventory"
+      ]
+    }
+  },
+  {
+    "provider": "workday",
+    "jobs": 20,
+    "descriptions": 2,
+    "complete": false,
+    "scope": "query",
+    "error": "detail_limit_reached; page_limit_reached",
+    "metadata": {
+      "provider": "workday",
+      "source_url": "https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite",
+      "observed_at": "2026-10-02T11:01:02.971907+00:00",
+      "reported_total": 1029,
+      "requests": 3,
+      "http_statuses": {
+        "200": 3
+      },
+      "elapsed_seconds": 3.321,
+      "detail_requests": 2,
+      "description_count": 2,
+      "errors": [
+        "detail_limit_reached",
+        "page_limit_reached"
+      ],
+      "warnings": []
+    }
+  },
+  {
+    "provider": "eightfold",
+    "jobs": 10,
+    "descriptions": 2,
+    "complete": false,
+    "scope": "query",
+    "error": "detail_limit_reached; page_limit_reached",
+    "metadata": {
+      "provider": "eightfold",
+      "source_url": "https://apply.careers.microsoft.com/careers",
+      "observed_at": "2026-10-02T11:01:03.195862+00:00",
+      "reported_total": 103,
+      "requests": 4,
+      "http_statuses": {
+        "429": 1,
+        "200": 3
+      },
+      "elapsed_seconds": 3.337,
+      "detail_requests": 2,
+      "description_count": 2,
+      "errors": [
+        "detail_limit_reached",
+        "page_limit_reached"
+      ],
+      "warnings": []
+    }
+  },
+  {
+    "provider": "amazon",
+    "jobs": 100,
+    "descriptions": 100,
+    "complete": false,
+    "scope": "query",
+    "error": "page_limit_reached",
+    "metadata": {
+      "provider": "amazon",
+      "source_url": "https://www.amazon.jobs/en/search",
+      "observed_at": "2026-10-02T11:02:43.626036+00:00",
+      "reported_total": 363,
+      "requests": 1,
+      "http_statuses": {
+        "200": 1
+      },
+      "elapsed_seconds": 3.157,
+      "detail_requests": 0,
+      "description_count": 100,
+      "errors": [
+        "page_limit_reached"
+      ],
+      "warnings": []
+    },
+    "note": "Corrected compression negotiation. This specific run used loc_query=India, which did not constrain country; country-facet correction separately observed below."
+  }
+]

@@ -1,0 +1,11 @@
+[project]
+name = "internshipos"
+version = "0.1.0"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "fastapi==0.116.2", "uvicorn[standard]==0.36.0", "SQLAlchemy==2.0.43",
+  "psycopg[binary]>=3.2,<4", "httpx==0.28.1", "pydantic==2.11.9",
+  "cryptography>=46,<48", "python-multipart>=0.0.22,<1",
+  "beautifulsoup4>=4.12,<5", "defusedxml>=0.7,<1", "python-dotenv>=1,<2",
+  "reportlab>=4.4,<5", "tzdata>=2025,<2027"
+]

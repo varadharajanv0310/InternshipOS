@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "InternshipOS — Capture & Apply",
+  "version": "0.1.0",
+  "description": "Save public opportunities, prepare factual applications, and capture submission receipts.",
+  "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": ["http://127.0.0.1:8000/*", "http://localhost:8000/*"],
+  "optional_host_permissions": ["https://*/*", "http://localhost/*", "http://127.0.0.1/*"],
+  "action": {"default_popup": "popup.html", "default_title": "InternshipOS"},
+  "content_security_policy": {"extension_pages": "script-src 'self'; object-src 'self'"}
+}

@@ -1,0 +1,48 @@
+{
+  "observation_date": "2026-10-02",
+  "amazon": {
+    "endpoint": "https://www.amazon.jobs/en/search.json",
+    "base_query": "intern",
+    "result_limit": 3,
+    "incorrect_country_parameter": {
+      "country[]": "IND",
+      "reported_hits": 363,
+      "returned_country_codes": [
+        "ESP",
+        "ESP",
+        "GBR"
+      ]
+    },
+    "correct_country_parameter": {
+      "normalized_country_code[]": "IND",
+      "reported_hits": 3,
+      "returned_country_codes": [
+        "IND",
+        "IND",
+        "IND"
+      ],
+      "returned_locations": [
+        "IN, KA, Bengaluru",
+        "IN, KA, Bengaluru",
+        "IN, KA, Bengaluru"
+      ]
+    },
+    "implementation": "Seeds now use normalized_country_code[]=IND; Accept-Encoding identity negotiates a decodable response."
+  },
+  "workday": {
+    "endpoint": "https://nvidia.wd5.myworkdayjobs.com/wday/cxs/nvidia/NVIDIAExternalCareerSite/jobs",
+    "observed_country_facet_parameter": "locationHierarchy1",
+    "observed_india_id": "2fcb99c455831013ea52b82135ba3266",
+    "observed_early_career_parameter": "workerSubType",
+    "observed_labels": [
+      "Intern (Fixed Term)",
+      "New College Graduate"
+    ],
+    "implementation": "IDs are discovered dynamically per tenant, never hard-coded; nested facets supported and query coverage retained."
+  },
+  "validation": {
+    "focused_tests_passed": 37,
+    "command": "python -m pytest tests/test_ingestion.py -q",
+    "live_scope": "Small bounded requests; no national coverage or uptime claim"
+  }
+}

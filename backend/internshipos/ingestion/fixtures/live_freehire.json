@@ -1,0 +1,211 @@
+{
+  "jobs": [
+    {
+      "external_id": "data-analyst-intern-saarthi-7biqnnf5",
+      "title": "Data Analyst Intern",
+      "description": "💰 Salary: Not specified\n📍 Location: Bengaluru\n💼 Mode: Onsite\n🎓 Level: Fresher / Entry level\n🔗 Apply Here\n#FresherJobs #OffCampus2026 #Hiring\n🔔 Join telegram for more: https://t.me/addlist/_vUFBgPI-E4zN2Nl",
+      "description_html": "<p>💰 Salary: Not specified<br/>📍 Location: Bengaluru<br/>💼 Mode: Onsite<br/>🎓 Level: Fresher / Entry level</p><p>🔗 Apply Here</p><p>#FresherJobs #OffCampus2026 #Hiring</p><p>🔔 Join telegram for more: https://t.me/addlist/_vUFBgPI-E4zN2Nl</p>",
+      "location": "Bengaluru",
+      "country": null,
+      "work_mode": "unknown",
+      "apply_url": "https://t.me/cs_algo/21235?utm_source=freehire.me",
+      "canonical_url": "https://t.me/cs_algo/21235?utm_source=freehire.me",
+      "requisition_id": null,
+      "posted_at": "2026-10-02T07:26:49Z",
+      "deadline": null,
+      "employment_type": null,
+      "compensation": {
+        "kind": "unknown",
+        "label": null,
+        "min": null,
+        "max": null,
+        "currency": null,
+        "period": null
+      },
+      "skills": [],
+      "company_name": "Saarthi",
+      "company_domain": null,
+      "raw": {
+        "source_payload": {
+          "public_slug": "data-analyst-intern-saarthi-7biqnnf5",
+          "source": "telegram",
+          "manually_added": false,
+          "external_id": "cs_algo/21235/0",
+          "url": "https://t.me/cs_algo/21235?utm_source=freehire.me",
+          "title": "Data Analyst Intern",
+          "company": "Saarthi",
+          "company_slug": "saarthi",
+          "location": "Bengaluru",
+          "description": "<p>💰 Salary: Not specified<br>📍 Location: Bengaluru<br>💼 Mode: Onsite<br>🎓 Level: Fresher / Entry level</p><p>🔗 Apply Here</p><p>#FresherJobs #OffCampus2026 #Hiring</p><p>🔔 Join telegram for more: https://t.me/addlist/_vUFBgPI-E4zN2Nl</p>",
+          "countries": [
+            "in"
+          ],
+          "regions": [
+            "apac"
+          ],
+          "skills": [],
+          "cities": [
+            "Bengaluru"
+          ],
+          "collections": [],
+          "is_tech": "tech",
+          "posted_at": "2026-10-02T07:26:49Z",
+          "created_at": "2026-10-02T07:50:22Z",
+          "updated_at": "2026-10-02T07:50:48Z",
+          "last_seen_at": "2026-10-02T07:50:22Z",
+          "closed_at": null,
+          "enrichment": {
+            "summary": "Saarthi is hiring a Data Analyst Intern for an onsite position in Bengaluru. The role targets freshers/entry-level candidates, but the posting gives no details on responsibilities, technologies, or salary.",
+            "employment_type": "internship",
+            "seniority": "intern",
+            "category": "data_analytics",
+            "posting_language": "en"
+          },
+          "enriched_at": "2026-10-02T07:50:48Z",
+          "enrichment_version": 2,
+          "view_count": 0,
+          "applied_count": 0,
+          "upvote_count": 0,
+          "downvote_count": 0,
+          "my_vote": 0,
+          "reality": {
+            "class": "fresh",
+            "age_days": 0,
+            "repost_count": 1,
+            "mass_posting_count": 1,
+            "fake_freshness": false
+          }
+        },
+        "provider": "freehire",
+        "source_url": "https://freehire.me/api/v1/agent/jobs/search",
+        "description_complete": true
+      },
+      "evidence": [
+        {
+          "kind": "aggregator",
+          "source_url": "https://freehire.me/job/data-analyst-intern-saarthi-7biqnnf5",
+          "original_provider": "telegram",
+          "original_external_id": "cs_algo/21235/0",
+          "upstream_enrichment_is_inferred": true
+        }
+      ]
+    },
+    {
+      "external_id": "ai-engineer-internship-margadeshaka-e76hyfsq",
+      "title": "AI Engineer Internship",
+      "description": "AI Engineer Internship\n💰 Salary: Not specified\n📍 Location: Chandigarh\n💼 Mode: Onsite\n🎓 Level: Fresher / Entry level\n🔗 Apply Here\n#FresherJobs #OffCampus2026 #Hiring",
+      "description_html": "<p>AI Engineer Internship</p><p>💰 Salary: Not specified<br/>📍 Location: Chandigarh<br/>💼 Mode: Onsite<br/>🎓 Level: Fresher / Entry level</p><p>🔗 Apply Here</p><p>#FresherJobs #OffCampus2026 #Hiring</p>",
+      "location": "Chandigarh",
+      "country": null,
+      "work_mode": "unknown",
+      "apply_url": "https://t.me/cs_algo/21234?utm_source=freehire.me",
+      "canonical_url": "https://t.me/cs_algo/21234?utm_source=freehire.me",
+      "requisition_id": null,
+      "posted_at": "2026-10-02T07:24:32Z",
+      "deadline": null,
+      "employment_type": null,
+      "compensation": {
+        "kind": "unknown",
+        "label": null,
+        "min": null,
+        "max": null,
+        "currency": null,
+        "period": null
+      },
+      "skills": [],
+      "company_name": "Margadeshaka",
+      "company_domain": null,
+      "raw": {
+        "source_payload": {
+          "public_slug": "ai-engineer-internship-margadeshaka-e76hyfsq",
+          "source": "telegram",
+          "manually_added": false,
+          "external_id": "cs_algo/21234/0",
+          "url": "https://t.me/cs_algo/21234?utm_source=freehire.me",
+          "title": "AI Engineer Internship",
+          "company": "Margadeshaka",
+          "company_slug": "margadeshaka",
+          "location": "Chandigarh",
+          "description": "<p>AI Engineer Internship</p><p>💰 Salary: Not specified<br>📍 Location: Chandigarh<br>💼 Mode: Onsite<br>🎓 Level: Fresher / Entry level</p><p>🔗 Apply Here</p><p>#FresherJobs #OffCampus2026 #Hiring</p>",
+          "countries": [
+            "in"
+          ],
+          "regions": [
+            "apac"
+          ],
+          "skills": [],
+          "cities": [
+            "Chandigarh"
+          ],
+          "collections": [],
+          "is_tech": "tech",
+          "posted_at": "2026-10-02T07:24:32Z",
+          "created_at": "2026-10-02T07:50:11Z",
+          "updated_at": "2026-10-02T07:50:51Z",
+          "last_seen_at": "2026-10-02T07:50:11Z",
+          "closed_at": null,
+          "enrichment": {
+            "summary": "An onsite AI engineer internship at Margadeshaka in Chandigarh, open to fresher/entry-level candidates. The posting gives no details on technologies, salary, or day-to-day responsibilities.",
+            "employment_type": "internship",
+            "seniority": "intern",
+            "category": "ai_engineering",
+            "posting_language": "en",
+            "requirements": [
+              {
+                "text": "Fresher / entry-level candidate",
+                "priority": "required"
+              }
+            ]
+          },
+          "enriched_at": "2026-10-02T07:50:51Z",
+          "enrichment_version": 2,
+          "view_count": 0,
+          "applied_count": 0,
+          "upvote_count": 0,
+          "downvote_count": 0,
+          "my_vote": 0,
+          "reality": {
+            "class": "fresh",
+            "age_days": 0,
+            "repost_count": 1,
+            "mass_posting_count": 1,
+            "fake_freshness": false
+          }
+        },
+        "provider": "freehire",
+        "source_url": "https://freehire.me/api/v1/agent/jobs/search",
+        "description_complete": true
+      },
+      "evidence": [
+        {
+          "kind": "aggregator",
+          "source_url": "https://freehire.me/job/ai-engineer-internship-margadeshaka-e76hyfsq",
+          "original_provider": "telegram",
+          "original_external_id": "cs_algo/21234/0",
+          "upstream_enrichment_is_inferred": true
+        }
+      ]
+    }
+  ],
+  "complete": true,
+  "error": null,
+  "coverage_scope": "discovery",
+  "observed_count": 3,
+  "metadata": {
+    "provider": "freehire",
+    "source_url": "https://freehire.me/api/v1/agent/jobs/search",
+    "observed_at": "2026-10-02T11:00:59.653028+00:00",
+    "reported_total": 1432,
+    "requests": 1,
+    "http_statuses": {
+      "200": 1
+    },
+    "elapsed_seconds": 0.414,
+    "detail_requests": 0,
+    "description_count": 3,
+    "errors": [],
+    "warnings": [
+      "bounded_discovery_window; not_a_full_inventory"
+    ]
+  }
+}

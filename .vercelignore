@@ -1,0 +1,12 @@
+research/
+data/
+backend/.venv/
+backend/.jobspy-venv/
+frontend/node_modules/
+frontend/.test-build/
+extension/
+**/__pycache__/
+.pytest_cache/
+.env
+.env.*
+*.log

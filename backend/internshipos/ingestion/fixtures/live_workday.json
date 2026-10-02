@@ -1,0 +1,280 @@
+{
+  "jobs": [
+    {
+      "external_id": "JR2024692",
+      "title": "Custom SOC Intern - 2027",
+      "description": "NVIDIA NVLink™ Fusion delivers industry-leading AI scale-up and scale-out performance with NVIDIA technology plus semi-custom ASICs or CPUs.\nThese custom ASICs are tailored to meet unique performance, power, and feature requirements, allowing for deeper customization of elements like I/O capabilities, memory interfaces, and workload-specific accelerators. NVIDIA custom SOC team (Nvlink Fusion team) aims to create the best solutions for customers based on NVIDIA Industry-leading technologies. We are looking to grow our team with the smartest people in the world, join us if you want to learn about the world’s leading custom SOC solutions.\nWhat you’ll be doing:\nFunctional and IO IP development\nDifferent IPs integration and release for custom silicon\nBuild SOC or sub-system, signoff function/performance and QoR\nMethodology improvement for high-efficiency custom silicon development\nWhat we need to see:\nPursuing Master candidate in EE/CS or related field\nBasic C/C++ knowledge is a must\nScripting knowledge (Perl/Python/Shell)\nBasic digital circuit/verilog knowledge is a must\nBasic verification knowledge is a must\nWays to stand out from the crowd:\nQuick learner, willing to take challenges in a new field\nFluent English and good communication skills\nFamiliar with VCS, system Verilog and UVM\nBackground with ASIC design flow, like synthesis\nFamiliar with AMBA protocols such as AXI, ACE, CHI, ATB, etc.",
+      "description_html": "<p>NVIDIA NVLink™ Fusion delivers industry-leading AI scale-up and scale-out performance with NVIDIA technology plus semi-custom ASICs or CPUs. <span>These custom ASICs are tailored to meet unique performance, power, and feature requirements, allowing for deeper customization of elements like I/O capabilities, memory interfaces, and workload-specific accelerators. NVIDIA custom SOC team (Nvlink Fusion team) aims to create the best solutions for customers based on NVIDIA Industry-leading technologies. We are looking to grow our team with the smartest people in the world, join us if you want to learn about the world’s leading custom SOC solutions.</span></p><p><span> </span></p><p><span><b>What you’ll be doing:</b></span></p><ul><li><p><span><span>Functional and IO IP development</span></span></p></li><li><p><span><span>Different IPs integration and release for custom silicon</span></span></p></li><li><p><span><span>Build SOC or sub-system, signoff function/performance and QoR</span></span></p></li><li><p><span><span>Methodology improvement for high-efficiency custom silicon development</span></span></p></li></ul><p><span> </span></p><p><span><b>What we need to see: </b></span></p><ul><li><p><span><span>Pursuing Master candidate in EE/CS or related field</span></span></p></li><li><p><span><span>Basic C/C++ knowledge is a must</span></span></p></li><li><p><span><span>Scripting knowledge (Perl/Python/Shell)</span></span></p></li><li><p><span><span>Basic digital circuit/verilog knowledge is a must</span></span></p></li><li><p><span><span>Basic verification knowledge is a must</span></span></p></li></ul><p><span> </span></p><p><span><b>Ways to stand out from the crowd:</b></span></p><ul><li><p><span><span>Quick learner, willing to take challenges in a new field</span></span></p></li><li><p><span><span>Fluent English and good communication skills</span></span></p></li><li><p><span><span>Familiar with VCS, system Verilog and UVM</span></span></p></li><li><p><span><span>Background with ASIC design flow, like synthesis</span></span></p></li><li><p><span><span>Familiar with AMBA protocols such as AXI, ACE, CHI, ATB, etc.</span></span></p></li></ul><p></p><p></p><p></p><p></p>",
+      "location": "China, Shanghai",
+      "country": null,
+      "work_mode": "unknown",
+      "apply_url": "https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite/job/China-Shanghai/Custom-SOC-Intern---2027_JR2024692",
+      "canonical_url": "https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite/job/China-Shanghai/Custom-SOC-Intern---2027_JR2024692",
+      "requisition_id": "JR2024692",
+      "posted_at": "2026-09-16",
+      "deadline": null,
+      "employment_type": "Full time",
+      "compensation": {
+        "kind": "unknown",
+        "label": null,
+        "min": null,
+        "max": null,
+        "currency": null,
+        "period": null
+      },
+      "skills": [],
+      "company_name": "NVIDIA",
+      "company_domain": "nvidia.com",
+      "raw": {
+        "source_payload": {
+          "listing": {
+            "title": "Custom SOC Intern - 2027",
+            "externalPath": "/job/China-Shanghai/Custom-SOC-Intern---2027_JR2024692",
+            "locationsText": "China, Shanghai",
+            "postedOn": "Posted 16 Days Ago",
+            "bulletFields": [
+              "JR2024692"
+            ]
+          },
+          "detail": {
+            "jobPostingInfo": {
+              "id": "19aa5bb61d0a103d40df4b0058730000",
+              "title": "Custom SOC Intern - 2027",
+              "jobDescription": "<p>NVIDIA NVLink™ Fusion delivers industry-leading AI scale-up and scale-out performance with NVIDIA technology plus semi-custom ASICs or CPUs. <span>These custom ASICs are tailored to meet unique performance, power, and feature requirements, allowing for deeper customization of elements like I/O capabilities, memory interfaces, and workload-specific accelerators. NVIDIA custom SOC team (Nvlink Fusion team) aims to create the best solutions for customers based on NVIDIA Industry-leading technologies. We are looking to grow our team with the smartest people in the world, join us if you want to learn about the world’s leading custom SOC solutions.</span></p><p><span> </span></p><p><span><b>What you’ll be doing:</b></span></p><ul><li><p><span><span>Functional and IO IP development</span></span></p></li><li><p><span><span>Different IPs integration and release for custom silicon</span></span></p></li><li><p><span><span>Build SOC or sub-system, signoff function/performance and QoR</span></span></p></li><li><p><span><span>Methodology improvement for high-efficiency custom silicon development</span></span></p></li></ul><p><span> </span></p><p><span><b>What we need to see: </b></span></p><ul><li><p><span><span>Pursuing Master candidate in EE/CS or related field</span></span></p></li><li><p><span><span>Basic C/C&#43;&#43; knowledge is a must</span></span></p></li><li><p><span><span>Scripting knowledge (Perl/Python/Shell)</span></span></p></li><li><p><span><span>Basic digital circuit/verilog knowledge is a must</span></span></p></li><li><p><span><span>Basic verification knowledge is a must</span></span></p></li></ul><p><span> </span></p><p><span><b>Ways to stand out from the crowd:</b></span></p><ul><li><p><span><span>Quick learner, willing to take challenges in a new field</span></span></p></li><li><p><span><span>Fluent English and good communication skills</span></span></p></li><li><p><span><span>Familiar with VCS, system Verilog and UVM</span></span></p></li><li><p><span><span>Background with ASIC design flow, like synthesis</span></span></p></li><li><p><span><span>Familiar with AMBA protocols such as AXI, ACE, CHI, ATB, etc.</span></span></p></li></ul><p style=\"text-align:inherit\"></p><p style=\"text-align:inherit\"></p><p style=\"text-align:inherit\"></p><p style=\"text-align:inherit\"></p>",
+              "location": "China, Shanghai",
+              "postedOn": "Posted 16 Days Ago",
+              "startDate": "2026-09-16",
+              "timeType": "Full time",
+              "jobReqId": "JR2024692",
+              "jobPostingId": "Custom-SOC-Intern---2027_JR2024692",
+              "jobPostingSiteId": "NVIDIAExternalCareerSite",
+              "country": {
+                "descriptor": "China",
+                "id": "6cb77610a8a543aea2d6bc10457e35d4"
+              },
+              "canApply": true,
+              "posted": true,
+              "includeResumeParsing": true,
+              "jobRequisitionLocation": {
+                "descriptor": "China, Shanghai",
+                "country": {
+                  "descriptor": "China",
+                  "id": "6cb77610a8a543aea2d6bc10457e35d4",
+                  "alpha2Code": "CN"
+                }
+              },
+              "externalUrl": "https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite/job/China-Shanghai/Custom-SOC-Intern---2027_JR2024692",
+              "questionnaireId": "2f2764b3a82910064296831695150000"
+            },
+            "hiringOrganization": {
+              "name": "CN05 NVIDIA Shanghai WFOE",
+              "url": ""
+            },
+            "similarJobs": [
+              {
+                "title": "SOC Design Team Methodology Intern - 2027",
+                "externalPath": "/job/China-Shanghai/SOC-Design-Team-Methodology-Intern---2027_JR2024861",
+                "timeType": "Full time",
+                "locationsText": "China, Shanghai",
+                "postedOn": "Posted 27 Days Ago",
+                "startDate": "2026-09-05"
+              },
+              {
+                "title": "ASIC Design and Verification Intern, SOC - 2027",
+                "externalPath": "/job/China-Shanghai/ASIC-Design-and-Verification-Intern--SOC---2027_JR2024860",
+                "timeType": "Full time",
+                "locationsText": "China, Shanghai",
+                "postedOn": "Posted 28 Days Ago",
+                "startDate": "2026-09-04"
+              },
+              {
+                "title": "Senior Custom SOC IP Verification Engineer",
+                "externalPath": "/job/China-Shanghai/Senior-Custom-SOC-IP-Verification-Engineer_JR2019424",
+                "timeType": "Full time",
+                "locationsText": "China, Shanghai",
+                "postedOn": "Posted 30+ Days Ago",
+                "startDate": "2026-06-22"
+              },
+              {
+                "title": "ASIC Design Engineer, Clocks",
+                "externalPath": "/job/China-Shanghai/ASIC-Design-Engineer--Clocks_JR2020494",
+                "timeType": "Full time",
+                "locationsText": "China, Shanghai",
+                "postedOn": "Posted 30+ Days Ago",
+                "startDate": "2026-08-03"
+              },
+              {
+                "title": "ASIC Engineering Intern, Networking Chip Design - 2027",
+                "externalPath": "/job/China-Shanghai/ASIC-Engineering-Intern--Networking-Chip-Design---2027_JR2023920-1",
+                "timeType": "Full time",
+                "locationsText": "China, Shanghai",
+                "postedOn": "Posted 30+ Days Ago",
+                "startDate": "2026-08-25"
+              }
+            ],
+            "userAuthenticated": false
+          }
+        },
+        "provider": "workday",
+        "source_url": "https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite",
+        "description_complete": true
+      },
+      "evidence": [
+        {
+          "kind": "source_record",
+          "source_url": "https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite",
+          "provider": "workday"
+        }
+      ]
+    },
+    {
+      "external_id": "JR2026240",
+      "title": "Director, International Tax Planning",
+      "description": "NVIDIA has been transforming computer graphics, PC gaming, and accelerated computing for more than 25 years. It’s a unique legacy of innovation that’s fueled by great technology—and amazing people. Today, we’re tapping into the unlimited potential of AI to define the next era of computing. An era in which our GPU acts as the brains of computers, robots, and self-driving cars that can understand the world. Doing what’s never been done before takes vision, innovation, and the world’s best talent. As an NVIDIAN, you’ll be immersed in a diverse, supportive environment where everyone is inspired to do their best work. Come join the team and see how you can make a lasting impact on the world.\nWe are hiring a Director, International Tax Planning, to join our experienced team located at our headquarters in Santa Clara, California. This role presents an outstanding opportunity for an experienced tax professional to lead planning for NVIDIA’s supply chain and global operations infrastructure. You will serve as a key leader within our tax organization and a trusted advisor and strategist for a critical part of the business. This is your chance to lead tax planning at the technological forefront!\nWhat you'll be doing:\nLead NVIDIA's international tax strategy for global supply chain and infrastructure, continually refining it as the business, laws and regulations change.\nServe as one of NVIDIA's tax experts, providing strategic advice and partnering with Finance, Trade, Legal, and Operations teams to ensure compliance.\nProvide strategic tax advice to senior Finance and business leaders to guide and support their decision-making.\nStrategize and develop solutions for large, complex projects and systems changes, determining tax treatment based on deep technical expertise and business judgment.\nBuild positive relationships with business collaborators across NVIDIA, both in the US and internationally, ensuring Tax is engaged and represented for important business decisions.\nStructure, draft, and negotiate commercial and intercompany agreements covering supply, warehousing, distribution, manufacturing services, and infrastructure arrangements.\nManage external counsel and advisors, engaging them on technical issues while coordinating scope and budget.\nWhat we need to see:\nCPA or Juris Doctor (JD) degree and LL.M. in Taxation from an accredited US law school.\n15+ overall years at a major law firm, Big 4 accounting firm, or an in-house tax department of a multinational corporation.\n4+ years of leadership experience.\nStrong technical knowledge of US and international tax rules, including R&D and investment credits, expense and capitalization rules, permanent establishment, Subpart F, GILTI, FDII, and FTC utilization.\nProven track record providing operational leadership and strategic tax guidance for a complex, cross-border business area.\nOutstanding communication and interpersonal skills, demonstrating the capability to influence senior tax and non-tax collaborators across functions, regions, and time zones.\nSolid understanding of the interaction between direct tax, indirect tax, transfer pricing, and customs.\nStrong project management skills, with the ability to lead cross-functional workstreams to completion and deliver results.\nWays to stand out from the crowd:\nBachelor's degree in Accounting, or equivalent experience, with an understanding of accounting for taxes under US GAAP.\nHands-on experience with customs-privileged regimes such as IMMEX/maquiladora, free trade zones, or bonded warehouses.\nExperience presenting to senior executive or board-level audiences on tax matters.\nFamiliarity with SAP, particularly intercompany and inventory flows, and experience supporting an ERP transformation.\nProficiency with AI tools and automation as part of your everyday work.\nWidely considered to be one of the technology world’s most desirable employers, NVIDIA offers highly competitive salaries and a comprehensive benefits package. As you plan your future, see what we can offer to you and your family\nwww.nvidiabenefits.com/\nYour base salary will be determined based on your location, experience, and the pay of employees in similar positions. The base salary range is 240,000 USD - 379,500 USD.\nYou will also be eligible for equity and\nbenefits\n.\nApplications for this job will be accepted at least until October 2, 2026.\nThis posting is for an existing vacancy.\nNVIDIA uses AI tools in its recruiting processes.\nNVIDIA is committed to fostering an inclusive work environment and proud to be an equal opportunity employer. As we highly value diversity in our current and future employees, we do not discriminate (including in our hiring and promotion practices) on the basis of race, religion, color, national origin, gender, gender expression, sexual orientation, age, marital status, veteran status, disability status or any other characteristic protected by law.",
+      "description_html": "<p>NVIDIA has been transforming computer graphics, PC gaming, and accelerated computing for more than 25 years. It’s a unique legacy of innovation that’s fueled by great technology—and amazing people. Today, we’re tapping into the unlimited potential of AI to define the next era of computing. An era in which our GPU acts as the brains of computers, robots, and self-driving cars that can understand the world. Doing what’s never been done before takes vision, innovation, and the world’s best talent. As an NVIDIAN, you’ll be immersed in a diverse, supportive environment where everyone is inspired to do their best work. Come join the team and see how you can make a lasting impact on the world.</p><br/><p>We are hiring a Director, International Tax Planning, to join our experienced team located at our headquarters in Santa Clara, California. This role presents an outstanding opportunity for an experienced tax professional to lead planning for NVIDIA’s supply chain and global operations infrastructure. You will serve as a key leader within our tax organization and a trusted advisor and strategist for a critical part of the business. This is your chance to lead tax planning at the technological forefront!</p><br/><p><b>What you'll be doing:</b></p><ul><li>Lead NVIDIA's international tax strategy for global supply chain and infrastructure, continually refining it as the business, laws and regulations change.</li><li>Serve as one of NVIDIA's tax experts, providing strategic advice and partnering with Finance, Trade, Legal, and Operations teams to ensure compliance.</li><li>Provide strategic tax advice to senior Finance and business leaders to guide and support their decision-making.</li><li>Strategize and develop solutions for large, complex projects and systems changes, determining tax treatment based on deep technical expertise and business judgment.</li><li>Build positive relationships with business collaborators across NVIDIA, both in the US and internationally, ensuring Tax is engaged and represented for important business decisions.</li><li>Structure, draft, and negotiate commercial and intercompany agreements covering supply, warehousing, distribution, manufacturing services, and infrastructure arrangements.</li><li>Manage external counsel and advisors, engaging them on technical issues while coordinating scope and budget.</li></ul><br/><p><b>What we need to see:</b></p><ul><li>CPA or Juris Doctor (JD) degree and LL.M. in Taxation from an accredited US law school.</li><li>15+ overall years at a major law firm, Big 4 accounting firm, or an in-house tax department of a multinational corporation.</li><li>4+ years of leadership experience.</li><li>Strong technical knowledge of US and international tax rules, including R&amp;D and investment credits, expense and capitalization rules, permanent establishment, Subpart F, GILTI, FDII, and FTC utilization.</li><li>Proven track record providing operational leadership and strategic tax guidance for a complex, cross-border business area.</li><li>Outstanding communication and interpersonal skills, demonstrating the capability to influence senior tax and non-tax collaborators across functions, regions, and time zones.</li><li>Solid understanding of the interaction between direct tax, indirect tax, transfer pricing, and customs.</li><li>Strong project management skills, with the ability to lead cross-functional workstreams to completion and deliver results.</li></ul><br/><p><b>Ways to stand out from the crowd:</b></p><ul><li>Bachelor's degree in Accounting, or equivalent experience, with an understanding of accounting for taxes under US GAAP.</li><li>Hands-on experience with customs-privileged regimes such as IMMEX/maquiladora, free trade zones, or bonded warehouses.</li><li>Experience presenting to senior executive or board-level audiences on tax matters.</li><li>Familiarity with SAP, particularly intercompany and inventory flows, and experience supporting an ERP transformation.</li><li>Proficiency with AI tools and automation as part of your everyday work.</li></ul><br/><p>Widely considered to be one of the technology world’s most desirable employers, NVIDIA offers highly competitive salaries and a comprehensive benefits package. As you plan your future, see what we can offer to you and your family <a href=\"http://www.nvidiabenefits.com/\" rel=\"noopener noreferrer\"><span>www.nvidiabenefits.com/</span></a> </p><p></p><p></p>Your base salary will be determined based on your location, experience, and the pay of employees in similar positions. The base salary range is 240,000 USD - 379,500 USD.<div><div><div><div><div><div><div><p></p><p><span>You will also be eligible for equity and <a href=\"https://www.nvidia.com/en-us/benefits/\" rel=\"noopener noreferrer\">benefits</a>.</span></p><p></p></div></div></div></div></div></div></div>Applications for this job will be accepted at least until October 2, 2026.<p></p><p>This posting is for an existing vacancy. </p><p>NVIDIA uses AI tools in its recruiting processes.</p><p></p>NVIDIA is committed to fostering an inclusive work environment and proud to be an equal opportunity employer. As we highly value diversity in our current and future employees, we do not discriminate (including in our hiring and promotion practices) on the basis of race, religion, color, national origin, gender, gender expression, sexual orientation, age, marital status, veteran status, disability status or any other characteristic protected by law.<p></p><p></p>",
+      "location": "US, CA, Santa Clara",
+      "country": null,
+      "work_mode": "unknown",
+      "apply_url": "https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite/job/US-CA-Santa-Clara/Director--International-Tax-Planning_JR2026240",
+      "canonical_url": "https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite/job/US-CA-Santa-Clara/Director--International-Tax-Planning_JR2026240",
+      "requisition_id": "JR2026240",
+      "posted_at": "2026-09-28",
+      "deadline": null,
+      "employment_type": "Full time",
+      "compensation": {
+        "kind": "unknown",
+        "label": null,
+        "min": null,
+        "max": null,
+        "currency": null,
+        "period": null
+      },
+      "skills": [],
+      "company_name": "NVIDIA",
+      "company_domain": "nvidia.com",
+      "raw": {
+        "source_payload": {
+          "listing": {
+            "title": "Director, International Tax Planning",
+            "externalPath": "/job/US-CA-Santa-Clara/Director--International-Tax-Planning_JR2026240",
+            "locationsText": "US, CA, Santa Clara",
+            "postedOn": "Posted 4 Days Ago",
+            "bulletFields": [
+              "JR2026240"
+            ]
+          },
+          "detail": {
+            "jobPostingInfo": {
+              "id": "9f7f509fd48110322619a7680d8d0000",
+              "title": "Director, International Tax Planning",
+              "jobDescription": "<p>NVIDIA has been transforming computer graphics, PC gaming, and accelerated computing for more than 25 years. It’s a unique legacy of innovation that’s fueled by great technology—and amazing people. Today, we’re tapping into the unlimited potential of AI to define the next era of computing. An era in which our GPU acts as the brains of computers, robots, and self-driving cars that can understand the world. Doing what’s never been done before takes vision, innovation, and the world’s best talent. As an NVIDIAN, you’ll be immersed in a diverse, supportive environment where everyone is inspired to do their best work. Come join the team and see how you can make a lasting impact on the world.</p><br /><p>We are hiring a Director, International Tax Planning, to join our experienced team located at our headquarters in Santa Clara, California. This role presents an outstanding opportunity for an experienced tax professional to lead planning for NVIDIA’s supply chain and global operations infrastructure. You will serve as a key leader within our tax organization and a trusted advisor and strategist for a critical part of the business. This is your chance to lead tax planning at the technological forefront!</p><br /><p><b>What you&#39;ll be doing:</b></p><ul><li>Lead NVIDIA&#39;s international tax strategy for global supply chain and infrastructure, continually refining it as the business, laws and regulations change.</li><li>Serve as one of NVIDIA&#39;s tax experts, providing strategic advice and partnering with Finance, Trade, Legal, and Operations teams to ensure compliance.</li><li>Provide strategic tax advice to senior Finance and business leaders to guide and support their decision-making.</li><li>Strategize and develop solutions for large, complex projects and systems changes, determining tax treatment based on deep technical expertise and business judgment.</li><li>Build positive relationships with business collaborators across NVIDIA, both in the US and internationally, ensuring Tax is engaged and represented for important business decisions.</li><li>Structure, draft, and negotiate commercial and intercompany agreements covering supply, warehousing, distribution, manufacturing services, and infrastructure arrangements.</li><li>Manage external counsel and advisors, engaging them on technical issues while coordinating scope and budget.</li></ul><br /><p><b>What we need to see:</b></p><ul><li>CPA or Juris Doctor (JD) degree and LL.M. in Taxation from an accredited US law school.</li><li>15&#43; overall years at a major law firm, Big 4 accounting firm, or an in-house tax department of a multinational corporation.</li><li>4&#43; years of leadership experience.</li><li>Strong technical knowledge of US and international tax rules, including R&amp;D and investment credits, expense and capitalization rules, permanent establishment, Subpart F, GILTI, FDII, and FTC utilization.</li><li>Proven track record providing operational leadership and strategic tax guidance for a complex, cross-border business area.</li><li>Outstanding communication and interpersonal skills, demonstrating the capability to influence senior tax and non-tax collaborators across functions, regions, and time zones.</li><li>Solid understanding of the interaction between direct tax, indirect tax, transfer pricing, and customs.</li><li>Strong project management skills, with the ability to lead cross-functional workstreams to completion and deliver results.</li></ul><br /><p><b>Ways to stand out from the crowd:</b></p><ul><li>Bachelor&#39;s degree in Accounting, or equivalent experience, with an understanding of accounting for taxes under US GAAP.</li><li>Hands-on experience with customs-privileged regimes such as IMMEX/maquiladora, free trade zones, or bonded warehouses.</li><li>Experience presenting to senior executive or board-level audiences on tax matters.</li><li>Familiarity with SAP, particularly intercompany and inventory flows, and experience supporting an ERP transformation.</li><li>Proficiency with AI tools and automation as part of your everyday work.</li></ul><br /><p>Widely considered to be one of the technology world’s most desirable employers, NVIDIA offers highly competitive salaries and a comprehensive benefits package. As you plan your future, see what we can offer to you and your family <a target=\"_blank\" href=\"http://www.nvidiabenefits.com/\"><span style=\"color:#0000ff\"><u>www.nvidiabenefits.com/</u></span></a> </p><p style=\"text-align:inherit\"></p><p style=\"text-align:inherit\"></p>Your base salary will be determined based on your location, experience, and the pay of employees in similar positions. The base salary range is 240,000 USD - 379,500 USD.<div><div><div><div><div><div><div><p></p><p><span>You will also be eligible for equity and <a href=\"https://www.nvidia.com/en-us/benefits/\" target=\"_blank\">benefits</a>.</span></p><p></p></div></div></div></div></div></div></div>Applications for this job will be accepted at least until October 2, 2026.<p></p><p>This posting is for an existing vacancy. </p><p>NVIDIA uses AI tools in its recruiting processes.</p><p></p>NVIDIA is committed to fostering an inclusive work environment and proud to be an equal opportunity employer. As we highly value diversity in our current and future employees, we do not discriminate (including in our hiring and promotion practices) on the basis of race, religion, color, national origin, gender, gender expression, sexual orientation, age, marital status, veteran status, disability status or any other characteristic protected by law.<p style=\"text-align:inherit\"></p><p style=\"text-align:inherit\"></p>",
+              "location": "US, CA, Santa Clara",
+              "postedOn": "Posted 4 Days Ago",
+              "startDate": "2026-09-28",
+              "timeType": "Full time",
+              "jobReqId": "JR2026240",
+              "jobPostingId": "Director--International-Tax-Planning_JR2026240",
+              "jobPostingSiteId": "NVIDIAExternalCareerSite",
+              "country": {
+                "descriptor": "United States of America",
+                "id": "bc33aa3152ec42d4995f4791a106ed09"
+              },
+              "canApply": true,
+              "posted": true,
+              "includeResumeParsing": true,
+              "jobRequisitionLocation": {
+                "descriptor": "US, CA, Santa Clara",
+                "country": {
+                  "descriptor": "United States of America",
+                  "id": "bc33aa3152ec42d4995f4791a106ed09",
+                  "alpha2Code": "US"
+                }
+              },
+              "externalUrl": "https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite/job/US-CA-Santa-Clara/Director--International-Tax-Planning_JR2026240",
+              "questionnaireId": "2f2764b3a82910064296831695150000"
+            },
+            "hiringOrganization": {
+              "name": "2100 NVIDIA USA",
+              "url": ""
+            },
+            "similarJobs": [
+              {
+                "title": "Tax Manager",
+                "externalPath": "/job/US-CA-Santa-Clara/Tax-Manager_JR2021343",
+                "timeType": "Full time",
+                "locationsText": "US, CA, Santa Clara",
+                "postedOn": "Posted 30+ Days Ago",
+                "startDate": "2026-08-31"
+              },
+              {
+                "title": "Senior Director, Global Inventory Control",
+                "externalPath": "/job/US-CA-Santa-Clara/Senior-Director--Global-Inventory-Control_JR2023129",
+                "timeType": "Full time",
+                "locationsText": "US, CA, Santa Clara",
+                "postedOn": "Posted 30+ Days Ago",
+                "startDate": "2026-08-17"
+              },
+              {
+                "title": "Director, Technical Accounting",
+                "externalPath": "/job/US-CA-Santa-Clara/Director--Technical-Accounting_JR2025857-1",
+                "timeType": "Full time",
+                "locationsText": "US, CA, Santa Clara",
+                "postedOn": "Posted 4 Days Ago",
+                "startDate": "2026-09-28"
+              },
+              {
+                "title": "Senior Manager, State Income Tax",
+                "externalPath": "/job/US-CA-Santa-Clara/Senior-Manager--State-Income-Tax_JR2015748",
+                "timeType": "Full time",
+                "locationsText": "US, CA, Santa Clara",
+                "postedOn": "Posted 30+ Days Ago",
+                "startDate": "2026-08-17"
+              },
+              {
+                "title": "Director, Production Test Operations Engineering",
+                "externalPath": "/job/US-CA-Santa-Clara/Director--Production-Test-Operations-Engineering_JR2022744-1",
+                "timeType": "Full time",
+                "locationsText": "US, CA, Santa Clara",
+                "postedOn": "Posted 30+ Days Ago",
+                "startDate": "2026-08-19"
+              }
+            ],
+            "userAuthenticated": false
+          }
+        },
+        "provider": "workday",
+        "source_url": "https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite",
+        "description_complete": true
+      },
+      "evidence": [
+        {
+          "kind": "source_record",
+          "source_url": "https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite",
+          "provider": "workday"
+        }
+      ]
+    }
+  ],
+  "complete": false,
+  "error": "detail_limit_reached; page_limit_reached",
+  "coverage_scope": "query",
+  "observed_count": 20,
+  "metadata": {
+    "provider": "workday",
+    "source_url": "https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite",
+    "observed_at": "2026-10-02T11:01:02.971907+00:00",
+    "reported_total": 1029,
+    "requests": 3,
+    "http_statuses": {
+      "200": 3
+    },
+    "elapsed_seconds": 3.321,
+    "detail_requests": 2,
+    "description_count": 2,
+    "errors": [
+      "detail_limit_reached",
+      "page_limit_reached"
+    ],
+    "warnings": []
+  }
+}

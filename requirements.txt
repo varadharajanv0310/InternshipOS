@@ -1,0 +1,2 @@
+# Root requirements for the Vercel Python API entry point.
+-r backend/requirements.txt

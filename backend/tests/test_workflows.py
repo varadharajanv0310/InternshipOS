@@ -1,0 +1,204 @@
+"""End-to-end personal workflows with isolated fixtures, no external accounts."""
+import json
+from concurrent.futures import ThreadPoolExecutor
+from datetime import timedelta
+from pathlib import Path
+import pytest
+from fastapi import FastAPI,HTTPException
+from fastapi.testclient import TestClient
+from fastapi.responses import JSONResponse
+from sqlalchemy import create_engine,select,func
+from sqlalchemy.orm import Session
+from sqlalchemy.pool import StaticPool
+from internshipos.db import Base,get_db,utcnow
+from internshipos import models as m,service,resumes,integrations,auth,ai,backup
+from internshipos.api import router,public
+from internshipos.providers import Provider,get_provider
+
+@pytest.fixture
+def db(tmp_path,monkeypatch):
+    monkeypatch.setenv('APP_DATA_DIR',str(tmp_path));monkeypatch.setenv('PDF_ENGINE','reportlab')
+    engine=create_engine('sqlite://',connect_args={'check_same_thread':False},poolclass=StaticPool)
+    Base.metadata.create_all(engine)
+    with Session(engine,expire_on_commit=False) as session:
+        session.add(m.ProfileVersion(data={'display_name':'Test-only Applicant','skills':['Python','SQL'],'approved_bullets':['Built a Python project.'],'education':{'degree':'B.Tech','branch':'CSE','university':'Test-only University','graduation_year':2027}}))
+        session.add_all([m.Setting(key='ai_enabled',value=False),m.Setting(key='ai_monthly_budget_usd',value=2.5)]);session.commit();yield session
+    engine.dispose()
+
+@pytest.fixture
+def client(db,monkeypatch):
+    import internshipos.api as api
+    monkeypatch.setattr(auth,'PASSWORD','');monkeypatch.setattr(api,'PASSWORD','')
+    app=FastAPI();app.include_router(public);app.include_router(router)
+    app.dependency_overrides[get_db]=lambda:db
+    @app.exception_handler(ValueError)
+    def error(request,exc):return JSONResponse({'detail':str(exc)},status_code=422)
+    with TestClient(app) as test:yield test
+
+def application(db):
+    company=m.Company(name='Fixture Labs',domain='example.com',verified=True);db.add(company);db.flush()
+    source=m.CompanySource(company_id=company.id,provider='greenhouse',url='https://boards.greenhouse.io/fixture',verified=True);db.add(source);db.commit()
+    service.ingest_batch(db,source.id,[{'external_id':'job-1234','title':'Software Engineering Intern','description':'Develop Python software with SQL. Paid internship with engineering mentorship.','location':'Bengaluru, India','apply_url':'https://boards.greenhouse.io/fixture/jobs/job-1234','canonical_url':'https://boards.greenhouse.io/fixture/jobs/job-1234'}],complete=True)
+    op=db.scalar(select(m.Opportunity));return service.create_application(db,{'opportunity_id':op.id})
+
+def version(db):
+    variant=resumes.create_resume(db,{'name':'Test-only SWE','role_focus':'SWE'})
+    return resumes.create_version(db,variant['id'],{'bullets':['Built a Python project.']})
+
+def test_capture_prepare_and_receipt_preserve_submission_truth(client,db):
+    assert client.post('/api/capture',json={'url':'https://example.com/jobs/test','title':'Backend Intern','company_name':'Test-only Employer','description':'Build Python services as an intern.','location':'India'}).status_code==201
+    op=db.scalar(select(m.Opportunity));assert client.patch('/api/opportunities/'+op.id,json={'saved':True}).json()['saved']
+    app=client.post('/api/applications',json={'opportunity_id':op.id}).json();resume=version(db)
+    assert client.patch('/api/applications/'+app['id'],json={'resume_version_id':resume['id']}).status_code==200
+    pack=client.get('/api/applications/'+app['id']+'/pack').json()
+    assert pack['submission_status']=='ready' and pack['resume_version']['id']==resume['id']
+    assert client.post('/api/extension/receipt',json={'application_id':app['id'],'url':op.apply_url,'evidence':'Form fields filled'}).status_code==422
+    assert db.get(m.Application,app['id']).stage=='ready'
+    response=client.post('/api/extension/receipt',json={'application_id':app['id'],'url':op.apply_url,'evidence':'Application received','resume_version_id':resume['id']})
+    assert response.status_code==200;assert response.json()['stage']=='applied';assert response.json()['resume_version_id']==resume['id']
+    event=db.scalar(select(m.Activity).where(m.Activity.kind=='application.updated').order_by(m.Activity.created_at.desc()))
+    assert client.post('/api/activity/'+event.id+'/undo').status_code==200
+    assert db.get(m.Application,app['id']).stage=='ready'
+    assert db.scalar(select(func.count()).select_from(m.ApplicationEvent))>=3
+
+def test_receipt_cannot_use_other_host_or_regress_interview(client,db):
+    app=application(db);service.update_application(db,app['id'],{'stage':'interview'})
+    assert client.post('/api/extension/receipt',json={'application_id':app['id'],'url':'https://evil.example/jobs','evidence':'Application received'}).status_code==422
+    op=service.get_opportunity(db,app['opportunity_id'])
+    assert client.post('/api/extension/receipt',json={'application_id':app['id'],'url':op['apply_url'],'evidence':'Thanks for applying'}).json()['stage']=='interview'
+
+def test_resume_rejects_unapproved_projects_and_fabricated_bullets(db):
+    variant=resumes.create_resume(db,{'name':'Test-only SWE'});project=m.Project(name='Unreviewed fixture',approved=False);db.add(project);db.commit()
+    for payload in ({'selected_project_ids':[project.id]},{'bullets':['Improved revenue by 90%.']}):
+        with pytest.raises(HTTPException) as error:resumes.create_version(db,variant['id'],payload)
+        assert error.value.status_code==422
+
+def test_resume_snapshot_does_not_change_with_profile_edit_and_pdf_is_portable(db):
+    saved=version(db);obj=db.get(m.ResumeVersion,saved['id']);original=json.dumps(obj.data,sort_keys=True)
+    service.save_profile(db,{'display_name':'Different test-only name'})
+    assert json.dumps(obj.data,sort_keys=True)==original
+    html=resumes.render_html(obj);assert 'Test-only Applicant' in html and 'Test-only University' in html and '&quot;degree&quot;' not in html
+    pdf=resumes.pdf_artifact(db,obj);assert pdf.read_bytes().startswith(b'%PDF') and pdf.stat().st_size>1000
+    assert resumes.pdf_artifact(db,obj)==pdf
+
+def test_sensitive_profile_fields_and_cross_origin_mutations_are_rejected(client):
+    assert client.patch('/api/profile',json={'address':'test'}).status_code==422
+    assert client.patch('/api/profile',json={'skills':[]},headers={'Origin':'https://unknown.example'}).status_code==403
+
+def test_owner_and_extension_tokens_have_separate_scopes(client,monkeypatch):
+    monkeypatch.setattr(auth,'PASSWORD','test-password')
+    assert client.get('/api/settings').status_code==401
+    extension=auth.sign_token({'scope':'extension'})
+    assert client.get('/api/settings',headers={'Authorization':'Bearer '+extension}).status_code==401
+    assert client.get('/api/extension/applications',headers={'Authorization':'Bearer '+extension}).status_code==200
+    client.cookies.set(auth.COOKIE,auth.sign_token({'scope':'owner'}));assert client.get('/api/settings').status_code==200
+    assert auth.read_token(extension+'x') is None
+
+def test_mail_matching_requires_identity_and_trusted_sender(db):
+    app=application(db);op=app['opportunity'];text='Fixture Labs '+op['title']
+    assert len(integrations.matching_candidates([app],'Recruiter <hello@example.com>',text,''))==1
+    assert integrations.matching_candidates([app],'hello@example.com.evil.test',text,'')==[]
+    second={**app,'id':'different-application'}
+    assert len(integrations.matching_candidates([app,second],'noreply@greenhouse.io',text,''))==2
+
+def test_email_updates_are_idempotent_reversible_and_do_not_invent_times(db):
+    app=application(db);message=m.EmailMessage(provider_message_id='fixture-email',sender='hr@example.com',subject='Interview invitation',body='Interview next Tuesday afternoon',received_at=utcnow(),data={'classification':{'event_type':'interview'}});db.add(message);db.commit()
+    result=integrations.apply_email_event(db,message,app['id'],'interview');assert result['stage']=='interview'
+    assert integrations.apply_email_event(db,message,app['id'],'interview')['status']=='already_linked'
+    task=db.scalar(select(m.Task));assert task.due_at is None and task.date_precision=='unknown'
+    audit=db.scalar(select(m.Activity).where(m.Activity.kind=='email_match'));service.undo_activity(db,audit.id)
+    assert db.get(m.Application,app['id']).stage=='ready'
+    assert db.get(m.Application,app['id']).submitted_at is None
+    assert task.completed and task.data['cancelled'] and message.status=='review'
+    assert integrations.apply_email_event(db,message,app['id'],'interview',manual=True)['stage']=='interview'
+    assert integrations.apply_email_event(db,message,app['id'],'interview')['status']=='already_linked'
+    assert integrations.exact_email_time('2026-10-05T14:00:00+05:30').hour==8
+    assert integrations.exact_email_time('October 5, 2 PM') is None
+
+def test_older_confirmation_does_not_regress_stage_and_rejection_alias_works(client,db):
+    app=application(db);service.update_application(db,app['id'],{'stage':'interview'})
+    msg=m.EmailMessage(provider_message_id='older-fixture',subject='Application received',body='received',data={},received_at=utcnow()-timedelta(days=1));db.add(msg);db.commit()
+    assert integrations.apply_email_event(db,msg,app['id'],'confirmation')['stage']=='interview'
+    msg2=m.EmailMessage(provider_message_id='rejection-fixture',subject='Decision',body='decision',data={});db.add(msg2);db.commit()
+    assert client.post('/api/emails/'+msg2.id+'/match',json={'application_id':app['id'],'event_type':'rejected'}).json()['stage']=='rejected'
+
+def test_optional_ai_pauses_without_touching_provider(db,monkeypatch):
+    def forbidden(*args,**kwargs):raise AssertionError('Provider must not be contacted')
+    monkeypatch.setattr(ai,'get_provider',forbidden)
+    with pytest.raises(HTTPException) as error:ai.grounded_response(db,'answer',{'facts':[]})
+    assert error.value.status_code==409
+
+def test_ai_grounding_cache_and_missing_usage_count_conservatively(db,monkeypatch):
+    provider=Provider('openai','gpt-6-luna','test-not-a-real-key','https://example.test',(.1,.5))
+    monkeypatch.setattr(ai,'get_provider',lambda strong:provider)
+    monkeypatch.setattr(Provider,'generate',lambda *args:({'text':'Built a Python project.','fact_ids':['fact-1'],'unknowns':[]},None,None))
+    db.get(m.Setting,'ai_enabled').value=True;db.commit();context={'facts':[{'id':'fact-1','text':'Built a Python project.'}]}
+    first=ai.grounded_response(db,'answer',context);assert first['cost']>0 and first['requires_review']
+    assert ai.grounded_response(db,'answer',context)['cached']
+    monkeypatch.setattr(Provider,'generate',lambda *args:({'text':'Improved revenue by 90%.','fact_ids':['fact-1'],'unknowns':[]},100,100))
+    with pytest.raises(HTTPException):ai.grounded_response(db,'answer',{**context,'question':'Different question'})
+    assert db.scalar(select(m.AIUsage).where(m.AIUsage.status=='failed')).cost_usd>0
+    monkeypatch.setattr(Provider,'generate',lambda *args:({'text':'Built a Rust project.','fact_ids':['fact-1'],'unknowns':[]},100,100))
+    with pytest.raises(HTTPException):ai.grounded_response(db,'tailor',context)
+
+def test_ai_zero_budget_blocks_paid_and_local_calls(db):
+    db.get(m.Setting,'ai_monthly_budget_usd').value=0;db.commit()
+    with pytest.raises(HTTPException) as error:ai.reserve_usage(db,action='test',provider=Provider('local','test','','http://localhost',(0,0)),fingerprint='test',amount=0)
+    assert error.value.status_code==402
+
+def test_paid_custom_model_needs_prices(monkeypatch):
+    monkeypatch.setenv('AI_PROVIDER','compatible');monkeypatch.setenv('AI_BASE_URL','https://example.test/v1');monkeypatch.setenv('AI_API_KEY','test-only');monkeypatch.setenv('AI_STRONG_MODEL','custom-fixture')
+    with pytest.raises(HTTPException) as error:get_provider()
+    assert error.value.status_code==409
+
+def test_concurrent_reservations_cannot_exceed_budget(tmp_path):
+    engine=create_engine('sqlite:///'+str(tmp_path/'budget.db'),connect_args={'check_same_thread':False,'timeout':10});Base.metadata.create_all(engine)
+    with Session(engine) as session:session.add(m.Setting(key='ai_monthly_budget_usd',value=.03));session.commit()
+    provider=Provider('openai','test-only','','https://example.test',(.1,.5))
+    def reserve(index):
+        with Session(engine) as session:
+            try:ai.reserve_usage(session,action='test',provider=provider,fingerprint=str(index),amount=.02);return True
+            except HTTPException as exc:assert exc.status_code==402;return False
+    with ThreadPoolExecutor(max_workers=4) as workers:assert sum(workers.map(reserve,range(4)))==1
+    with Session(engine) as session:assert ai.budget_status(session)['reserved']==.02
+    engine.dispose()
+
+def test_backup_restore_preserves_history_and_excludes_secrets(db,tmp_path):
+    app=application(db);service.update_application(db,app['id'],{'stage':'applied'});version(db)
+    db.add(m.Integration(provider='google',status='connected',credentials_encrypted='must-never-be-exported',data={'access_token':'also-exclude'}));db.commit()
+    path=backup.create_backup(db);assert path.is_file() and backup.backup_status(db)['last_backup_at']
+    import zipfile
+    with zipfile.ZipFile(path) as archive:
+        manifest=archive.read('manifest.json').decode();assert 'must-never-be-exported' not in manifest and 'also-exclude' not in manifest
+    other=create_engine('sqlite://');Base.metadata.create_all(other)
+    with Session(other) as restored:
+        backup.restore_backup(restored,path);assert restored.get(m.Application,app['id']).stage=='applied'
+        assert restored.scalar(select(m.Integration)).credentials_encrypted is None
+        assert restored.scalar(select(func.count()).select_from(m.ApplicationEvent))>=2
+        with pytest.raises(ValueError):backup.restore_backup(restored,path)
+    other.dispose()
+
+def test_sources_can_be_paused_and_company_review_requires_evidence(client,db):
+    application(db);source=db.scalar(select(m.CompanySource));company=db.get(m.Company,source.company_id)
+    assert client.patch('/api/sources/'+source.id,json={'enabled':False,'cadence_hours':36}).json()['enabled'] is False
+    assert client.patch('/api/sources/'+source.id,json={'cadence_hours':0}).status_code==422
+    assert client.patch('/api/companies/'+company.id,json={'verified':True}).status_code==422
+    assert client.patch('/api/companies/'+company.id,json={'verified':True,'verification_url':'https://example.com/about','verification_reason':'Official employer site manually reviewed'}).status_code==200
+
+def test_feed_filters_use_canonical_ids_and_show_trust_separately(client,db):
+    app=application(db);op=db.get(m.Opportunity,app['opportunity_id']);op.work_mode='remote';op.compensation={'kind':'employer_stated','min':15000,'currency':'INR','period':'month'};db.commit()
+    matched=client.get('/api/opportunities',params={'location':'India','source':'greenhouse','application_stage':'ready','work_mode':'remote','pay':'known','risk':'verified','fresh_days':1}).json()
+    assert matched['total']==1 and matched['items'][0]['trust_state']=='verified'
+    assert client.get('/api/opportunities?application_stage=none').json()['total']==0
+    assert client.get('/api/opportunities?pay=unpaid').json()['total']==0
+    source=db.scalar(select(m.CompanySource));source.verified=False;db.commit()
+    assert client.get('/api/opportunities?risk=verified').json()['total']==0
+    assert client.get('/api/opportunities?risk=no_obvious_concern').json()['items'][0]['trust_state']=='no_obvious_concern'
+
+def test_employer_boilerplate_does_not_make_nontechnical_jobs_technical():
+    from internshipos.domain import classify
+    for title in ['UX Design - Intern','Game Artist - Internship','3D Artist Intern','Industrial Trainee - Finance & Accounting','Intern - Creative & Communications, People Team','Video Editor Intern']:
+        assert classify('Our company uses AI and software for global analytics.',title)['role_family']=='excluded'
+    assert classify('Build financial services.','Software Engineer Intern, Finance')['role_family']=='SWE'
+    for title in ['React Native Development - Internship','.NET Development - Internship','Automation Testing - Internship','iOS App Development - Internship']:
+        assert classify('Our company uses AI for analytics.',title)['role_family']=='SWE'

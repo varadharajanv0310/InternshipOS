@@ -1,0 +1,859 @@
+{
+  "jobs": [
+    {
+      "external_id": "1764139",
+      "title": "Frontend Developer Internship",
+      "description": "Responsibilities of the Intern:\nCandidates need to work on front end of websites and apps\nCollaborate with designers and engineers to create and maintain user interfaces for web and mobile applications.\nDevelop and implement front-end code using HTML, CSS, JavaScript, and React.\nOptimize website performance and ensure cross-browser compatibility.\nImplement responsive design principles to ensure optimal user experience across devices.\nStay up-to-date with the latest front-end technologies and best practices.\nRequirements:\nStrong understanding of HTML, CSS, JavaScript, and React\nKnowledge of user experience (UX) principles and best practices\nAbility to work independently and as part of a team\nExcellent communication and interpersonal skills\nPassion for front-end development and a desire to learn and grow",
+      "description_html": "<p><strong>Responsibilities of the Intern:</strong></p>\n<ul>\n<li>Candidates need to work on front end of websites and apps</li>\n<li>Collaborate with designers and engineers to create and maintain user interfaces for web and mobile applications.</li>\n<li>Develop and implement front-end code using HTML, CSS, JavaScript, and React.</li>\n<li>Optimize website performance and ensure cross-browser compatibility.</li>\n<li>Implement responsive design principles to ensure optimal user experience across devices.</li>\n<li>Stay up-to-date with the latest front-end technologies and best practices.</li>\n</ul>\n<p><strong>Requirements:</strong></p>\n<ul>\n<li>Strong understanding of HTML, CSS, JavaScript, and React</li>\n<li>Knowledge of user experience (UX) principles and best practices</li>\n<li>Ability to work independently and as part of a team</li>\n<li>Excellent communication and interpersonal skills</li>\n<li>Passion for front-end development and a desire to learn and grow</li>\n</ul>",
+      "location": "",
+      "country": null,
+      "work_mode": "remote",
+      "apply_url": "https://unstop.com/internships/frontend-developer-internship-unstop-tech-fair-20-learntricks-edutech-1764139",
+      "canonical_url": "https://unstop.com/internships/frontend-developer-internship-unstop-tech-fair-20-learntricks-edutech-1764139",
+      "requisition_id": null,
+      "posted_at": null,
+      "deadline": "2026-10-16T12:59:33+05:30",
+      "employment_type": "internships",
+      "compensation": {
+        "kind": "employer_stated",
+        "label": null,
+        "min": 12000,
+        "max": 15000,
+        "currency": "INR",
+        "period": "monthly"
+      },
+      "skills": [
+        "HTML",
+        "React.js",
+        "UI/UX Design",
+        "CSS",
+        "JavaScript"
+      ],
+      "company_name": "Learntricks Edutech",
+      "company_domain": null,
+      "raw": {
+        "source_payload": {
+          "id": 1764139,
+          "public_url": "internships/frontend-developer-internship-unstop-tech-fair-20-learntricks-edutech-1764139",
+          "title": "Frontend Developer Internship",
+          "organization_id": 134744,
+          "type": "jobs",
+          "subtype": "internships",
+          "regn_open": 1,
+          "updated_at": "2026-10-02T16:10:06+05:30",
+          "region": "online",
+          "visibility": "public",
+          "details": "<p><strong>Responsibilities of the Intern:</strong></p>\n<ul>\n<li>Candidates need to work on front end of websites and apps</li>\n<li>Collaborate with designers and engineers to create and maintain user interfaces for web and mobile applications.</li>\n<li>Develop and implement front-end code using HTML, CSS, JavaScript, and React.</li>\n<li>Optimize website performance and ensure cross-browser compatibility.</li>\n<li>Implement responsive design principles to ensure optimal user experience across devices.</li>\n<li>Stay up-to-date with the latest front-end technologies and best practices.</li>\n</ul>\n<p><strong>Requirements:</strong></p>\n<ul>\n<li>Strong understanding of HTML, CSS, JavaScript, and React</li>\n<li>Knowledge of user experience (UX) principles and best practices</li>\n<li>Ability to work independently and as part of a team</li>\n<li>Excellent communication and interpersonal skills</li>\n<li>Passion for front-end development and a desire to learn and grow</li>\n</ul>",
+          "short_id": "Fdr7QHf",
+          "logoUrl2": "https://d8it4huxumps7.cloudfront.net/uploads/images/150x150/6a2a64e2387eb_cropped-imageedit_3_4941432464.png",
+          "organisation": {
+            "id": 134744,
+            "name": "Learntricks Edutech",
+            "public_url": "c/learntricks-edutech-recruiter-career-interview-selection-process-job-profile-articles-videos-134744",
+            "logoUrl": "https://d8it4huxumps7.cloudfront.net/images/partners/partners75/5e57c6987f3f9_cropped-imageedit_3_4941432464.png",
+            "logoUrl2": "https://d8it4huxumps7.cloudfront.net/images/partners/partners125/5e57c6987f3f9_cropped-imageedit_3_4941432464.png",
+            "show_evaluator_login_link": false,
+            "official_email_domains": null,
+            "tier": 3
+          },
+          "seo_url": "https://unstop.com/internships/frontend-developer-internship-unstop-tech-fair-20-learntricks-edutech-1764139",
+          "status": "LIVE",
+          "tags": [],
+          "thumb": null,
+          "isPaid": false,
+          "festival": {
+            "id": 473162,
+            "name": "Unstop Tech Fair 2.0",
+            "abbr": null,
+            "organization_id": 13811,
+            "organisation": {
+              "id": 13811,
+              "name": "Unstop",
+              "logo": "698e2ae4cd044_Unstop-Logo-Blue-Large.png"
+            },
+            "start_date": "2026-06-03 10:47:08+05:30",
+            "end_date": "2026-06-22 10:30:08+05:30",
+            "theme_colour": "blue-dark_un",
+            "header_type": 0,
+            "footer_type": 0,
+            "public_url": "college-fests/unstop-tech-fair-20-unstop-473162",
+            "logoUrl2": "https://d8it4huxumps7.cloudfront.net/images/partners/partners75/698e2ae4cd044_Unstop-Logo-Blue-Large.png",
+            "regnRequirements": {
+              "id": 2424196,
+              "opportunity_id": null,
+              "festival_id": 473162,
+              "max_team_size": null,
+              "min_team_size": null,
+              "start_regn_dt": "2026-06-03T10:47:08+05:30",
+              "end_regn_dt": "2026-06-10T10:47:08+05:30",
+              "show_deadline": 1,
+              "open_for": 0,
+              "college_type": 0,
+              "same_organisation": 1,
+              "study_year_filter": 0,
+              "deleted_at": null,
+              "enable_payment": 0,
+              "reg_amount": null,
+              "payment_for": 0,
+              "service_charge_from": 0,
+              "allow_coupons": 0,
+              "eligibility": null,
+              "payout_data": null,
+              "gender": [
+                "A"
+              ],
+              "vendor_id": null,
+              "verified_email": 1,
+              "verified_mobile": 1,
+              "experience": null,
+              "only_official_domains": null,
+              "enable_verifications": null,
+              "enable_icsfile": null,
+              "proctoring": {
+                "face": false
+              },
+              "gender_diversity": null,
+              "allow_social_login": 1,
+              "allowed_countries": null,
+              "extendedFormData": null,
+              "extendRegForm": null,
+              "screening_round": null,
+              "consent_needed": 0,
+              "invitations_allowed": 0,
+              "registration_limit": null,
+              "same_graduation_year": 0,
+              "same_course": 0,
+              "same_user_type": 0,
+              "can_edit_extended_form": 0,
+              "extend_basic_form": null,
+              "core_req_fields": null,
+              "enable_draft_reg": false,
+              "closed_job_end_date": 0,
+              "reg_restricted": 0,
+              "free_webinar_for_unstop_pro": 0,
+              "email_reply_to": 0,
+              "verified_aadhaar": 0,
+              "verified_aadhaar_face": 0,
+              "player_extended_form": null,
+              "unique_face_verify": false,
+              "resume_parser": 0,
+              "display_compatibility_score": null,
+              "registration_config": {
+                "enable_newsletter_subscription": 0
+              },
+              "verified_driving_licence_face": 0,
+              "verified_aadhaar_face_via_digilocker": 0,
+              "audio_capture": 0,
+              "verification_service": 2,
+              "driver_for_proctoring": "aws",
+              "digilocker_verification_service": 1,
+              "allow_specific_cities": false,
+              "enable_data_transfer_to_SAP": 0,
+              "resume_match_config": "[{\"key\": \"work_experience\", \"label\": \"Work Experience\", \"include\": true, \"is_custom\": false, \"weightage\": 17, \"weight_level\": 1}, {\"key\": \"skills\", \"label\": \"Skills\", \"include\": true, \"is_custom\": false, \"weightage\": 17, \"weight_level\": 1}, {\"key\": \"education\", \"label\": \"Education\", \"include\": true, \"is_custom\": false, \"weightage\": 17, \"weight_level\": 1}, {\"key\": \"achievements\", \"label\": \"Achievements\", \"include\": true, \"is_custom\": false, \"weightage\": 17, \"weight_level\": 1}, {\"key\": \"certifications\", \"label\": \"Certifications\", \"include\": true, \"is_custom\": false, \"weightage\": 16, \"weight_level\": 1}, {\"key\": \"projects\", \"label\": \"Projects\", \"include\": true, \"is_custom\": false, \"weightage\": 16, \"weight_level\": 1}]",
+              "limit_type": 1,
+              "work_location_type": "city",
+              "gender_verification": false,
+              "sap_stage_id": null,
+              "has_compatibility_priority": 0,
+              "face_recog_driver": "aws",
+              "face_detect_driver": "aws",
+              "linkedin_verification_requirement": "NONE",
+              "reg_status": "FINISHED",
+              "remainingDaysArray": {
+                "durations": null,
+                "text": "Ended"
+              },
+              "remain_days": "Ended",
+              "remaining_time": -9870107
+            },
+            "regn_open": 0
+          },
+          "prizes": [],
+          "address_with_country_logo": {
+            "id": 1857148,
+            "address": null,
+            "city": null,
+            "state": null,
+            "country": null,
+            "zip": null,
+            "lat": null,
+            "lng": null,
+            "addressable_id": 1764139,
+            "addressable_type": "App\\Model\\Opportunity",
+            "created_at": "2026-10-01T12:59:42+05:30",
+            "updated_at": "2026-10-01T12:59:42+05:30",
+            "deleted_at": null,
+            "address_title": "event_location",
+            "city_id": null,
+            "sort_order": 1,
+            "state_code": null,
+            "country_code": null
+          },
+          "short_url": "https://unstop.com/o/Fdr7QHf",
+          "workfunction": [
+            {
+              "id": 224,
+              "name": "Frontend Development",
+              "description": "Developing user interfaces and client-side applications.",
+              "created_at": null,
+              "updated_at": null,
+              "work_function_name": null,
+              "batch_id": 1,
+              "pivot": {
+                "entity_id": 1764139,
+                "subject_id": 224,
+                "id": 6369316,
+                "ai_generated": false
+              }
+            },
+            {
+              "id": 2005,
+              "name": "Frontend Development",
+              "description": "",
+              "created_at": "2026-02-06T23:31:46+05:30",
+              "updated_at": "2026-02-06T23:31:46+05:30",
+              "work_function_name": null,
+              "batch_id": 11,
+              "pivot": {
+                "entity_id": 1764139,
+                "subject_id": 2005,
+                "id": 6371848,
+                "ai_generated": true
+              }
+            }
+          ],
+          "assignedTag": {
+            "tag": null
+          },
+          "opportunity_config": {
+            "id": 1459051,
+            "opportunity_id": 1764139,
+            "banner_config": "{\"color\":\"color-bg6\",\"text\":\"Frontend Developer Internship\",\"type\":2,\"banner_data\":[3]}",
+            "show_registrations_count": 0,
+            "show_impressions": 1,
+            "show_team_size": 1,
+            "show_region": 1
+          },
+          "payment_services": [],
+          "filters": [
+            {
+              "id": 422,
+              "name": "Engineering Students",
+              "type": "eligible",
+              "subtype": null,
+              "file_name": "engineering",
+              "domain_id": 0,
+              "icon_url": "https://d8it4huxumps7.cloudfront.net/images/icons/color_icons/engineering.svg"
+            },
+            {
+              "id": 424,
+              "name": "Postgraduate",
+              "type": "eligible",
+              "subtype": null,
+              "file_name": "postgraduate",
+              "domain_id": 0,
+              "icon_url": "https://d8it4huxumps7.cloudfront.net/images/icons/color_icons/postgraduate.svg"
+            },
+            {
+              "id": 426,
+              "name": "Undergraduate",
+              "type": "eligible",
+              "subtype": null,
+              "file_name": "undergraduate",
+              "domain_id": 0,
+              "icon_url": "https://d8it4huxumps7.cloudfront.net/images/icons/color_icons/undergraduate.svg"
+            },
+            {
+              "id": 4022,
+              "name": "Management",
+              "type": "eligible",
+              "subtype": null,
+              "file_name": null,
+              "domain_id": 0,
+              "icon_url": "https://d8it4huxumps7.cloudfront.net/images/icons/color_icons/.svg"
+            },
+            {
+              "id": 4025,
+              "name": "Arts, Commerce, Sciences & Others",
+              "type": "eligible",
+              "subtype": null,
+              "file_name": null,
+              "domain_id": 0,
+              "icon_url": "https://d8it4huxumps7.cloudfront.net/images/icons/color_icons/.svg"
+            }
+          ],
+          "required_skills": [
+            {
+              "id": 1452,
+              "skill": "HTML",
+              "skill_name": "HTML",
+              "pivot": {
+                "entity_id": 1764139,
+                "subject_id": 1452,
+                "id": 6369322,
+                "ai_generated": false
+              }
+            },
+            {
+              "id": 1475,
+              "skill": "React.js",
+              "skill_name": "React.js",
+              "pivot": {
+                "entity_id": 1764139,
+                "subject_id": 1475,
+                "id": 6369323,
+                "ai_generated": false
+              }
+            },
+            {
+              "id": 1481,
+              "skill": "UI/UX Design",
+              "skill_name": "UI/UX Design",
+              "pivot": {
+                "entity_id": 1764139,
+                "subject_id": 1481,
+                "id": 6369324,
+                "ai_generated": false
+              }
+            },
+            {
+              "id": 1453,
+              "skill": "CSS",
+              "skill_name": "CSS",
+              "pivot": {
+                "entity_id": 1764139,
+                "subject_id": 1453,
+                "id": 6369325,
+                "ai_generated": false
+              }
+            },
+            {
+              "id": 1477,
+              "skill": "JavaScript",
+              "skill_name": "JavaScript",
+              "pivot": {
+                "entity_id": 1764139,
+                "subject_id": 1477,
+                "id": 6369326,
+                "ai_generated": false
+              }
+            },
+            {
+              "id": 644004,
+              "skill": "HTML",
+              "skill_name": "HTML",
+              "pivot": {
+                "entity_id": 1764139,
+                "subject_id": 644004,
+                "id": 6371843,
+                "ai_generated": true
+              }
+            },
+            {
+              "id": 643560,
+              "skill": "CSS",
+              "skill_name": "CSS",
+              "pivot": {
+                "entity_id": 1764139,
+                "subject_id": 643560,
+                "id": 6371844,
+                "ai_generated": true
+              }
+            },
+            {
+              "id": 646494,
+              "skill": "JavaScript",
+              "skill_name": "JavaScript",
+              "pivot": {
+                "entity_id": 1764139,
+                "subject_id": 646494,
+                "id": 6371845,
+                "ai_generated": true
+              }
+            },
+            {
+              "id": 644778,
+              "skill": "React.js",
+              "skill_name": "React.js",
+              "pivot": {
+                "entity_id": 1764139,
+                "subject_id": 644778,
+                "id": 6371846,
+                "ai_generated": true
+              }
+            },
+            {
+              "id": 647619,
+              "skill": "User Experience (UX) Design",
+              "skill_name": "User Experience (UX) Design",
+              "pivot": {
+                "entity_id": 1764139,
+                "subject_id": 647619,
+                "id": 6371847,
+                "ai_generated": true
+              }
+            }
+          ],
+          "locations": [],
+          "jobDetail": {
+            "entity_id": 1764139,
+            "max_salary": 15000,
+            "currency": "fa-rupee",
+            "locations": [],
+            "type": "wfh",
+            "min_salary": 12000,
+            "show_salary": 1,
+            "min_experience": null,
+            "max_experience": null,
+            "timing": "full_time",
+            "paid_unpaid": "paid",
+            "pay_in": "monthly",
+            "not_disclosed": false
+          },
+          "end_date": "2026-10-16T12:59:33+05:30",
+          "approved_date": "2026-10-01 15:24:43 GMT+0530",
+          "viewsCount": 26275,
+          "registerCount": 989,
+          "regnRequirements": {
+            "opportunity_id": 1764139,
+            "start_regn_dt": "2026-10-01T12:59:33+05:30",
+            "end_regn_dt": "2026-10-16T12:59:33+05:30",
+            "show_deadline": 1,
+            "min_team_size": 1,
+            "max_team_size": 1,
+            "work_location_type": "city",
+            "eligibility": "{\"sector\":[\"students\"],\"engineering\":[\"allCourses\",{\"course\":\"btech\",\"type\":\"engineering\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":4},{\"course\":\"mtech\",\"type\":\"engineering\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"integrated\",\"type\":\"engineering\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":5},{\"course\":\"engOthers\",\"type\":\"engineering\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"bca\",\"type\":\"engineering\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"mca\",\"type\":\"engineering\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"mca1\",\"type\":\"engineering\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"mcm\",\"type\":\"engineering\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"phdEng\",\"type\":\"engineering\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":5},{\"course\":\"diploma\",\"type\":\"engineering\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":null}],\"bSchools\":[\"allCourses\",{\"course\":\"mba1\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":1},{\"course\":\"mba2\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"bba\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"bSchoolOthers\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"bcom\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"mcom\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"bhm\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"ca\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"cs\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"pgdm\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"execMba\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":1},{\"course\":\"ipm\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":5},{\"course\":\"phdManagement\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3}],\"arts\":[\"allCourses\",{\"course\":\"bsc\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"msc\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"ba\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"ma\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"artsOthers\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"mdes\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"march\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"bdes\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"barch\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":5},{\"course\":\"bftech\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":4},{\"course\":\"bplan\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":4},{\"course\":\"mplan\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"phdArts\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":5},{\"course\":\"mftech\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"bfa\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":4},{\"course\":\"mfa\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"bs\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"ms\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"bed\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"med\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"beled\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":4},{\"course\":\"bped\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2}],\"medicine\":[],\"law\":[],\"others\":[\"all\"],\"experience\":[\"all\"],\"fresherPassoutYearsSelected\":[2023,2024,2025],\"schoolFilteredClasses\":[\"all\"],\"minMarks\":{\"high_school_perc\":0,\"high_school_cgpa\":0},\"locations\":[],\"location_type\":\"all\",\"studentPassoutYearsSelected\":[\"all\"]}",
+            "reg_status": "STARTED",
+            "remainingDaysArray": {
+              "durations": 13,
+              "text": " days left"
+            },
+            "remain_days": "13 days left",
+            "remaining_time": 1197181
+          }
+        },
+        "provider": "unstop",
+        "source_url": "https://unstop.com/internships",
+        "description_complete": true
+      },
+      "evidence": [
+        {
+          "kind": "platform_record",
+          "source_url": "https://unstop.com/internships",
+          "updated_at": "2026-10-02T16:10:06+05:30",
+          "eligibility_raw": "{\"sector\":[\"students\"],\"engineering\":[\"allCourses\",{\"course\":\"btech\",\"type\":\"engineering\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":4},{\"course\":\"mtech\",\"type\":\"engineering\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"integrated\",\"type\":\"engineering\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":5},{\"course\":\"engOthers\",\"type\":\"engineering\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"bca\",\"type\":\"engineering\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"mca\",\"type\":\"engineering\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"mca1\",\"type\":\"engineering\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"mcm\",\"type\":\"engineering\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"phdEng\",\"type\":\"engineering\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":5},{\"course\":\"diploma\",\"type\":\"engineering\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":null}],\"bSchools\":[\"allCourses\",{\"course\":\"mba1\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":1},{\"course\":\"mba2\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"bba\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"bSchoolOthers\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"bcom\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"mcom\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"bhm\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"ca\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"cs\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"pgdm\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"execMba\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":1},{\"course\":\"ipm\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":5},{\"course\":\"phdManagement\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3}],\"arts\":[\"allCourses\",{\"course\":\"bsc\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"msc\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"ba\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"ma\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"artsOthers\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"mdes\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"march\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"bdes\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"barch\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":5},{\"course\":\"bftech\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":4},{\"course\":\"bplan\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":4},{\"course\":\"mplan\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"phdArts\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":5},{\"course\":\"mftech\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"bfa\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":4},{\"course\":\"mfa\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"bs\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"ms\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"bed\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"med\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"beled\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":4},{\"course\":\"bped\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2}],\"medicine\":[],\"law\":[],\"others\":[\"all\"],\"experience\":[\"all\"],\"fresherPassoutYearsSelected\":[2023,2024,2025],\"schoolFilteredClasses\":[\"all\"],\"minMarks\":{\"high_school_perc\":0,\"high_school_cgpa\":0},\"locations\":[],\"location_type\":\"all\",\"studentPassoutYearsSelected\":[\"all\"]}",
+          "skills_raw": [
+            {
+              "id": 1452,
+              "skill": "HTML",
+              "skill_name": "HTML",
+              "pivot": {
+                "entity_id": 1764139,
+                "subject_id": 1452,
+                "id": 6369322,
+                "ai_generated": false
+              }
+            },
+            {
+              "id": 1475,
+              "skill": "React.js",
+              "skill_name": "React.js",
+              "pivot": {
+                "entity_id": 1764139,
+                "subject_id": 1475,
+                "id": 6369323,
+                "ai_generated": false
+              }
+            },
+            {
+              "id": 1481,
+              "skill": "UI/UX Design",
+              "skill_name": "UI/UX Design",
+              "pivot": {
+                "entity_id": 1764139,
+                "subject_id": 1481,
+                "id": 6369324,
+                "ai_generated": false
+              }
+            },
+            {
+              "id": 1453,
+              "skill": "CSS",
+              "skill_name": "CSS",
+              "pivot": {
+                "entity_id": 1764139,
+                "subject_id": 1453,
+                "id": 6369325,
+                "ai_generated": false
+              }
+            },
+            {
+              "id": 1477,
+              "skill": "JavaScript",
+              "skill_name": "JavaScript",
+              "pivot": {
+                "entity_id": 1764139,
+                "subject_id": 1477,
+                "id": 6369326,
+                "ai_generated": false
+              }
+            },
+            {
+              "id": 644004,
+              "skill": "HTML",
+              "skill_name": "HTML",
+              "pivot": {
+                "entity_id": 1764139,
+                "subject_id": 644004,
+                "id": 6371843,
+                "ai_generated": true
+              }
+            },
+            {
+              "id": 643560,
+              "skill": "CSS",
+              "skill_name": "CSS",
+              "pivot": {
+                "entity_id": 1764139,
+                "subject_id": 643560,
+                "id": 6371844,
+                "ai_generated": true
+              }
+            },
+            {
+              "id": 646494,
+              "skill": "JavaScript",
+              "skill_name": "JavaScript",
+              "pivot": {
+                "entity_id": 1764139,
+                "subject_id": 646494,
+                "id": 6371845,
+                "ai_generated": true
+              }
+            },
+            {
+              "id": 644778,
+              "skill": "React.js",
+              "skill_name": "React.js",
+              "pivot": {
+                "entity_id": 1764139,
+                "subject_id": 644778,
+                "id": 6371846,
+                "ai_generated": true
+              }
+            },
+            {
+              "id": 647619,
+              "skill": "User Experience (UX) Design",
+              "skill_name": "User Experience (UX) Design",
+              "pivot": {
+                "entity_id": 1764139,
+                "subject_id": 647619,
+                "id": 6371847,
+                "ai_generated": true
+              }
+            }
+          ],
+          "company_verification": "unverified_discovery"
+        }
+      ]
+    },
+    {
+      "external_id": "1617053",
+      "title": "Social Media Marketing Internship",
+      "description": "Responsibilities of the Intern:\nLike, comment, and share content to increase reach and interaction\nHelp drive conversations and build an active online community\nIdentify and engage with relevant accounts, communities, and creators\nStay aligned with NGO values and audience interests\nContribute creative ideas that strengthen brand storytelling\nMonitor engagement and analyze performance metrics\nShare insights to improve content strategy and growth\nKeep track of trending formats, sounds, and topics on social media\nHelp the team adapt trends that align with the NGO voice\nParticipate in weekly Sunday team meetings\nShare ideas, updates, and creative feedback\nRequirements:\nPassion for social media, content creation, and storytelling\nCurious and eager learner who enjoys experimenting\nTeam player open to feedback and collaboration\nMotivated individual looking to make a real contribution",
+      "description_html": "<p><strong>Responsibilities of the Intern:</strong></p>\n<ul>\n<li>Like, comment, and share content to increase reach and interaction</li>\n<li>Help drive conversations and build an active online community</li>\n<li>Identify and engage with relevant accounts, communities, and creators</li>\n<li>Stay aligned with NGO values and audience interests</li>\n<li>Contribute creative ideas that strengthen brand storytelling</li>\n<li>Monitor engagement and analyze performance metrics</li>\n<li>Share insights to improve content strategy and growth</li>\n<li>Keep track of trending formats, sounds, and topics on social media</li>\n<li>Help the team adapt trends that align with the NGO voice</li>\n<li>Participate in weekly Sunday team meetings</li>\n<li>Share ideas, updates, and creative feedback</li>\n</ul>\n<p><strong>Requirements:</strong></p>\n<ul>\n<li>Passion for social media, content creation, and storytelling</li>\n<li>Curious and eager learner who enjoys experimenting</li>\n<li>Team player open to feedback and collaboration</li>\n<li>Motivated individual looking to make a real contribution</li>\n</ul>",
+      "location": "",
+      "country": null,
+      "work_mode": "remote",
+      "apply_url": "https://unstop.com/internships/social-media-marketing-internship-niswarth-the-selfless-ngo-1617053",
+      "canonical_url": "https://unstop.com/internships/social-media-marketing-internship-niswarth-the-selfless-ngo-1617053",
+      "requisition_id": null,
+      "posted_at": null,
+      "deadline": "2026-01-15T00:00:00+05:30",
+      "employment_type": "internships",
+      "compensation": {
+        "kind": "employer_stated",
+        "label": "Unpaid",
+        "min": null,
+        "max": null,
+        "currency": "INR",
+        "period": "monthly"
+      },
+      "skills": [],
+      "company_name": "Niswarth - The Selfless NGO",
+      "company_domain": null,
+      "raw": {
+        "source_payload": {
+          "id": 1617053,
+          "public_url": "internships/social-media-marketing-internship-niswarth-the-selfless-ngo-1617053",
+          "title": "Social Media Marketing Internship",
+          "organization_id": 159903,
+          "type": "jobs",
+          "subtype": "internships",
+          "regn_open": 1,
+          "updated_at": "2026-01-02T09:33:53+05:30",
+          "region": "online",
+          "visibility": "public",
+          "details": "<p><strong>Responsibilities of the Intern:</strong></p>\n<ul>\n<li>Like, comment, and share content to increase reach and interaction</li>\n<li>Help drive conversations and build an active online community</li>\n<li>Identify and engage with relevant accounts, communities, and creators</li>\n<li>Stay aligned with NGO values and audience interests</li>\n<li>Contribute creative ideas that strengthen brand storytelling</li>\n<li>Monitor engagement and analyze performance metrics</li>\n<li>Share insights to improve content strategy and growth</li>\n<li>Keep track of trending formats, sounds, and topics on social media</li>\n<li>Help the team adapt trends that align with the NGO voice</li>\n<li>Participate in weekly Sunday team meetings</li>\n<li>Share ideas, updates, and creative feedback</li>\n</ul>\n<p><strong>Requirements:</strong></p>\n<ul>\n<li>Passion for social media, content creation, and storytelling</li>\n<li>Curious and eager learner who enjoys experimenting</li>\n<li>Team player open to feedback and collaboration</li>\n<li>Motivated individual looking to make a real contribution</li>\n</ul>",
+          "short_id": "2j4vJCd",
+          "logoUrl2": "https://d8it4huxumps7.cloudfront.net/uploads/images/150x150/uploadedManual-69561f9218792_img-20251224-wa0084.jpg",
+          "organisation": {
+            "id": 159903,
+            "name": "Niswarth - The Selfless NGO",
+            "public_url": "c/niswarth-the-selfless-ngo-placement-interview-competitions-articles-videos-159903",
+            "logoUrl": "",
+            "logoUrl2": "",
+            "show_evaluator_login_link": false,
+            "official_email_domains": null,
+            "tier": null
+          },
+          "seo_url": "https://unstop.com/internships/social-media-marketing-internship-niswarth-the-selfless-ngo-1617053",
+          "status": "LIVE",
+          "tags": [],
+          "thumb": null,
+          "isPaid": false,
+          "festival": null,
+          "prizes": [],
+          "address_with_country_logo": {
+            "address": "",
+            "city": "",
+            "state": "",
+            "country": ""
+          },
+          "short_url": "https://unstop.com/o/2j4vJCd",
+          "workfunction": [
+            {
+              "id": 1956,
+              "name": "Social Media Marketing",
+              "description": "",
+              "created_at": "2026-02-06T23:31:46+05:30",
+              "updated_at": "2026-02-06T23:31:46+05:30",
+              "work_function_name": null,
+              "batch_id": 11,
+              "pivot": {
+                "entity_id": 1617053,
+                "subject_id": 1956,
+                "id": 5331899,
+                "ai_generated": true
+              }
+            }
+          ],
+          "assignedTag": {
+            "tag": null
+          },
+          "opportunity_config": {
+            "id": 1340885,
+            "opportunity_id": 1617053,
+            "banner_config": "{\"color\":\"color-bg4\",\"text\":\"Social Media Marketing\",\"type\":8,\"banner_data\":[3]}",
+            "show_registrations_count": 0,
+            "show_impressions": 1,
+            "show_team_size": 1,
+            "show_region": 1
+          },
+          "payment_services": [],
+          "filters": [
+            {
+              "id": 424,
+              "name": "Postgraduate",
+              "type": "eligible",
+              "subtype": null,
+              "file_name": "postgraduate",
+              "domain_id": 0,
+              "icon_url": "https://d8it4huxumps7.cloudfront.net/images/icons/color_icons/postgraduate.svg"
+            },
+            {
+              "id": 426,
+              "name": "Undergraduate",
+              "type": "eligible",
+              "subtype": null,
+              "file_name": "undergraduate",
+              "domain_id": 0,
+              "icon_url": "https://d8it4huxumps7.cloudfront.net/images/icons/color_icons/undergraduate.svg"
+            },
+            {
+              "id": 4022,
+              "name": "Management",
+              "type": "eligible",
+              "subtype": null,
+              "file_name": null,
+              "domain_id": 0,
+              "icon_url": "https://d8it4huxumps7.cloudfront.net/images/icons/color_icons/.svg"
+            },
+            {
+              "id": 4025,
+              "name": "Arts, Commerce, Sciences & Others",
+              "type": "eligible",
+              "subtype": null,
+              "file_name": null,
+              "domain_id": 0,
+              "icon_url": "https://d8it4huxumps7.cloudfront.net/images/icons/color_icons/.svg"
+            }
+          ],
+          "required_skills": [
+            {
+              "id": 645600,
+              "skill": "Audience Engagement",
+              "skill_name": "Audience Engagement",
+              "pivot": {
+                "entity_id": 1617053,
+                "subject_id": 645600,
+                "id": 5331885,
+                "ai_generated": true
+              }
+            },
+            {
+              "id": 647347,
+              "skill": "Social Media Marketing (SMM)",
+              "skill_name": "Social Media Marketing (SMM)",
+              "pivot": {
+                "entity_id": 1617053,
+                "subject_id": 647347,
+                "id": 5331886,
+                "ai_generated": true
+              }
+            },
+            {
+              "id": 647511,
+              "skill": "Teamwork and Collaboration",
+              "skill_name": "Teamwork and Collaboration",
+              "pivot": {
+                "entity_id": 1617053,
+                "subject_id": 647511,
+                "id": 5331887,
+                "ai_generated": true
+              }
+            },
+            {
+              "id": 1445,
+              "skill": "Storytelling",
+              "skill_name": "Storytelling",
+              "pivot": {
+                "entity_id": 1617053,
+                "subject_id": 1445,
+                "id": 5331888,
+                "ai_generated": true
+              }
+            }
+          ],
+          "locations": [],
+          "jobDetail": {
+            "entity_id": 1617053,
+            "max_salary": null,
+            "currency": "fa-rupee",
+            "locations": [],
+            "type": "wfh",
+            "min_salary": null,
+            "show_salary": 1,
+            "min_experience": null,
+            "max_experience": null,
+            "timing": "part_time",
+            "paid_unpaid": "unpaid",
+            "pay_in": "monthly",
+            "not_disclosed": false
+          },
+          "end_date": "2026-01-15T00:00:00+05:30",
+          "approved_date": "2026-01-02 09:33:53 GMT+0530",
+          "viewsCount": 11072,
+          "registerCount": 9,
+          "regnRequirements": {
+            "opportunity_id": 1617053,
+            "start_regn_dt": "2026-01-01T00:00:00+05:30",
+            "end_regn_dt": "2026-01-15T00:00:00+05:30",
+            "show_deadline": 1,
+            "min_team_size": 1,
+            "max_team_size": 1,
+            "work_location_type": "pan_india",
+            "eligibility": "{\"sector\":[\"students\"],\"engineering\":[],\"bSchools\":[\"allCourses\",{\"course\":\"mba1\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":1},{\"course\":\"mba2\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"bba\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"bSchoolOthers\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"bcom\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"mcom\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"bhm\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"ca\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"cs\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"pgdm\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"execMba\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":1},{\"course\":\"ipm\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":5},{\"course\":\"phdManagement\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3}],\"arts\":[\"allCourses\",{\"course\":\"bsc\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"msc\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"ba\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"ma\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"artsOthers\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"mdes\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"march\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"bdes\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"barch\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":5},{\"course\":\"bftech\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":4},{\"course\":\"bplan\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":4},{\"course\":\"mplan\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"phdArts\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":5},{\"course\":\"mftech\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"bfa\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":4},{\"course\":\"mfa\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"bs\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"ms\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"bed\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"med\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"beled\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":4},{\"course\":\"bped\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2}],\"medicine\":[],\"law\":[],\"others\":[\"all\"],\"experience\":[\"all\"],\"studentPassoutYearsSelected\":[\"all\"],\"fresherPassoutYearsSelected\":[\"all\"],\"schoolFilteredClasses\":[\"all\"],\"minMarks\":{\"high_school_perc\":0,\"high_school_cgpa\":0},\"locations\":[],\"location_type\":\"all\",\"professionalEligibility\":{\"engineering\":[],\"bSchools\":[],\"arts\":[],\"medicine\":[],\"law\":[]}}",
+            "reg_status": "FINISHED",
+            "remainingDaysArray": {
+              "durations": null,
+              "text": "Ended"
+            },
+            "remain_days": "Ended",
+            "remaining_time": -22523335
+          }
+        },
+        "provider": "unstop",
+        "source_url": "https://unstop.com/internships",
+        "description_complete": true
+      },
+      "evidence": [
+        {
+          "kind": "platform_record",
+          "source_url": "https://unstop.com/internships",
+          "updated_at": "2026-01-02T09:33:53+05:30",
+          "eligibility_raw": "{\"sector\":[\"students\"],\"engineering\":[],\"bSchools\":[\"allCourses\",{\"course\":\"mba1\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":1},{\"course\":\"mba2\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"bba\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"bSchoolOthers\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"bcom\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"mcom\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"bhm\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"ca\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"cs\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"pgdm\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"execMba\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":1},{\"course\":\"ipm\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":5},{\"course\":\"phdManagement\",\"type\":\"bSchools\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3}],\"arts\":[\"allCourses\",{\"course\":\"bsc\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"msc\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"ba\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"ma\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"artsOthers\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"mdes\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"march\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"bdes\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"barch\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":5},{\"course\":\"bftech\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":4},{\"course\":\"bplan\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":4},{\"course\":\"mplan\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"phdArts\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":5},{\"course\":\"mftech\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"bfa\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":4},{\"course\":\"mfa\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"bs\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":3},{\"course\":\"ms\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"bed\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"med\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2},{\"course\":\"beled\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":4},{\"course\":\"bped\",\"type\":\"arts\",\"programme\":[\"all\"],\"passoutYear\":[\"all\"],\"specialization\":[\"all\"],\"duration\":2}],\"medicine\":[],\"law\":[],\"others\":[\"all\"],\"experience\":[\"all\"],\"studentPassoutYearsSelected\":[\"all\"],\"fresherPassoutYearsSelected\":[\"all\"],\"schoolFilteredClasses\":[\"all\"],\"minMarks\":{\"high_school_perc\":0,\"high_school_cgpa\":0},\"locations\":[],\"location_type\":\"all\",\"professionalEligibility\":{\"engineering\":[],\"bSchools\":[],\"arts\":[],\"medicine\":[],\"law\":[]}}",
+          "skills_raw": [
+            {
+              "id": 645600,
+              "skill": "Audience Engagement",
+              "skill_name": "Audience Engagement",
+              "pivot": {
+                "entity_id": 1617053,
+                "subject_id": 645600,
+                "id": 5331885,
+                "ai_generated": true
+              }
+            },
+            {
+              "id": 647347,
+              "skill": "Social Media Marketing (SMM)",
+              "skill_name": "Social Media Marketing (SMM)",
+              "pivot": {
+                "entity_id": 1617053,
+                "subject_id": 647347,
+                "id": 5331886,
+                "ai_generated": true
+              }
+            },
+            {
+              "id": 647511,
+              "skill": "Teamwork and Collaboration",
+              "skill_name": "Teamwork and Collaboration",
+              "pivot": {
+                "entity_id": 1617053,
+                "subject_id": 647511,
+                "id": 5331887,
+                "ai_generated": true
+              }
+            },
+            {
+              "id": 1445,
+              "skill": "Storytelling",
+              "skill_name": "Storytelling",
+              "pivot": {
+                "entity_id": 1617053,
+                "subject_id": 1445,
+                "id": 5331888,
+                "ai_generated": true
+              }
+            }
+          ],
+          "company_verification": "unverified_discovery"
+        }
+      ]
+    }
+  ],
+  "complete": true,
+  "error": null,
+  "coverage_scope": "discovery",
+  "observed_count": 20,
+  "metadata": {
+    "provider": "unstop",
+    "source_url": "https://unstop.com/internships",
+    "observed_at": "2026-10-02T11:00:59.442795+00:00",
+    "reported_total": 10000,
+    "requests": 1,
+    "http_statuses": {
+      "200": 1
+    },
+    "elapsed_seconds": 0.447,
+    "detail_requests": 0,
+    "description_count": 20,
+    "errors": [],
+    "warnings": [
+      "bounded_discovery_window; not_a_full_inventory"
+    ]
+  }
+}
