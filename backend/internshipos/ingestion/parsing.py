@@ -33,7 +33,7 @@ def safe_html(value):
     soup = BeautifulSoup(str(value or ""), "html.parser")
     allowed = {"p", "br", "ul", "ol", "li", "strong", "b", "em", "i", "h1", "h2", "h3", "h4", "a", "blockquote", "pre", "code", "div", "span", "table", "tbody", "tr", "th", "td"}
     for node in list(soup.find_all(True)):
-        if node.name is None:
+        if node.name is None or node.parent is None:
             continue
         if node.name in {"script", "style", "iframe", "object", "embed", "form", "input", "button", "svg", "math"}:
             node.decompose()

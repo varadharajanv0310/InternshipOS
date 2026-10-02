@@ -5,7 +5,8 @@
   "functions": {
     "api/index.py": {
       "maxDuration": 300,
-      "excludeFiles": "{research/**,docs/**,extension/**,backend/tests/**,frontend/node_modules/**}"
+      "excludeFiles": "{research/**,docs/**,extension/**,backend/tests/**,frontend/node_modules/**}",
+      "includeFiles": "backend/internshipos/data/**"
     }
   },
   "buildCommand": "cd frontend && npm run build",

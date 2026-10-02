@@ -21,10 +21,13 @@ async def lifespan(app):
     public_url=os.getenv('PUBLIC_BASE_URL','http://127.0.0.1:8000')
     if urlparse(public_url).hostname not in ('localhost','127.0.0.1','::1') and not (os.getenv('OWNER_PASSWORD') and os.getenv('AUTH_SECRET') and os.getenv('TOKEN_ENCRYPTION_KEY')):
         raise RuntimeError('Hosted installations require OWNER_PASSWORD, AUTH_SECRET and TOKEN_ENCRYPTION_KEY before startup.')
-    init_db()
-    from .bootstrap import install_discovery_sources,update_managed_seed_filters,update_classification_rules,install_previous_board_candidates
-    with SessionLocal() as db:
-        seed_database(db);update_managed_seed_filters(db);update_classification_rules(db);install_discovery_sources(db);install_previous_board_candidates(db)
+    if os.getenv('VERCEL') != '1':
+        # Schema/seed updates run in the durable collection workflow, not every
+        # serverless cold start. Hosted startup only opens the existing database.
+        init_db()
+        from .bootstrap import install_discovery_sources,update_managed_seed_filters,update_classification_rules,install_previous_board_candidates
+        with SessionLocal() as db:
+            seed_database(db);update_managed_seed_filters(db);update_classification_rules(db);install_discovery_sources(db);install_previous_board_candidates(db)
     stop.clear()
     if os.getenv('SCHEDULER_ENABLED','true').lower()=='true':threading.Thread(target=worker_loop,args=(stop,),daemon=True,name='internshipos-worker').start()
     yield
