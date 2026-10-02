@@ -1,3 +1,15 @@
+# Hosted Google connection
+
+Hosted app: https://internshipos.vercel.app . Enable Gmail API and Google Calendar API in Google Cloud. Configure the OAuth consent screen as described below and add your Google account as a test user. Create a Web application OAuth client with this exact redirect URI:
+
+`https://internshipos.vercel.app/api/integrations/google/callback`
+
+Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in the internshipos Vercel project production environment. Set GOOGLE_REDIRECT_URI to the hosted callback above. Add the same client ID and secret as GitHub repository secrets in varadharajanv0310/InternshipOS so the scheduled collector can refresh Google credentials. Add GOOGLE_REDIRECT_URI to the collection workflow environment with that callback when enabling hosted Google sync. Preserve the existing TOKEN_ENCRYPTION_KEY. Redeploy Vercel, then use Settings / Integrations / Connect Google in the hosted app. Never paste the client secret in chat.
+
+The hosted collector runs every six hours; Google polling follows that schedule rather than the local 45-minute setting. The app has no Google credentials yet.
+
+## Original local setup (local development only)
+
 # Connect Google to the local app
 
 The integration is implemented; no Google client or account is configured yet.

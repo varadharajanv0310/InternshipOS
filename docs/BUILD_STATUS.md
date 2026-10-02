@@ -23,3 +23,8 @@ Public-site success is variable and heuristic classifications can require review
 ## Follow-up: analytics and role relevance
 
 2 October 2026: analytics now defaults to India technical internship candidates, with an explicit all-global-records selector. Opportunity charts and source contributions use the same selected scope. Global raw records remain stored and are labelled separately. The dashboard discovery chart now uses relevant India roles. Removed 3D Artist false positives and corrected mobile/testing/.NET title classification ahead of employer AI boilerplate. Current feed: 40 candidates. Added CURRENT_INDIA_ROLES.md/CSV and GOOGLE_CONNECTION.md. OpenAI remains unconfigured and disabled; Google remains disconnected. Backend 96 tests and frontend 11 tests/build passed for this change.
+
+
+## Hosting update, 3 October 2026
+
+Vercel production: https://internshipos.vercel.app . Neon PostgreSQL migrated with personal India/review shortlist and resume-based profile. Private GitHub repository created, Vercel Git integration connected, production origins/secrets configured. Authenticated main read endpoints verified; PostgreSQL health returned 200. 118 automated tests passed (99 backend, 11 frontend, 8 extension), including cloud PostgreSQL bootstrap. Collection configured every six hours; first run status tracked in HOSTING_STATUS.md. Google/AI credentials still absent. See SEARCH_POLICY.md and PREVIOUS_PROJECT_REUSE.md for targets and reuse.

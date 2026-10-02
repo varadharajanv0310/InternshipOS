@@ -1,6 +1,6 @@
 # Verification record
 
-Completed 2 October 2026. Tests use isolated fixtures; the browser smoke check used the running local app with real public-source data and no personal profile.
+Updated 3 October 2026. Tests use isolated fixtures; the browser smoke check used the running local app with real public-source data and no personal profile.
 
 | Check | Result |
 | --- | --- |
@@ -17,7 +17,7 @@ Completed 2 October 2026. Tests use isolated fixtures; the browser smoke check u
 | Mobile layout | 390 × 844 viewport checked; no horizontal document overflow |
 | Portable backup | Isolated export/restore round trip tested, including PDF hash validation and secret exclusions |
 
-114 automated tests passed in total. Backend tests cover identity/closure, source safety, eligibility/filters, application transitions, resume facts and PDFs, AI budget concurrency/claim guards, integration matching/idempotence/undo and backup restoration. Extension tests cover field boundaries, opt-ins, wrong-job rejection, CAPTCHA/unknown-field stops and receipt requirements. These are functional fixture checks, not guarantees about every external site.
+118 automated tests passed in total (99 backend, 11 frontend, 8 extension). Backend tests cover identity/closure, source safety, eligibility/filters, application transitions, resume facts and PDFs, AI budget concurrency/claim guards, integration matching/idempotence/undo and backup restoration. Extension tests cover field boundaries, opt-ins, wrong-job rejection, CAPTCHA/unknown-field stops and receipt requirements. These are functional fixture checks, not guarantees about every external site.
 
 ## Live collection evidence
 
@@ -25,13 +25,13 @@ Bounded public requests returned usable data from Greenhouse, Lever, Ashby, Work
 
 ## Unverified externally
 
-- Hosted PostgreSQL and production deployment: local Docker engine unavailable; schema, Compose, CI and hosting configuration are supplied.
+- Production API uses Neon PostgreSQL, with live schema/data migration and authenticated endpoint checks completed. GitHub CI passed backend tests, PostgreSQL bootstrap, frontend build/tests and extension tests.
 - Real Google OAuth, personal Gmail/calendar sync and token refresh: owner credentials absent; matching/idempotence/undo tested with fixtures.
 - Paid AI inference: no key used or money spent; provider and accounting behavior tested with controlled responses.
 - Real employer submissions: fixture-only; unpacked extension requires owner installation and site-specific validation.
 - Full-market recall and precision: heuristic classification and source availability can miss or mislabel roles; uncertain entries remain reviewable.
 
-The app currently runs locally, so background collection runs while the backend process is alive. Hosting configuration alone does not establish an always-on service. Keep durable backups in an owner-controlled destination.
+The hosted app is https://internshipos.vercel.app. PostgreSQL health, login, authentication rejection, profile, dashboard, opportunity list, analytics and settings endpoints passed. The default hosted query returned 46 opportunities: 32 had both numeric Fit/Worth scores; the remaining listings lacked sufficient evidence for one or both scores. Eligibility was unclear for 44 and probably eligible for 2. These are descriptive signals, not hiring probabilities. Collection is configured in private GitHub Actions every six hours; see HOSTING_STATUS.md for the first run outcome. Keep durable backups in an owner-controlled destination.
 
 Final UI evidence: [desktop overview](screenshots/overview.png). Start/stop and account setup: [SETUP.md](SETUP.md).
 
