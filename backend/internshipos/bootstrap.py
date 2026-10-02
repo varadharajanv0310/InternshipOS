@@ -9,11 +9,13 @@ def update_managed_seed_filters(db):
     import json
     from pathlib import Path
     seeds=json.loads((Path(__file__).parent/'data/company_seeds.json').read_text(encoding='utf-8-sig'))
+    companies={c.name:c for c in db.scalars(select(Company)).all()}
+    sources={(r.company_id,r.provider,r.url):r for r in db.scalars(select(CompanySource)).all()}
     for item in seeds:
-        company=db.scalar(select(Company).where(Company.name==item['name']))
+        company=companies.get(item['name'])
         if not company or not company.metadata_json.get('seed'):continue
         for candidate in item.get('sources',[]):
-            row=db.scalar(select(CompanySource).where(CompanySource.company_id==company.id,CompanySource.provider==candidate['provider'],CompanySource.url==candidate['url']))
+            row=sources.get((company.id,candidate['provider'],candidate['url']))
             if not row or not row.config.get('registry_source'):continue
             cfg=candidate.get('config',{});updates={k:cfg[k] for k in ('country_name','early_career') if k in cfg}
             if row.provider=='amazon' and 'params' in cfg:updates['params']={**row.config.get('params',{}),**cfg['params']}
@@ -41,8 +43,9 @@ def install_discovery_sources(db):
     holder=db.scalars(select(Company).where(Company.name=='Discovery feeds')).first()
     if not holder:
         holder=Company(name='Discovery feeds',metadata_json={'source_holder':True},verified=False);db.add(holder);db.flush()
+    existing_keys=set(db.execute(select(CompanySource.company_id,CompanySource.provider,CompanySource.url)).all())
     for source in default_discovery_sources():
-        existing=db.scalars(select(CompanySource).where(CompanySource.company_id==holder.id,CompanySource.provider==source['provider'],CompanySource.url==source['url'])).first()
+        existing=(holder.id,source['provider'],source['url']) in existing_keys
         if not existing:
             db.add(CompanySource(company_id=holder.id,provider=source['provider'],url=source['url'],config={**source.get('config',{}),'name':source['name']},priority=1,cadence_hours=source['cadence_hours'],enabled=source['enabled'],verified=False,status='pending' if source['enabled'] else 'manual_capture'))
     db.commit()
@@ -55,12 +58,15 @@ def install_previous_board_candidates(db):
     path=Path(__file__).parent/'data/previous_tracker_boards.json'
     if not path.exists():return 0
     added=0
+    companies={c.name:c for c in db.scalars(select(Company)).all()}
+    existing_keys=set(db.execute(select(CompanySource.company_id,CompanySource.provider,CompanySource.url)).all())
     for item in json.loads(path.read_text()):
-        company=db.scalar(select(Company).where(Company.name==item['company']))
+        company=companies.get(item['company'])
         if not company:continue
-        exists=db.scalar(select(CompanySource.id).where(CompanySource.company_id==company.id,CompanySource.provider==item['provider'],CompanySource.url==item['url']))
+        exists=(company.id,item['provider'],item['url']) in existing_keys
         if exists:continue
         db.add(CompanySource(company_id=company.id,provider=item['provider'],url=item['url'],config={**item['config'],'registry_source':'owner_previous_tracker','association_status':'candidate','association_evidence':item['evidence']},enabled=True,verified=False,priority=2,cadence_hours=24,status='pending'))
+        existing_keys.add((company.id,item['provider'],item['url']))
         added+=1
     db.commit()
     return added

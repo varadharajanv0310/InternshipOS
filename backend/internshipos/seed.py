@@ -22,8 +22,9 @@ EMPTY_PROFILE = {"skills": [], "preferred_roles": [], "preferred_locations": [],
 
 
 def seed_database(db):
+    settings_keys=set(db.scalars(select(m.Setting.key)).all())
     for key, value in DEFAULT_SETTINGS.items():
-        if db.get(m.Setting, key) is None:
+        if key not in settings_keys:
             db.add(m.Setting(key=key, value=value))
     if not db.scalar(select(m.ProfileVersion.id).limit(1)):
         db.add(m.ProfileVersion(data=EMPTY_PROFILE.copy()))
@@ -37,12 +38,14 @@ def seed_database(db):
     if isinstance(seeds, dict):
         seeds = seeds.get("companies", seeds.get("items", []))
     companies_added = sources_added = 0
+    known_companies={c.name.lower():c for c in db.scalars(select(m.Company)).all()}
+    known_sources=set(db.execute(select(m.CompanySource.company_id,m.CompanySource.provider,m.CompanySource.url)).all())
     for item in seeds:
         name = str(item.get("name", "")).strip()
         if not name:
             continue
         domain = str(item.get("domain") or "").lower().removeprefix("https://").removeprefix("http://").strip("/") or None
-        company = db.scalar(select(m.Company).where(func.lower(m.Company.name) == name.lower()).limit(1))
+        company = known_companies.get(name.lower())
         if company is None:
             company = m.Company(name=name, domain=domain, verified=bool(item.get("verified", False)),
                                 careers_url=item.get("careers_url"), logo_url=item.get("logo_url"),
@@ -51,13 +54,14 @@ def seed_database(db):
                                                "provenance": item.get("provenance", {}), "seed": True})
             db.add(company)
             db.flush()
+            known_companies[name.lower()]=company
             companies_added += 1
         for source in item.get("sources", []):
             provider = str(source.get("provider") or "custom").lower()
             url = str(source.get("url") or source.get("board_url") or "").strip()
             if not url:
                 continue
-            exists = db.scalar(select(m.CompanySource.id).where(m.CompanySource.company_id == company.id, m.CompanySource.provider == provider, m.CompanySource.url == url).limit(1))
+            exists = (company.id,provider,url) in known_sources
             if exists:
                 continue
             association = source.get("association_status", "candidate")
@@ -68,6 +72,7 @@ def seed_database(db):
                                    cadence_hours=int(source.get("poll_interval_hours", source.get("cadence_hours", 12))),
                                    priority={"priority": 1, "normal": 2, "longtail": 3}.get(source.get("priority"), source.get("priority", 2)), status="pending" if source.get("enabled") else "unverified"))
             db.flush()
+            known_sources.add((company.id,provider,url))
             sources_added += 1
     if companies_added or sources_added:
         db.add(m.Activity(kind="registry.seeded", title=f"Imported {companies_added} companies and {sources_added} source candidates", entity_type="registry", data={"companies": companies_added, "sources": sources_added, "path": str(seed_path)}))
