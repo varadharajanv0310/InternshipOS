@@ -4,14 +4,14 @@ Updated 3 October 2026. Tests use isolated fixtures; the browser smoke check use
 
 | Check | Result |
 | --- | --- |
-| Backend suite | 95 passed; final run 3.38 seconds |
+| Backend suite | 99 passed; latest local run 3.82 seconds; cloud suite passed |
 | Frontend suite | 11 passed |
 | Extension fixture suite | 8 passed |
 | Frontend production build | Passed; app and chart bundles separated |
 | Extension content/popup syntax | Passed |
-| Live API /health | status ok; SQLite; scheduler enabled; version 0.1.0 |
-| Default India technical internship feed | 40 opportunities visible in final browser and API check |
-| Live employer registry | 290 employers visible in dashboard |
+| Live API /health | Hosted /api/health: status ok; PostgreSQL; API scheduler disabled; external GitHub collector |
+| Default India technical internship feed | Hosted snapshot: 46 default opportunities; 32 with sufficient scoring evidence |
+| Live employer registry | 323 migrated employer/discovery records; old local browser snapshot had 290 employers |
 | Real opportunity detail | HackerRank Software Development Engineer Intern loaded its complete original description and posting link |
 | Desktop appearance | Light and dark dashboard checked; no captured browser error logs |
 | Mobile layout | 390 × 844 viewport checked; no horizontal document overflow |

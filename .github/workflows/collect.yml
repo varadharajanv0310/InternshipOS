@@ -18,6 +18,7 @@ jobs:
       COLLECTION_TARGET_ONLY: 'true'
       GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
       GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+      GOOGLE_REDIRECT_URI: 'https://internshipos.vercel.app/api/integrations/google/callback'
       TOKEN_ENCRYPTION_KEY: ${{ secrets.TOKEN_ENCRYPTION_KEY }}
     steps:
       - uses: actions/checkout@v4

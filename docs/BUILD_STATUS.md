@@ -1,6 +1,6 @@
 # Build status
 
-2 October 2026 — local implementation and final handover are complete. The app is running at http://127.0.0.1:5173. This is a usable local build, not a verified hosted deployment.
+3 October 2026 - hosted app available at https://internshipos.vercel.app, backed by Neon PostgreSQL. Login and main authenticated endpoints verified. Cloud collection is scheduled every six hours; first scan is in progress. Google and paid AI remain unconfigured. The original local archive is preserved.
 
 Completed: 200 verified employer seeds with independently labelled ATS associations; 14 structured ATS families, custom/discovery sources and optional JobSpy; canonical identity/provenance/closure guards; India/CSE default feed; configurable collection and saved-detail refresh; employer verification and registry growth; deterministic eligibility/Fit/Worth; nine responsive product pages, advanced filters and saved views; application history/preparation; structured immutable resume versions and portable PDF; GitHub review inventory; first-party Gmail/Calendar; guarded extension capture/fill/opt-in submission; monthly AI reservations/provider boundary; portable backup export and tested restore; deployment/CI/launch configuration.
 
