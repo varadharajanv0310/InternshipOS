@@ -3,7 +3,7 @@ import asyncio, logging, os, threading, time
 from datetime import timedelta
 from zoneinfo import ZoneInfo
 from sqlalchemy import String, JSON, DateTime, Integer, select, update
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, joinedload
 from .db import Base, SessionLocal, utcnow, aware
 from .models import Company, CompanySource, Activity, Integration, Setting, Task, Notification
 
@@ -33,34 +33,50 @@ async def collect_boards(source_ids=None,limit=None,force=False):
     with SessionLocal() as db:
         query=select(CompanySource).where(CompanySource.enabled==True)
         if source_ids:query=query.where(CompanySource.id.in_(source_ids))
-        rows=db.scalars(query.order_by(CompanySource.priority,CompanySource.last_checked.asc().nullsfirst())).all()
+        rows=db.scalars(query.options(joinedload(CompanySource.company))).all()
+        def board_checked(row):
+            stamp=(row.config or {}).get('board_checked_at')
+            try:return aware(__import__('datetime').datetime.fromisoformat(stamp)) if stamp else aware(row.last_checked)
+            except (ValueError,TypeError):return aware(row.last_checked)
+        # Overdue age eventually outweighs source priority, avoiding starvation.
+        rows.sort(key=lambda r: (-(72 if not board_checked(r) else (utcnow()-board_checked(r)).total_seconds()/3600)/(r.cadence_hours or 24)-1/max(1,r.priority),r.id))
         now=utcnow();sources=[]
         for row in rows:
-            last=aware(row.last_checked)
+            last=board_checked(row)
             retry_hours=min(72,2**min(row.consecutive_failures or 0,6)) if row.consecutive_failures else 0
             interval=max(row.cadence_hours or 24,retry_hours)
             if force or not last or now-last>=timedelta(hours=interval):
                 source={c.name:getattr(row,c.name) for c in row.__table__.columns}
-                company=db.get(Company,row.company_id)
+                company=row.company
                 source.update(company_name=company.name if company else '',company_domain=company.domain if company else '')
                 sources.append(source)
             if len(sources)>=batch_size:break
     semaphore=asyncio.Semaphore(int(os.getenv('COLLECTION_CONCURRENCY','3')))
     async def one(source):
         async with semaphore:
-            try:result=await collect_source(source)
+            try:result=await collect_source(source,
+                max_details=int(os.getenv('COLLECTION_MAX_DETAILS','80')),
+                max_pages=int(os.getenv('COLLECTION_MAX_PAGES','25')),
+                timeout_seconds=int(os.getenv('COLLECTION_SOURCE_TIMEOUT','120')))
             except Exception as exc:
                 from .ingestion import CollectionResult
                 result=CollectionResult(jobs=[],complete=False,error=str(exc)[:600],coverage_scope='unknown')
+            inventory_ids=None
             with SessionLocal() as db:
                 if os.getenv('COLLECTION_TARGET_ONLY','false').lower()=='true':
                     from .models import JobSource
                     from .search_policy import retain_new_candidate
+                    inventory_ids=[str(j.get('external_id')) for j in result.jobs]
                     existing=set(db.scalars(select(JobSource.external_id).where(JobSource.company_source_id==source['id'])).all())
                     # Existing appearances always update, preserving full-scan
                     # absence proofs even if a job's title/location changes.
                     result.jobs=[j for j in result.jobs if str(j.get('external_id')) in existing or retain_new_candidate(j)]
-                return await asyncio.to_thread(ingest_batch,db,source['id'],result.jobs,complete=result.complete,error=result.error,coverage_scope=result.coverage_scope,observed_count=result.observed_count)
+                outcome=await asyncio.to_thread(ingest_batch,db,source['id'],result.jobs,complete=result.complete,error=result.error,coverage_scope=result.coverage_scope,observed_count=result.observed_count,inventory_ids=inventory_ids)
+                from .models import FetchRun
+                fetched=db.get(FetchRun,outcome['run_id']);fetched.data={**fetched.data,'collection':result.metadata};db.commit()
+                if result.metadata.get('next_detail_cursor') is not None:
+                    row=db.get(CompanySource,source['id']);row.config={**row.config,'detail_cursor':result.metadata['next_detail_cursor']};db.commit()
+                return outcome
     outcomes=await asyncio.gather(*(one(source) for source in sources),return_exceptions=True)
     return {'boards':len(sources),'results':[str(o) if isinstance(o,Exception) else o for o in outcomes]}
 
@@ -79,7 +95,7 @@ async def refresh_saved_jobs(limit=8):
     with SessionLocal() as db:candidates=saved_refresh_candidates(db,limit=limit)
     results=[]
     for source in candidates:
-        result=await collect_source(source,max_pages=2,max_jobs=20,max_details=8,max_requests=15,timeout=45)
+        result=await collect_source(source,max_pages=2,max_jobs=20,max_details=8,max_requests=15,timeout_seconds=45)
         with SessionLocal() as db:
             results.append(ingest_batch(db,source['id'],result.jobs,complete=False,error=result.error,coverage_scope='targeted',observed_count=result.observed_count))
     return {'sources':len(candidates),'results':results}

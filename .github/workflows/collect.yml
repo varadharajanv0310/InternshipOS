@@ -1,7 +1,7 @@
 name: Collect public opportunities
 on:
   schedule:
-    - cron: '17 */6 * * *'
+    - cron: '17 */2 * * *'
   workflow_dispatch:
 concurrency:
   group: internshipos-collection
@@ -10,11 +10,15 @@ jobs:
   collect:
     if: ${{ vars.COLLECTION_ENABLED == 'true' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       SCHEDULER_ENABLED: 'false'
-      COLLECTION_BATCH_SIZE: '64'
+      COLLECTION_BATCH_SIZE: '96'
+      COLLECTION_CONCURRENCY: '6'
+      COLLECTION_MAX_DETAILS: '40'
+      COLLECTION_MAX_PAGES: '10'
+      COLLECTION_SOURCE_TIMEOUT: '90'
       COLLECTION_TARGET_ONLY: 'true'
       GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
       GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}

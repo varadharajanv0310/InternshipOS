@@ -31,6 +31,8 @@ def row_dict(obj):
 def source_dict(obj):
     result = row_dict(obj)
     result["company"] = {"id": obj.company.id, "name": obj.company.name, "domain": obj.company.domain, "verified": obj.company.verified}
+    from .source_health import health
+    result["health"]=json_value(health(obj))
     result["company_name"] = obj.company.name
     result["board_url"] = obj.url
     return result
@@ -52,6 +54,10 @@ def opportunity_dict(db, obj, detail=True):
     result = row_dict(obj)
     result["company"] = {"id": obj.company.id, "name": obj.company.name, "domain": obj.company.domain,
                          "verified": obj.company.verified, "logo_url": obj.company.logo_url}
+    from .company_priority import priority
+    from .search_policy import location_decision
+    result["company_priority"]=priority(obj.company)
+    result["location_decision"]=location_decision(obj.location,obj.country,obj.work_mode)
     result["compensation"] = {"kind": "unknown", "label": "Not stated", "min": None, "max": None,
                               "currency": None, "period": None, **(obj.compensation or {})}
     appearances = db.scalars(select(m.JobSource).where(m.JobSource.opportunity_id == obj.id)).all() if detail else obj.sources

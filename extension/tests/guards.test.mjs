@@ -50,3 +50,24 @@ test('capture uses source JSON-LD facts without inventing an employer',()=>{
  const dom=page('<script type="application/ld+json">{"@type":"JobPosting","title":"Test-only Backend Intern","hiringOrganization":{"name":"Fixture Labs"},"description":"Build &lt;b&gt;Python&lt;/b&gt; services","jobLocation":{"address":{"addressLocality":"Bengaluru"}}}</script>');
  const captured=dom.window.__internshipOS.perform('capture',{});assert.equal(captured.company_name,'Fixture Labs');assert.equal(captured.title,'Test-only Backend Intern');assert.match(captured.description,/Python/);assert.equal(captured.location,'Bengaluru');dom.window.close();
 });
+
+
+test('server packs cannot submit without a reserved lease',async()=>{
+ const dom=page('<form><input aria-label="Full name" required><button type="submit">Submit application</button></form>');
+ const result=await fill(dom,{submitConsent:true,pack:pack({requires_submission_lease:true,auto_apply:{enabled:true,providers:['lever']}})});
+ assert.equal(result.submitted,false);assert.match(result.message,/reserve a submission/);
+});
+
+test('approved batches stop on conflicting prefilled facts rather than submitting them',async()=>{
+ const dom=page('<form><input aria-label="Email" value="other@example.test" required><button type="submit">Submit application</button></form>');
+ const result=await fill(dom,{requireExactFacts:true,submitConsent:false});
+ assert.equal(result.submitted,false);assert.match(result.unresolved[0],/existing answer/);
+});
+for(const [name,url] of [['greenhouse','https://job-boards.greenhouse.io/fixture/jobs/job-1234'],['ashby','https://jobs.ashbyhq.com/fixture/job-1234']]){
+ test(name+' fixture preserves approved job binding and receipt',async()=>{
+  const dom=page('<form><input aria-label="Full name" required><button type="submit">Submit application</button></form>',url);
+  dom.window.document.querySelector('form').addEventListener('submit',e=>{e.preventDefault();const receipt=dom.window.document.createElement('h1');receipt.textContent='Application received';dom.window.document.body.append(receipt);});
+  const result=await fill(dom,{submitConsent:true,submissionLease:{lease:'fixture-only',application_id:'test-only',resume_version_id:'test-only-version',expires_at:new Date(Date.now()+60000).toISOString()},pack:pack({opportunity:{apply_url:url},requires_submission_lease:true,auto_apply:{enabled:true,providers:[name]}})});
+  assert.equal(result.submitted,true);assert.ok(result.receipt);
+ });
+}

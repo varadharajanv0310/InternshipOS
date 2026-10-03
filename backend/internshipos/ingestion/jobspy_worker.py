@@ -20,7 +20,8 @@ def main():
     # Remove recruiter email columns: acquisition does not need personal contacts.
     for row in records:
         row.pop("emails", None)
-    print(json.dumps({"records": records, "log": log.getvalue()[-3000:]}, ensure_ascii=False))
+    # ASCII JSON is independent of Windows console/pipe encoding.
+    print(json.dumps({"records": records, "log": log.getvalue()[-3000:]}, ensure_ascii=True))
 
 
 if __name__ == "__main__":

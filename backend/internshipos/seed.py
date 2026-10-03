@@ -13,9 +13,11 @@ DEFAULT_SETTINGS = {
     "gmail_poll_minutes": 45, "ai_monthly_budget_usd": 2.5, "ai_enabled": False,
     "notifications_enabled": True, "theme": "system", "minimum_fit": 0,
     "closure_grace_hours": 48, "automatic_submission": False,
-    "auto_apply": {"enabled": False, "providers": []}, "timezone": "Asia/Kolkata",
+    "auto_apply": {"enabled": False, "providers": [], "daily_limit":5}, "timezone": "Asia/Kolkata",
     "saved_detail_refresh_hours": 24,
     "personal_target_filter": False,
+    "personal_location_policy": False,
+    "default_sort": "company_priority",
 }
 EMPTY_PROFILE = {"skills": [], "preferred_roles": [], "preferred_locations": [], "education": {},
                  "projects": [], "availability": {}, "github_username": ""}

@@ -25,9 +25,10 @@ async def lifespan(app):
         # Schema/seed updates run in the durable collection workflow, not every
         # serverless cold start. Hosted startup only opens the existing database.
         init_db()
-        from .bootstrap import install_discovery_sources,update_managed_seed_filters,update_classification_rules,install_previous_board_candidates
+        from .bootstrap import install_discovery_sources,update_managed_seed_filters,update_classification_rules,install_previous_board_candidates,install_previous_companies,install_owner_search_policy
+        from .company_priority import install_priorities
         with SessionLocal() as db:
-            seed_database(db);update_managed_seed_filters(db);update_classification_rules(db);install_discovery_sources(db);install_previous_board_candidates(db)
+            seed_database(db);update_managed_seed_filters(db);update_classification_rules(db);install_discovery_sources(db);install_previous_board_candidates(db);install_previous_companies(db);install_priorities(db);install_owner_search_policy(db)
     stop.clear()
     if os.getenv('SCHEDULER_ENABLED','true').lower()=='true':threading.Thread(target=worker_loop,args=(stop,),daemon=True,name='internshipos-worker').start()
     yield

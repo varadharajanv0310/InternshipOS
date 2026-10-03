@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, JSONResponse
 from pydantic import BaseModel, Field, ConfigDict
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session,joinedload
 from .db import get_db, utcnow
 from .auth import require_owner, sign_token, read_token, PASSWORD, COOKIE
 from . import service, resumes, integrations, ai
@@ -41,7 +41,7 @@ def safe_url(value):
 @router.get('/dashboard')
 def dashboard(db:Session=Depends(get_db)):return service.dashboard(db)
 @router.get('/opportunities')
-def opportunities(q:str='',role:str='',location:str='',kind:str='internship',saved:bool|None=None,min_fit:int|None=None,min_worth:int|None=None,technical:bool=True,work_mode:str='',eligibility:str='',source:str='',risk:str='',fresh_days:int|None=None,application_stage:str='',pay:str='',sort:str='worth',page:int=1,page_size:int=40,db:Session=Depends(get_db)):
+def opportunities(q:str='',role:str='',location:str='',kind:str='internship',saved:bool|None=None,min_fit:int|None=None,min_worth:int|None=None,technical:bool=True,work_mode:str='',eligibility:str='',source:str='',risk:str='',fresh_days:int|None=None,application_stage:str='',pay:str='',sort:str='company_priority',page:int=1,page_size:int=40,db:Session=Depends(get_db)):
     return service.list_opportunities(db,q=q,role=role,location=location,kind=kind,saved=saved,min_fit=min_fit,min_worth=min_worth,technical=technical,work_mode=work_mode,eligibility=eligibility,source=source,risk=risk,fresh_days=fresh_days,application_stage=application_stage,pay=pay,sort=sort,page=max(1,page),page_size=max(1,min(page_size,100)))
 @router.get('/opportunities/{id}')
 def opportunity(id:str,db:Session=Depends(get_db)):return must(service.get_opportunity(db,id))
@@ -68,6 +68,12 @@ def company(id:str,db:Session=Depends(get_db)):return must(service.company_detai
 @router.patch('/companies/{id}')
 def company_review(id:str,payload:dict,db:Session=Depends(get_db)):
     row=must(db.get(Company,id));before=row_dict(row)
+    if 'company_priority' in payload:
+        score=payload['company_priority'];reason=str(payload.get('priority_reason','')).strip()
+        if isinstance(score,bool) or not isinstance(score,int) or not 0<=score<=100 or len(reason)<8:raise HTTPException(422,'Supply a company priority from 0 to 100 and a reason.')
+        row.metadata_json={**row.metadata_json,'company_priority':{'score':score,'tier':'Your preference','reason':reason,'source':'owner'}}
+        if set(payload)<= {'company_priority','priority_reason'}:
+            db.add(Activity(kind='company_priority',title='Company preference updated',entity_type='company',entity_id=id,before=before,after={'company_priority':score,'reason':reason}));db.commit();return service.company_detail(db,id)
     if payload.get('verified'):
         if len(str(payload.get('verification_reason','')).strip())<8:raise HTTPException(422,'Record why this is the official employer identity.')
         safe_url(payload.get('verification_url'))
@@ -107,7 +113,7 @@ def settings_save(payload:dict,db:Session=Depends(get_db)):
 
 @router.get('/sources')
 def sources(db:Session=Depends(get_db)):
-    rows=db.scalars(select(CompanySource).order_by(CompanySource.priority,CompanySource.provider)).all();items=[]
+    rows=db.scalars(select(CompanySource).options(joinedload(CompanySource.company)).order_by(CompanySource.priority,CompanySource.provider)).all();items=[]
     for row in rows:
         data=source_dict(row);company=db.get(Company,row.company_id);data['company_name']=company.name if company else '';items.append(data)
     jobs=[row_dict(j) for j in db.scalars(select(BackgroundJob).order_by(BackgroundJob.created_at.desc()).limit(8)).all()]
@@ -127,6 +133,16 @@ def source_create(payload:dict,db:Session=Depends(get_db)):
 @router.patch('/sources/{id}')
 def source_control(id:str,payload:dict,db:Session=Depends(get_db)):
     row=must(db.get(CompanySource,id));before={'enabled':row.enabled,'cadence_hours':row.cadence_hours,'priority':row.priority}
+    if 'verified' in payload:
+        if not isinstance(payload['verified'],bool):raise HTTPException(422,'Verification must be true or false.')
+        if payload['verified']:
+            reason=str(payload.get('verification_reason','')).strip();url=safe_url(payload.get('verification_url'))
+            domain=(row.company.domain or '').lower().removeprefix('www.');host=(urlparse(url).hostname or '').lower().removeprefix('www.')
+            if not row.company.verified or not domain or not (host==domain or host.endswith('.'+domain)) or len(reason)<8:
+                raise HTTPException(422,'Verify the employer identity and cite its official website linking to this board, with a reason.')
+            row.config={**row.config,'association_status':'verified','association_evidence':{'kind':'owner_review','linked_from':url,'target':row.url,'reason':reason,'checked_at':utcnow().isoformat()}}
+        else:row.config={**row.config,'association_status':'candidate'}
+        row.verified=payload['verified']
     if 'enabled' in payload:row.enabled=bool(payload['enabled'])
     if 'cadence_hours' in payload:
         hours=float(payload['cadence_hours'])
@@ -136,7 +152,7 @@ def source_control(id:str,payload:dict,db:Session=Depends(get_db)):
         priority=int(payload['priority'])
         if priority not in (1,2,3):raise HTTPException(422,'Choose priority 1, 2 or 3.')
         row.priority=priority
-    db.add(Activity(kind='source_control',title='Source monitoring updated',entity_type='source',entity_id=id,before=before,after={'enabled':row.enabled,'cadence_hours':row.cadence_hours,'priority':row.priority}));db.commit();return source_dict(row)
+    db.add(Activity(kind='source_control',title='Source monitoring updated',entity_type='source',entity_id=id,before=before,after={'enabled':row.enabled,'cadence_hours':row.cadence_hours,'priority':row.priority,'verified':row.verified},data={'association_evidence':row.config.get('association_evidence')}));db.commit();return source_dict(row)
 @router.post('/capture',status_code=201)
 def capture(payload:dict,db:Session=Depends(get_db)):
     url=safe_url(payload.get('url'));title=str(payload.get('title','')).strip()
@@ -242,10 +258,52 @@ def receipt(payload:dict,db:Session=Depends(get_db)):
     app=must(db.get(Application,payload.get('application_id')))
     op=service.get_opportunity(db,app.opportunity_id);url=payload.get('url','');evidence=str(payload.get('evidence',''))[:2000]
     target=urlparse(op.get('apply_url') or op.get('canonical_url') or '').hostname
+    approval=(app.data or {}).get('auto_apply',{})
+    if payload.get('lease'):
+        from .application_queue import fingerprint
+        if approval.get('state') not in {'in_progress','uncertain'} or not hmac.compare_digest(str(approval.get('lease','')),str(payload['lease'])) or payload.get('resume_version_id')!=approval.get('resume_version_id'):raise HTTPException(422,'Receipt does not match the approved application attempt.')
+    elif approval.get('state') in {'in_progress','uncertain'}:raise HTTPException(422,'Use the original submission lease to confirm this attempt.')
     if urlparse(url).hostname!=target or not re.search(r'application (received|submitted)|thank you for applying|thanks for applying|successfully submitted',evidence,re.I):raise HTTPException(422,'A supported submission receipt was not detected. Confirm manually only after successful submission.')
     changes={'stage':'applied','resume_version_id':None} if app.stage=='ready' else {}
     if payload.get('resume_version_id'):
         version=must(db.get(ResumeVersion,payload['resume_version_id']))
         if version.status!='approved':raise HTTPException(422,'Only an approved resume version can be recorded as submitted.')
         changes['resume_version_id']=version.id
-    result=service.update_application(db,app.id,changes);db.add(Activity(kind='submission_receipt',title='Application receipt captured',entity_type='application',entity_id=app.id,data={'url':url,'receipt_text':evidence,'resume_version_id':payload.get('resume_version_id')}));db.commit();return result
+    result=service.update_application(db,app.id,changes)
+    if payload.get('lease'):app.data={**app.data,'auto_apply':{**approval,'state':'submitted'}}
+    db.add(Activity(kind='submission_receipt',title='Application receipt captured',entity_type='application',entity_id=app.id,data={'url':url,'receipt_text':evidence,'resume_version_id':payload.get('resume_version_id')}));db.commit();return result
+
+
+@router.get('/application-queue')
+def application_queue(db:Session=Depends(get_db)):
+    from .application_queue import listing
+    return listing(db)
+
+@router.post('/application-queue/{id}/approve')
+def queue_approve(id:str,payload:dict,db:Session=Depends(get_db)):
+    from .application_queue import approve
+    if payload.get('confirm') is not True:raise HTTPException(422,'Review and explicitly approve this application.')
+    return approve(db,id,payload.get('eligibility_reviewed') is True)
+
+@router.post('/application-queue/{id}/revoke')
+def queue_revoke(id:str,db:Session=Depends(get_db)):
+    from .application_queue import stop
+    return stop(db,id,'revoked')
+
+@router.get('/extension/queue')
+def extension_queue(db:Session=Depends(get_db)):
+    from .application_queue import listing
+    return listing(db)
+
+@router.post('/extension/claim')
+def extension_claim(payload:dict,db:Session=Depends(get_db)):
+    from .application_queue import claim
+    return claim(db,payload.get('application_id'))
+
+@router.post('/extension/attempt-stopped')
+def attempt_stopped(payload:dict,db:Session=Depends(get_db)):
+    from .application_queue import stop
+    app=must(db.get(Application,payload.get('application_id')))
+    approval=(app.data or {}).get('auto_apply',{})
+    if not hmac.compare_digest(str(approval.get('lease','')),str(payload.get('lease',''))) or not approval.get('lease'):raise HTTPException(422,'Submission lease mismatch.')
+    return stop(db,app.id,'uncertain')

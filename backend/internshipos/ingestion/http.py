@@ -71,6 +71,10 @@ class PublicHTTP:
                 try:
                     async with self._locks[host]:
                         request = self.client.build_request(method, url, **kwargs)
+                        # Optional zstd decoders differ between runtimes. Prefer
+                        # the encodings supported by Python's standard library.
+                        if request.headers.get('accept-encoding') != 'identity':
+                            request.headers['accept-encoding'] = 'gzip, deflate'
                         response = await self.client.send(request, stream=True, follow_redirects=False)
                         try:
                             chunks, size = [], 0
@@ -87,6 +91,8 @@ class PublicHTTP:
                                                   content=content, request=request)
                     self.status_counts[str(response.status_code)] += 1
                 except httpx.HTTPError as exc:
+                    if isinstance(exc, httpx.DecodingError):
+                        kwargs['headers'] = {**kwargs.get('headers', {}), 'Accept-Encoding': 'identity'}
                     if attempt == self.retries:
                         raise SourceError(f"network_error: {type(exc).__name__}") from exc
                     await asyncio.sleep(min(2 ** attempt, 4))

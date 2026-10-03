@@ -124,7 +124,7 @@ async def jobspy(c):
             "results_wanted": min(int(c.source.config.get("results_wanted", 30)), 100)}
     interpreter = os.environ.get("JOBSPY_PYTHON") or sys.executable
     worker = str(Path(__file__).with_name("jobspy_worker.py").resolve())
-    process = await asyncio.create_subprocess_exec(interpreter, worker,
+    process = await asyncio.create_subprocess_exec(interpreter, '-I', worker,
         stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
     try:
         stdout, stderr = await asyncio.wait_for(process.communicate(json.dumps(args).encode()), 75)

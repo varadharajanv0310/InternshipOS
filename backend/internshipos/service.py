@@ -65,7 +65,7 @@ def save_settings(db, payload):
     for key, value in values.items():
         if key in {"roles", "locations"} and (not isinstance(value, list) or not all(isinstance(x, str) for x in value)):
             raise ValueError(f"{key} must be a list of strings")
-        if key in {"ai_enabled", "notifications_enabled", "automatic_submission", "personal_target_filter"} and not isinstance(value, bool):
+        if key in {"ai_enabled", "notifications_enabled", "automatic_submission", "personal_target_filter", "personal_location_policy"} and not isinstance(value, bool):
             raise ValueError(f"{key} must be true or false")
         if key == "automatic_submission" and value:
             raise ValueError("Use scoped auto_apply settings with explicit supported providers")
@@ -76,7 +76,9 @@ def save_settings(db, payload):
                 raise ValueError("Unsupported automatic submission provider")
             if value.get("enabled") and not value.get("providers"):
                 raise ValueError("Select the supported providers you explicitly authorize")
-            value = {"enabled": value.get("enabled", False), "providers": list(dict.fromkeys(value.get("providers", [])))}
+            limit=value.get("daily_limit",5)
+            if isinstance(limit,bool) or not isinstance(limit,int) or not 1<=limit<=10:raise ValueError("Daily automatic submission limit must be 1 to 10")
+            value = {"enabled": value.get("enabled", False), "providers": list(dict.fromkeys(value.get("providers", []))), "daily_limit":limit}
         if key == "theme" and value not in {"system", "light", "dark"}:
             raise ValueError("Invalid theme")
         if key in {"priority_poll_hours", "normal_poll_hours", "longtail_poll_hours", "gmail_poll_minutes", "closure_grace_hours", "saved_detail_refresh_hours"}:
@@ -143,15 +145,19 @@ def save_profile(db, payload):
 
 
 def list_opportunities(db, **filters):
+    settings=get_settings(db)
     page = max(1, int(filters.get("page") or 1))
     page_size = min(200, max(1, int(filters.get("page_size") or 40)))
     stmt = select(m.Opportunity).join(m.Company)
+    if settings.get("personal_location_policy"):
+        from .search_policy import target_sql,PHD_ONLY,sql_pattern
+        stmt=stmt.where(target_sql(m.Opportunity),~func.lower(m.Opportunity.title).regexp_match(sql_pattern(PHD_ONLY)),m.Opportunity.eligibility!="probably ineligible")
     if filters.get("technical"):
         settings=get_settings(db)
         stmt = stmt.where(m.Opportunity.role_family.in_(settings.get('roles') or ["SWE", "Data", "AI_ML", "Adjacent"]))
         if settings.get('personal_target_filter'):
-            from .search_policy import TITLE_EXCLUSIONS
-            stmt=stmt.where(~func.lower(m.Opportunity.title).regexp_match(TITLE_EXCLUSIONS))
+            from .search_policy import TITLE_EXCLUSIONS,sql_pattern
+            stmt=stmt.where(~func.lower(m.Opportunity.title).regexp_match(sql_pattern(TITLE_EXCLUSIONS)))
     for field in ("work_mode", "eligibility"):
         if filters.get(field):stmt = stmt.where(getattr(m.Opportunity,field)==filters[field])
     if filters.get("source"):
@@ -206,11 +212,13 @@ def list_opportunities(db, **filters):
     if filters.get("min_fit") is not None and float(filters["min_fit"]) > 0:
         stmt = stmt.where(m.Opportunity.fit_score >= float(filters["min_fit"]))
     total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
-    sort = filters.get("sort", "newest")
+    sort = filters.get("sort") or settings.get("default_sort","company_priority")
     order = {"fit": m.Opportunity.fit_score.desc().nullslast(), "worth": m.Opportunity.worth_score.desc().nullslast(),
              "deadline": m.Opportunity.deadline.asc().nullslast(), "company": m.Company.name.asc(),
              "oldest": m.Opportunity.first_seen.asc()}.get(sort, m.Opportunity.first_seen.desc())
-    objects = db.scalars(stmt.options(joinedload(m.Opportunity.company),selectinload(m.Opportunity.sources).joinedload(m.JobSource.company_source)).order_by(order, m.Opportunity.id).offset((page - 1) * page_size).limit(page_size)).all()
+    orders=[order]
+    if sort=="company_priority":orders=[func.coalesce(m.Company.metadata_json["company_priority"]["score"].as_integer(),30).desc(),m.Opportunity.fit_score.desc().nullslast(),m.Opportunity.first_seen.desc()]
+    objects = db.scalars(stmt.options(joinedload(m.Opportunity.company),selectinload(m.Opportunity.sources).joinedload(m.JobSource.company_source)).order_by(*orders, m.Opportunity.id).offset((page - 1) * page_size).limit(page_size)).all()
     base = stmt.subquery()
     facets = {}
     for key in ["role_family", "opportunity_type", "location", "status"]:
@@ -265,6 +273,7 @@ def list_applications(db):
 
 def create_application(db, payload):
     opportunity = _require(db, m.Opportunity, payload.get("opportunity_id"))
+    if payload.get("stage","ready")=="ready" and get_settings(db).get("personal_location_policy") and not _personal_scope(opportunity):raise ValueError("This role is outside your location or eligibility policy.")
     attempt = max(1, int(payload.get("attempt", 1)))
     existing = db.scalar(select(m.Application).where(m.Application.opportunity_id == opportunity.id, m.Application.attempt == attempt))
     if existing:
@@ -449,8 +458,10 @@ def _employer_for_job(db, source, job):
         candidates = db.scalars(select(m.Company).where(func.lower(m.Company.name) == name.lower())).all()
         company = next((c for c in candidates if not domain or not c.domain or c.domain.lower().removeprefix("www.") == domain), None)
     if company is None:
+        from .company_priority import default_priority
         company = m.Company(name=name[:300], domain=domain or None, verified=False,
                             metadata_json={"discovery_source_id": source.id, "verification_status": "candidate",
+                                           "company_priority": default_priority(name),
                                            "evidence_url": job.get("canonical_url") or job.get("apply_url"),
                                            "observed_name": name, "domain_claim": domain or None})
         db.add(company)
@@ -496,7 +507,7 @@ def _normalize_job(job, now):
                      "source_evidence": json_value(job.get("evidence") or []), "preferred_skills": job.get("preferred_skills") or []}}
 
 
-def ingest_batch(db, company_source_id, jobs, *, complete, error=None, coverage_scope="full", observed_count=None):
+def ingest_batch(db, company_source_id, jobs, *, complete, error=None, coverage_scope="full", observed_count=None, inventory_ids=None):
     """One atomic observation batch. An incomplete result never advances absence.
 
     Source rows are locked on Postgres to serialize concurrent scans of one board.
@@ -634,11 +645,18 @@ def ingest_batch(db, company_source_id, jobs, *, complete, error=None, coverage_
             issues.append(str(exc)[:300])
 
     effective_complete = bool(complete and not error and not issues and coverage_scope == "full")
-    if observed_count is not None and int(observed_count) > len(seen):
+    if inventory_ids is not None:
+        inventory_ids={str(x) for x in inventory_ids}
+        if (set(existing)&inventory_ids)-seen:
+            effective_complete=False;issues.append("Storage filter omitted an existing source appearance")
+    if complete and coverage_scope=="full" and observed_count is not None and int(observed_count) > (len(inventory_ids) if inventory_ids is not None else len(seen)):
         effective_complete = False
         issues.append("Reported inventory exceeds unique accepted records; completeness rejected")
-    prior_count = source.job_count or 0
+    prior_count = len(existing) if inventory_ids is not None else source.job_count or 0
     config = dict(source.config or {})
+    if coverage_scope!='targeted':config['board_checked_at']=now.isoformat()
+    elif 'board_checked_at' not in config and source.last_checked:
+        config['board_checked_at']=aware(source.last_checked).isoformat()
     anomalous = effective_complete and prior_count >= 1 and len(seen) < prior_count * 0.2
     if anomalous:
         fingerprint = stable_hash(sorted(seen))
@@ -683,18 +701,20 @@ def ingest_batch(db, company_source_id, jobs, *, complete, error=None, coverage_
             op.status = "confirmed_closed"
         elif "possibly_closed" in states:
             op.status = "possibly_closed"
-    status = "error" if error else "quarantined" if issues else "complete" if effective_complete else "partial"
+    from .source_health import budget_only
+    soft=budget_only(error)
+    status = "partial" if soft else "error" if error else "quarantined" if issues else "complete" if effective_complete else "partial"
     source.last_checked = now
     source.status = status
     source.last_error = (str(error) if error else "; ".join(issues))[:4000] or None
-    if error or issues:
+    if (error and not soft) or issues:
         source.consecutive_failures = (source.consecutive_failures or 0) + 1
     else:
         source.consecutive_failures = 0
         source.last_success = now
     run.status, run.complete, run.finished_at = status, effective_complete, now
     run.error = source.last_error
-    run.data = {**stats, "accepted_unique": len(seen), "requested_complete": bool(complete), "issues": issues,
+    run.data = {**stats, "accepted_unique": len(seen), "requested_complete": bool(complete), "storage_filtered":inventory_ids is not None, "parsed_inventory_count":len(inventory_ids) if inventory_ids is not None else len(seen), "issues": issues,
                 "can_infer_absence": effective_complete, "employer_source_verified": source.verified}
     _audit(db, "source.fetched", f"{source.company.name}: {len(seen)} observations ({status})", "source", source.id,
            data={"run_id": run.id, **run.data})
@@ -778,7 +798,7 @@ def analytics(db, days=30, scope='all'):
     raw_count = len(opportunities)
     if scope == 'india':
         from .search_policy import TITLE_EXCLUSIONS
-        opportunities = [o for o in opportunities if _in_primary_market(o) and o.role_family in (settings.get('roles') or ['SWE','Data','AI_ML','Adjacent']) and o.opportunity_type in {'internship','possible_internship'} and (not settings.get('personal_target_filter') or not re.search(TITLE_EXCLUSIONS,o.title,re.I))]
+        opportunities = [o for o in opportunities if (not settings.get('personal_location_policy') or _personal_scope(o)) and _in_primary_market(o) and o.role_family in (settings.get('roles') or ['SWE','Data','AI_ML','Adjacent']) and o.opportunity_type in {'internship','possible_internship'} and (not settings.get('personal_target_filter') or not re.search(TITLE_EXCLUSIONS,o.title,re.I))]
     scoped_ids = {o.id for o in opportunities}
     recent = [o for o in opportunities if aware(o.first_seen) >= since]
     applications = db.scalars(select(m.Application)).all()
@@ -865,8 +885,9 @@ def dashboard(db):
     opportunities = db.scalars(select(m.Opportunity).options(joinedload(m.Opportunity.company),selectinload(m.Opportunity.sources).joinedload(m.JobSource.company_source))).all()
     applications = db.scalars(select(m.Application)).all()
     sources = db.scalars(select(m.CompanySource).options(joinedload(m.CompanySource.company))).all()
-    relevant = [o for o in opportunities if _is_relevant(o) and _in_primary_market(o) and o.status == "active" and o.role_family in (settings.get('roles') or ['SWE','Data','AI_ML','Adjacent']) and (not settings.get('personal_target_filter') or not re.search(TITLE_EXCLUSIONS,o.title,re.I))]
-    relevant.sort(key=lambda o: (o.saved, o.fit_score if o.fit_score is not None else -1, aware(o.first_seen)), reverse=True)
+    relevant = [o for o in opportunities if (not settings.get('personal_location_policy') or _personal_scope(o)) and _is_relevant(o) and _in_primary_market(o) and o.status == "active" and o.role_family in (settings.get('roles') or ['SWE','Data','AI_ML','Adjacent']) and (not settings.get('personal_target_filter') or not re.search(TITLE_EXCLUSIONS,o.title,re.I))]
+    from .company_priority import priority
+    relevant.sort(key=lambda o: (priority(o.company)["score"], o.fit_score if o.fit_score is not None else -1, aware(o.first_seen)), reverse=True)
     deadline_rows = [task_dict(t) for t in db.scalars(select(m.Task).where(m.Task.completed.is_(False), m.Task.due_at.is_not(None)).order_by(m.Task.due_at).limit(10)).all()]
     due_ids = {x.get("opportunity_id") for x in deadline_rows}
     for opportunity in sorted((o for o in relevant if o.deadline and aware(o.deadline) >= now and o.id not in due_ids), key=lambda o: aware(o.deadline))[:10]:
@@ -887,3 +908,8 @@ def dashboard(db):
             "source_health": [source_dict(s) for s in sorted(sources, key=lambda s: (s.status == "complete", s.company.name))[:12]],
             "notifications": [row_dict(n) for n in db.scalars(select(m.Notification).where(m.Notification.read.is_(False)).order_by(m.Notification.created_at.desc()).limit(10)).all()],
             "daily_discoveries": [{"date": (now.date() - timedelta(days=i)).isoformat(), "count": history[(now.date() - timedelta(days=i)).isoformat()]} for i in range(13, -1, -1)]}
+
+
+def _personal_scope(op):
+    from .search_policy import location_decision,PHD_ONLY
+    return location_decision(op.location,op.country,op.work_mode)=='allowed' and not re.search(PHD_ONLY,op.title,re.I) and op.eligibility!='probably ineligible'

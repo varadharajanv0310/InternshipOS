@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from urllib.parse import quote, urlsplit
 
-from .adapters import ashby, recruitee, slug, workday_target
+from .adapters import ashby, recruitee, slug, workday_target, parse_internshala
 from .parsing import compensation, date_value, job, parse_jsonld
 from .types import SourceError
 
@@ -15,6 +15,21 @@ async def targeted_refresh(c):
     if not ids:
         raise SourceError("refresh_requires_external_ids")
     provider = c.source.provider
+    if provider == 'unstop':
+        from .discovery import unstop
+        await unstop(c)
+        c.jobs={key:value for key,value in c.jobs.items() if key in ids}
+        if ids-c.jobs.keys():c.problem('saved_unstop_ids_not_in_bounded_window; availability_uncertain')
+        c.scope='targeted';return
+    if provider == 'internshala':
+        for target in records[:c.max_details]:
+            url = target.get('canonical_url')
+            if not url:
+                c.problem('saved_detail_url_missing'); continue
+            html = await c.detail_text(url)
+            for item in parse_internshala(c.source, html or '', url): c.add(item)
+        if not c.jobs: c.problem('internshala_detail_unrecognized; availability_uncertain')
+        c.finish(bool(c.jobs)); return
     # These APIs deliver all full descriptions in one inexpensive response.
     if provider in {"ashby", "recruitee"}:
         await {"ashby": ashby, "recruitee": recruitee}[provider](c)

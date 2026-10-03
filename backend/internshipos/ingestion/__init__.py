@@ -114,7 +114,7 @@ async def collect_source(source, *, client=None, max_pages=25, max_jobs=5000,
         observed_count=len(jobs), metadata={"provider": source.provider, "source_url": source.url,
             "observed_at": datetime.now(timezone.utc).isoformat(), "reported_total": context.reported_total,
             "requests": http.requests, "http_statuses": dict(http.status_counts),
-            "elapsed_seconds": round(time.monotonic() - started, 3), "detail_requests": context.detail_requests,
+            "elapsed_seconds": round(time.monotonic() - started, 3), "detail_requests": context.detail_requests, "next_detail_cursor":getattr(context,"next_detail_cursor",None),
             "description_count": sum(bool(x["description"]) for x in jobs), "errors": context.errors, "warnings": context.warnings})
 
 

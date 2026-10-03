@@ -184,6 +184,9 @@ def test_sources_can_be_paused_and_company_review_requires_evidence(client,db):
     assert client.patch('/api/sources/'+source.id,json={'cadence_hours':0}).status_code==422
     assert client.patch('/api/companies/'+company.id,json={'verified':True}).status_code==422
     assert client.patch('/api/companies/'+company.id,json={'verified':True,'verification_url':'https://example.com/about','verification_reason':'Official employer site manually reviewed'}).status_code==200
+    source.verified=False;db.commit()
+    assert client.patch('/api/sources/'+source.id,json={'verified':True,'verification_url':'https://different.example.org/careers','verification_reason':'The board was reachable'}).status_code==422
+    assert client.patch('/api/sources/'+source.id,json={'verified':True,'verification_url':'https://example.com/careers','verification_reason':'Official employer careers page links to this exact board'}).json()['verified'] is True
 
 def test_feed_filters_use_canonical_ids_and_show_trust_separately(client,db):
     app=application(db);op=db.get(m.Opportunity,app['opportunity_id']);op.work_mode='remote';op.compensation={'kind':'employer_stated','min':15000,'currency':'INR','period':'month'};db.commit()
@@ -202,3 +205,78 @@ def test_employer_boilerplate_does_not_make_nontechnical_jobs_technical():
     assert classify('Build financial services.','Software Engineer Intern, Finance')['role_family']=='SWE'
     for title in ['React Native Development - Internship','.NET Development - Internship','Automation Testing - Internship','iOS App Development - Internship']:
         assert classify('Our company uses AI for analytics.',title)['role_family']=='SWE'
+
+
+def test_personal_location_policy_and_company_priority_are_consistent(db):
+    from internshipos.company_priority import install_priorities
+    from internshipos.search_policy import location_decision,target_sql
+    pairs=[('Bangalore, Karnataka, India','India','onsite','allowed'),('Chennai, India','IN','hybrid','allowed'),('Noida, India','India','onsite','excluded'),('Mumbai, India','India','onsite','excluded'),('Remote, US','US','remote','excluded'),('Remote India','India','remote','allowed'),('India','India','','allowed'),('Remote','','remote','review')]
+    for i,(location,country,mode,expected) in enumerate(pairs):
+        c=m.Company(name='Unknown Fixture '+str(i),verified=True);db.add(c);db.flush()
+        db.add(m.Opportunity(company_id=c.id,title='Software Intern',location=location,country=country,work_mode=mode,role_family='SWE',opportunity_type='internship'))
+        assert location_decision(location,country,mode)==expected
+    db.commit()
+    matched=db.scalars(select(m.Opportunity).where(target_sql(m.Opportunity))).all()
+    assert len(matched)==4
+    service.save_settings(db,{'personal_location_policy':True})
+    assert service.list_opportunities(db,kind='internship')['total']==4
+    assert service.analytics(db,scope='india')['summary']['opportunities']==4
+    install_priorities(db)
+    first=matched[0];first.company.metadata_json={'company_priority':{'score':100,'source':'owner','tier':'Fixture preference'}};first.fit_score=5
+    db.commit()
+    assert service.list_opportunities(db,sort='company_priority')['items'][0]['id']==first.id
+
+
+def test_approved_queue_uses_single_lease_and_changed_pack_requires_review(db):
+    from internshipos.application_queue import approve,claim
+    app=application(db);v=version(db);service.update_application(db,app['id'],{'resume_version_id':v['id']})
+    service.save_settings(db,{'auto_apply':{'enabled':True,'providers':['greenhouse'],'daily_limit':1}})
+    approve(db,app['id'],True)
+    profile=service.get_profile(db);service.save_profile(db,{**profile,'skills':['Python','SQL','Java']})
+    with pytest.raises(ValueError,match='changed'):claim(db,app['id'])
+    approve(db,app['id'],True);lease=claim(db,app['id'])
+    assert lease['resume_version_id']==v['id']
+    with pytest.raises(ValueError,match='already has'):claim(db,app['id'])
+    assert db.get(m.Application,app['id']).stage=='ready'
+
+
+def test_queue_daily_limit_counts_uncertain_and_reserved_attempts(db):
+    from internshipos.application_queue import approve,claim
+    app=application(db);v=version(db);service.update_application(db,app['id'],{'resume_version_id':v['id']})
+    service.save_settings(db,{'auto_apply':{'enabled':True,'providers':['greenhouse'],'daily_limit':1}})
+    approve(db,app['id'],True)
+    db.add(m.Activity(kind='submission_reserved',title='Earlier uncertain attempt'));db.commit()
+    with pytest.raises(ValueError,match='Daily'):claim(db,app['id'])
+    assert db.get(m.Application,app['id']).data['auto_apply']['state']=='approved'
+
+
+def test_uncertain_queue_attempt_cannot_retry_but_can_record_late_receipt(client,db):
+    from internshipos.application_queue import approve,claim,stop
+    app=application(db);v=version(db);service.update_application(db,app['id'],{'resume_version_id':v['id']})
+    service.save_settings(db,{'auto_apply':{'enabled':True,'providers':['greenhouse'],'daily_limit':2}})
+    approve(db,app['id'],True);lease=claim(db,app['id']);stop(db,app['id'],'uncertain')
+    with pytest.raises(ValueError,match='already has'):claim(db,app['id'])
+    op=db.get(m.Opportunity,app['opportunity_id'])
+    payload={'application_id':app['id'],'url':op.apply_url,'evidence':'Application received','resume_version_id':v['id'],'lease':'incorrect'}
+    assert client.post('/api/extension/receipt',json=payload).status_code==422
+    payload['lease']=lease['lease']
+    assert client.post('/api/extension/receipt',json=payload).status_code==200
+    assert db.get(m.Application,app['id']).data['auto_apply']['state']=='submitted'
+
+
+def test_detail_budget_is_partial_and_never_proves_closure(db):
+    app=application(db);op=db.get(m.Opportunity,app['opportunity']['id']);source=db.scalar(select(m.CompanySource))
+    outcome=service.ingest_batch(db,source.id,[],complete=True,error='detail_limit_reached')
+    assert outcome['status']=='partial' and not outcome['complete']
+    assert op.status=='active'
+    from internshipos.source_health import health
+    assert health(source)['label']=='Partial'
+
+
+def test_target_storage_filter_preserves_raw_inventory_without_false_quarantine(db):
+    app=application(db);source=db.scalar(select(m.CompanySource));op=db.get(m.Opportunity,app['opportunity']['id'])
+    record={'external_id':'job-1234','title':op.title,'description':op.description,'location':op.location,'canonical_url':op.canonical_url,'apply_url':op.apply_url}
+    outcome=service.ingest_batch(db,source.id,[record],complete=True,observed_count=2,inventory_ids=['job-1234','foreign-new-role'])
+    assert outcome['status']=='complete' and op.status=='active'
+    unsafe=service.ingest_batch(db,source.id,[],complete=True,observed_count=1,inventory_ids=['job-1234'])
+    assert unsafe['status']=='quarantined' and op.status=='active'

@@ -1,0 +1,310 @@
+[
+  {
+    "name": "Razorpay",
+    "careers_url": "https://razorpay.com/jobs/"
+  },
+  {
+    "name": "Zomato",
+    "careers_url": "https://www.zomato.com/careers"
+  },
+  {
+    "name": "Swiggy",
+    "careers_url": "https://careers.swiggy.com/"
+  },
+  {
+    "name": "Meesho",
+    "careers_url": "https://www.meesho.io/jobs"
+  },
+  {
+    "name": "CRED",
+    "careers_url": "https://careers.cred.club/"
+  },
+  {
+    "name": "Groww",
+    "careers_url": "https://groww.in/careers"
+  },
+  {
+    "name": "Zerodha",
+    "careers_url": "https://zerodha.com/careers/"
+  },
+  {
+    "name": "PhonePe",
+    "careers_url": "https://www.phonepe.com/careers/"
+  },
+  {
+    "name": "Flipkart",
+    "careers_url": "https://www.flipkartcareers.com/"
+  },
+  {
+    "name": "Nykaa",
+    "careers_url": "https://www.nykaa.com/careers"
+  },
+  {
+    "name": "Dream11",
+    "careers_url": "https://dreamsports.group/careers/"
+  },
+  {
+    "name": "Zepto",
+    "careers_url": "https://www.zeptonow.com/careers"
+  },
+  {
+    "name": "Urban Company",
+    "careers_url": "https://www.urbancompany.com/careers"
+  },
+  {
+    "name": "Jupiter",
+    "careers_url": "https://jupiter.money/careers/"
+  },
+  {
+    "name": "Setu",
+    "careers_url": "https://setu.co/careers"
+  },
+  {
+    "name": "Juspay",
+    "careers_url": "https://juspay.io/careers"
+  },
+  {
+    "name": "Slice",
+    "careers_url": "https://www.sliceit.com/careers"
+  },
+  {
+    "name": "Navi",
+    "careers_url": "https://navi.com/careers"
+  },
+  {
+    "name": "smallcase",
+    "careers_url": "https://www.smallcase.com/careers"
+  },
+  {
+    "name": "Chargebee",
+    "careers_url": "https://www.chargebee.com/careers/"
+  },
+  {
+    "name": "Postman",
+    "careers_url": "https://www.postman.com/company/careers/"
+  },
+  {
+    "name": "BrowserStack",
+    "careers_url": "https://www.browserstack.com/careers"
+  },
+  {
+    "name": "Hasura",
+    "careers_url": "https://hasura.io/careers/"
+  },
+  {
+    "name": "Freshworks",
+    "careers_url": "https://www.freshworks.com/company/careers/"
+  },
+  {
+    "name": "Zoho",
+    "careers_url": "https://www.zoho.com/careers/"
+  },
+  {
+    "name": "Sprinklr",
+    "careers_url": "https://www.sprinklr.com/careers/"
+  },
+  {
+    "name": "Innovaccer",
+    "careers_url": "https://innovaccer.com/careers"
+  },
+  {
+    "name": "Whatfix",
+    "careers_url": "https://whatfix.com/careers/"
+  },
+  {
+    "name": "CleverTap",
+    "careers_url": "https://clevertap.com/careers/"
+  },
+  {
+    "name": "MoEngage",
+    "careers_url": "https://www.moengage.com/careers/"
+  },
+  {
+    "name": "Darwinbox",
+    "careers_url": "https://darwinbox.com/careers"
+  },
+  {
+    "name": "Zeta",
+    "careers_url": "https://www.zeta.tech/careers/"
+  },
+  {
+    "name": "Icertis",
+    "careers_url": "https://www.icertis.com/company/careers/"
+  },
+  {
+    "name": "Mindtickle",
+    "careers_url": "https://www.mindtickle.com/careers/"
+  },
+  {
+    "name": "Sarvam AI",
+    "careers_url": "https://www.sarvam.ai/careers"
+  },
+  {
+    "name": "Krutrim",
+    "careers_url": "https://www.olakrutrim.com/careers"
+  },
+  {
+    "name": "Observe.AI",
+    "careers_url": "https://www.observe.ai/careers"
+  },
+  {
+    "name": "Fractal",
+    "careers_url": "https://fractal.ai/careers/"
+  },
+  {
+    "name": "Tiger Analytics",
+    "careers_url": "https://www.tigeranalytics.com/careers/"
+  },
+  {
+    "name": "Wadhwani AI",
+    "careers_url": "https://www.wadhwaniai.org/careers/"
+  },
+  {
+    "name": "Glance",
+    "careers_url": "https://glance.com/careers"
+  },
+  {
+    "name": "Uniphore",
+    "careers_url": "https://www.uniphore.com/careers/"
+  },
+  {
+    "name": "Databricks",
+    "careers_url": "https://www.databricks.com/company/careers/open-positions"
+  },
+  {
+    "name": "Atlassian",
+    "careers_url": "https://www.atlassian.com/company/careers/all-jobs"
+  },
+  {
+    "name": "Stripe",
+    "careers_url": "https://stripe.com/jobs/search"
+  },
+  {
+    "name": "Rubrik",
+    "careers_url": "https://www.rubrik.com/company/careers"
+  },
+  {
+    "name": "Nutanix",
+    "careers_url": "https://www.nutanix.com/company/careers"
+  },
+  {
+    "name": "Arcesium",
+    "careers_url": "https://www.arcesium.com/careers"
+  },
+  {
+    "name": "Media.net",
+    "careers_url": "https://www.media.net/careers"
+  },
+  {
+    "name": "Twilio",
+    "careers_url": "https://www.twilio.com/en-us/company/jobs"
+  },
+  {
+    "name": "Confluent",
+    "careers_url": "https://www.confluent.io/careers/"
+  },
+  {
+    "name": "MongoDB",
+    "careers_url": "https://www.mongodb.com/careers"
+  },
+  {
+    "name": "Snowflake",
+    "careers_url": "https://careers.snowflake.com/us/en"
+  },
+  {
+    "name": "ServiceNow",
+    "careers_url": "https://careers.servicenow.com/careers/"
+  },
+  {
+    "name": "Qualcomm",
+    "careers_url": "https://careers.qualcomm.com/careers"
+  },
+  {
+    "name": "Cisco",
+    "careers_url": "https://jobs.cisco.com/jobs/SearchJobs"
+  },
+  {
+    "name": "IBM",
+    "careers_url": "https://www.ibm.com/careers/search"
+  },
+  {
+    "name": "SAP",
+    "careers_url": "https://jobs.sap.com/"
+  },
+  {
+    "name": "Uber",
+    "careers_url": "https://www.uber.com/us/en/careers/list/"
+  },
+  {
+    "name": "Wells Fargo",
+    "careers_url": "https://www.wellsfargojobs.com/en/jobs/"
+  },
+  {
+    "name": "Goldman Sachs",
+    "careers_url": "https://higher.gs.com/roles"
+  },
+  {
+    "name": "Apple",
+    "careers_url": "https://jobs.apple.com/en-in/search"
+  },
+  {
+    "name": "Google",
+    "careers_url": "https://www.google.com/about/careers/applications/jobs/results/"
+  },
+  {
+    "name": "Quadeye",
+    "careers_url": "https://www.quadeye.com/careers"
+  },
+  {
+    "name": "Graviton",
+    "careers_url": "https://www.gravitontrading.com/careers.html"
+  },
+  {
+    "name": "AlphaGrep",
+    "careers_url": "https://www.alpha-grep.com/careers"
+  },
+  {
+    "name": "Tower Research",
+    "careers_url": "https://www.tower-research.com/open-positions/"
+  },
+  {
+    "name": "Optiver",
+    "careers_url": "https://optiver.com/working-at-optiver/career-opportunities/"
+  },
+  {
+    "name": "IMC",
+    "careers_url": "https://careers.imc.com/us/en/search-results"
+  },
+  {
+    "name": "Da Vinci Derivatives",
+    "careers_url": "https://www.davincitrading.com/careers/"
+  },
+  {
+    "name": "WorldQuant",
+    "careers_url": "https://www.worldquant.com/careers/"
+  },
+  {
+    "name": "Kaleris",
+    "careers_url": "https://www.kaleris.com/careers/"
+  },
+  {
+    "name": "Planys Technologies",
+    "careers_url": "https://planystech.com/careers/"
+  },
+  {
+    "name": "Ather Energy",
+    "careers_url": "https://www.atherenergy.com/careers"
+  },
+  {
+    "name": "Hyperverge",
+    "careers_url": "https://hyperverge.co/careers/"
+  },
+  {
+    "name": "Vuram",
+    "careers_url": "https://www.vuram.com/careers/"
+  },
+  {
+    "name": "Indium Software",
+    "careers_url": "https://www.indiumsoftware.com/careers/"
+  }
+]

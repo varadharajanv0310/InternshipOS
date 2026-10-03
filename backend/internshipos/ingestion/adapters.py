@@ -178,17 +178,26 @@ async def workday(c):
             c.warnings.append("country_facet_unavailable; locations_must_be_filtered_after_collection")
     if query or facets:
         c.scope = "query"
-    for page in range(c.max_pages):
+    cursor=max(0,int(c.source.config.get('detail_cursor',0)))
+    start_page=cursor//20
+    if cursor: c.scope='query'  # A continuation cannot prove full-board absence.
+    for page in range(start_page,start_page+c.max_pages):
         data = await c.http.json("POST", f"{api}/jobs", json={"limit": 20, "offset": page * 20, "searchText": query, "appliedFacets": facets})
         items = rows_at(data, "jobPostings")
         total = data.get("total")
         if not isinstance(total, int):
             raise SchemaError("missing_workday_total")
         c.reported_total = total
+        if cursor and cursor>=total:
+            c.next_detail_cursor=0;c.problem('inventory_incomplete');c.finish(False);return
         if total >= 2000:
             c.problem("workday_query_cap_requires_partitioning")
         new = 0
-        for x in items:
+        for index,x in enumerate(items):
+            position=page*20+index
+            if position<cursor:continue
+            if c.max_details>0 and c.detail_requests>=c.max_details:
+                c.next_detail_cursor=position;c.problem('detail_limit_reached');c.finish(False);return
             path = x.get("externalPath")
             if not path:
                 c.problem("workday_missing_external_path"); continue
@@ -202,7 +211,9 @@ async def workday(c):
                 raw={"listing": x, "detail": detail}, requisition_id=d.get("jobReqId") or ident,
                 posted_at=date_value(d.get("startDate")), deadline=date_value(d.get("endDate")),
                 employment_type=d.get("timeType"), work_mode=d.get("remoteType") or "unknown"))
+            c.next_detail_cursor=position+1
         if page * 20 + len(items) >= total:
+            c.next_detail_cursor=0
             c.finish(total < 2000); return
         if not items or not new:
             raise SourceError("workday_pagination_incomplete_or_repeated")
@@ -213,7 +224,9 @@ async def oracle(c):
     site_match = re.search(r"/sites/([^/?#]+)", c.source.url)
     site = c.source.config.get("site_number") or c.source.config.get("site") or (site_match.group(1) if site_match else "CX_1")
     api = c.source.origin + "/hcmRestApi/resources/latest/"
-    for page in range(c.max_pages):
+    cursor=max(0,int(c.source.config.get('detail_cursor',0)))
+    if cursor:c.scope='query'
+    for page in range(cursor//100,cursor//100+c.max_pages):
         finder = f"findReqs;siteNumber={site},limit=100,offset={page * 100}"
         if c.source.config.get("keyword"):
             finder += ",keyword=" + str(c.source.config["keyword"])
@@ -226,7 +239,11 @@ async def oracle(c):
         total = envelope[0].get("TotalJobsCount")
         c.reported_total = int(total) if total is not None else None
         new = 0
-        for x in items:
+        for index,x in enumerate(items):
+            position=page*100+index
+            if position<cursor:continue
+            if c.max_details>0 and c.detail_requests>=c.max_details:
+                c.next_detail_cursor=position;c.problem('detail_limit_reached');c.finish(False);return
             ident = x.get("Id") or x.get("RequisitionNumber")
             response = await c.detail_json(api + "recruitingCEJobRequisitionDetails", params={"onlyData": "true", "finder": f"ById;Id={ident}"})
             detail_items = (response or {}).get("items") or []
@@ -243,9 +260,12 @@ async def oracle(c):
                 requisition_id=x.get("RequisitionNumber") or str(ident), posted_at=date_value(x.get("PostedDate")),
                 deadline=date_value(x.get("PostingEndDate")), employment_type=x.get("JobType") or x.get("WorkerType"),
                 work_mode={"ORA_REMOTE": "remote", "ORA_HYBRID": "hybrid", "ORA_ON_SITE": "onsite"}.get(x.get("WorkplaceTypeCode"), "unknown")))
+            c.next_detail_cursor=position+1
         if c.reported_total is not None and page * 100 + len(items) >= c.reported_total:
+            c.next_detail_cursor=0
             c.finish(True); return
         if not items:
+            c.next_detail_cursor=0
             c.finish(c.reported_total is None or len(c.jobs) >= c.reported_total); return
         if not new:
             raise SourceError("pagination_repeated_page")
@@ -261,14 +281,17 @@ async def eightfold(c):
     query = c.source.config.get("query", "")
     if query:
         c.scope = "query"
-    start = 0
+    start = max(0,int(c.source.config.get('detail_cursor',0)))
+    if start:c.scope='query'
     for _ in range(c.max_pages):
         payload = await c.http.json("GET", c.source.origin + "/api/pcsx/search", params={"domain": domain, "query": query, "start": start, "sort_by": "timestamp"})
         data = payload.get("data") or {}
         items = rows_at(data, "positions")
         c.reported_total = int(data["count"]) if data.get("count") is not None else None
         new = 0
-        for x in items:
+        for index,x in enumerate(items):
+            if c.max_details>0 and c.detail_requests>=c.max_details:
+                c.next_detail_cursor=start+index;c.problem('detail_limit_reached');c.finish(False);return
             ident = x.get("id")
             detail = await c.detail_json(c.source.origin + "/api/pcsx/position_details", params={"position_id": ident, "domain": domain, "hl": "en"})
             d = (detail or {}).get("data") or {}
@@ -278,9 +301,12 @@ async def eightfold(c):
                 requisition_id=x.get("atsJobId") or x.get("displayJobId"), posted_at=date_value(x.get("postedTs")),
                 work_mode=x.get("workLocationOption") or "unknown"))
         start += len(items)
+        c.next_detail_cursor=start
         if c.reported_total is not None and start >= c.reported_total:
+            c.next_detail_cursor=0
             c.finish(True); return
         if not items:
+            c.next_detail_cursor=0
             c.finish(c.reported_total is None or start >= c.reported_total); return
         if not new:
             raise SourceError("pagination_repeated_page")
@@ -425,6 +451,8 @@ async def bamboohr(c):
 async def generic(c):
     """JSON-LD details + bounded linked detail discovery; no false full scan."""
     c.scope = "discovery"
+    if c.source.config.get('api_url'):
+        await configured_public_api(c);return
     html = await c.http.text(c.source.url)
     direct = parse_jsonld(c.source, html, c.source.url)
     for item in direct:
@@ -443,17 +471,100 @@ async def generic(c):
     soup = BeautifulSoup(html, "html.parser")
     for anchor in soup.find_all("a", href=True):
         target = urljoin(c.source.url, anchor["href"])
-        if urlsplit(target).netloc == urlsplit(c.source.url).netloc and re.search(r"/(?:job|jobs|careers|internship)/(?:detail/)?[^/?]+", urlsplit(target).path):
+        path=urlsplit(target).path
+        if (urlsplit(target).hostname or '').endswith('google.com') and '/jobs/results/' in path and not re.search(r'/jobs/results/\d+',path):continue
+        if urlsplit(target).netloc == urlsplit(c.source.url).netloc and re.search(r"/(?:job|jobs|careers|internship)/(?:detail/)?[^/?]+", path):
             links.append(target)
     links = list(dict.fromkeys(links))
-    for link in links[:c.max_details]:
+    offset=int(c.source.config.get("detail_cursor",0)) % max(1,len(links))
+    selected=links[offset:offset+c.max_details]
+    c.next_detail_cursor=offset+len(selected) if offset+len(selected)<len(links) else 0
+    c.scope="discovery"
+    for link in selected:
         text = await c.detail_text(link)
         for item in parse_jsonld(c.source, text or "", link):
             c.add(item)
+    if not c.jobs and len(links)>c.max_details:
+        c.problem("detail_limit_reached");c.finish(False);return
     if not c.jobs:
         raise SourceError("no_public_jobposting_data; manual_capture_available")
     if len(links) > c.max_details:
         c.problem("detail_limit_reached")
+    c.finish(True)
+
+
+async def configured_public_api(c):
+    """Use declared public feed fields without executing registry expressions."""
+    config=c.source.config
+    if config.get('method','GET').upper()!='GET':raise SchemaError('configured_feed_requires_get')
+    payload=await c.http.json('GET',config['api_url'])
+    def field(data,path):
+        for key in str(path or '').split('.'):
+            if not isinstance(data,dict):return None
+            data=data.get(key)
+        return data
+    records=field(payload,config.get('json_path')) if config.get('json_path') else payload
+    if not isinstance(records,list):raise SchemaError('configured_feed_expected_array')
+    c.reported_total=field(payload,config.get('total_path')) if config.get('total_path') else len(records)
+    mapping=config.get('fields') or {}
+    for record in records:
+        if not isinstance(record,dict):raise SchemaError('configured_feed_expected_record')
+        values={name:field(record,path) for name,path in mapping.items() if isinstance(path,str)}
+        ident=values.get('metadata.ats_job_id') or values.get('id') or record.get('id')
+        title=values.get('title')
+        url=values.get('url') or values.get('apply_url')
+        if config.get('url_template'):
+            terms={key:quote(str(value),safe='') for key,value in record.items() if isinstance(value,(str,int,float))}
+            terms['slug']='-'.join(re.sub(r'[^a-z0-9]+',' ',plain(' '.join(str(record.get(k) or '') for k in config.get('slug_fields',[]))).lower()).split())
+            try:url=config['url_template'].format(**terms)
+            except KeyError as exc:raise SchemaError('configured_feed_missing_url_field') from exc
+        if not title or not url:raise SchemaError('configured_feed_missing_title_or_url')
+        c.add(job(c.source,ident or url,title,description=values.get('description') or '',url=url,
+            location=values.get('locations') or values.get('location') or '',employment_type=values.get('employment_type'),
+            posted_at=date_value(values.get('date_posted')),raw=record))
+    if isinstance(c.reported_total,int) and c.reported_total>len(records):c.problem('inventory_incomplete')
+    c.finish(True)
+
+
+def parse_internshala(source, html, page_url):
+    """Keep employer and role within the same card; never zip unrelated labels."""
+    structured = parse_jsonld(source, html, page_url)
+    if structured:
+        return structured
+    soup = BeautifulSoup(html, 'html.parser')
+    cards = soup.select('.individual_internship')
+    if '/internship/detail/' in urlsplit(page_url).path:
+        cards = [soup]
+    results = []
+    for card in cards:
+        title = card.select_one('.job-title, .profile, h1')
+        employer = card.select_one('.company-name, .company_name')
+        anchor = card.select_one('a[href*="/internship/detail/"]')
+        url = urljoin(page_url, anchor['href']) if anchor else page_url
+        if not title or not employer or '/internship/detail/' not in urlsplit(url).path:
+            continue
+        location_node = card.select_one('.location_link, .locations')
+        location = location_node.get_text(' ', strip=True) if location_node else ''
+        if not location:
+            path = urlsplit(url).path
+            if 'work-from-home' in path: location = 'Remote, India'
+            elif 'internship-in-chennai-at-' in path: location = 'Chennai, India'
+            elif any('internship-in-'+city+'-at-' in path for city in ('bangalore','bengaluru')): location = 'Bengaluru, India'
+        detail = card.select_one('.internship_details') if '/internship/detail/' in urlsplit(page_url).path else None
+        results.append(job(source, url, title.get_text(' ', strip=True), url=url,
+            company_name=employer.get_text(' ', strip=True), location=location,
+            employment_type='internship', description=detail.get_text(' ', strip=True) if detail else '',
+            raw={'page_url':page_url,'parser':'internshala-scoped-card-v1'}))
+    return results
+
+
+async def internshala(c):
+    c.scope = 'discovery'
+    html = await c.http.text(c.source.url)
+    for item in parse_internshala(c.source, html, c.source.url):
+        c.add(item)
+    if not c.jobs:
+        raise SchemaError('internshala_no_recognized_cards_or_jobposting; manual_capture_available')
     c.finish(True)
 
 
@@ -464,5 +575,5 @@ ADAPTERS = {
     "recruitee": recruitee, "personio": personio, "amazon": amazon,
     "breezy": breezy, "pinpoint": pinpoint, "bamboohr": bamboohr,
     "generic": generic, "jsonld": generic, "html": generic,
-    "internshala": generic,
+    "internshala": internshala,
 }

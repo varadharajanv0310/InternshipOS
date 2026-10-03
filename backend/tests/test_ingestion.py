@@ -16,6 +16,42 @@ from internshipos.ingestion.registry import default_discovery_sources, import_op
 FIXTURES = Path(__file__).parents[1] / "internshipos/ingestion/fixtures"
 
 
+def test_internshala_cards_preserve_employer_and_internship_context():
+    from internshipos.search_policy import retain_new_candidate
+    html='''<div class="individual_internship"><a class="job-title" href="/internship/detail/software-development-internship-in-chennai-at-acme123">Software Development</a><p class="company-name">Acme</p></div><div class="individual_internship"><a class="job-title" href="/internship/detail/data-science-work-from-home-internship-at-beta456">Data Science</a><p class="company-name">Beta</p></div>'''
+    result=collect('internshala',lambda r:httpx.Response(200,text=html),url='https://internshala.com/internships/software-development-internship-in-chennai/')
+    assert result.complete and result.coverage_scope=='discovery'
+    assert [j['company_name'] for j in result.jobs]==['Acme','Beta']
+    assert all(j['description']=='' and retain_new_candidate(j) for j in result.jobs)
+    empty=collect('internshala',lambda r:httpx.Response(200,text='<h1>Access unavailable</h1>'))
+    assert not empty.complete and 'no_recognized_cards' in empty.error
+
+
+def test_workday_budget_continues_at_next_job_without_full_inventory_claim():
+    def handler(request):
+        if request.method=='POST':
+            return httpx.Response(200,json={'total':3,'jobPostings':[{'externalPath':'/job/Chennai/Software-Intern_R'+str(i),'title':'Software Intern','bulletFields':['R'+str(i)]} for i in range(3)]})
+        ident=request.url.path.rsplit('_',1)[-1]
+        return httpx.Response(200,json={'jobPostingInfo':{'jobReqId':ident,'title':'Software Intern','location':'Chennai','jobDescription':'Build Python software.'}})
+    url='https://fixture.wd1.myworkdayjobs.com/Careers'
+    first=collect('workday',handler,url=url,max_details=1)
+    assert not first.complete and first.jobs[0]['external_id']=='R0' and first.metadata['next_detail_cursor']==1
+    second=collect('workday',handler,url=url,max_details=1,config={'detail_cursor':1})
+    assert second.jobs[0]['external_id']=='R1' and second.coverage_scope=='query' and second.metadata['next_detail_cursor']==2
+    last=collect('workday',handler,url=url,max_details=1,config={'detail_cursor':2})
+    assert last.jobs[0]['external_id']=='R2' and last.coverage_scope=='query' and last.metadata['next_detail_cursor']==0
+
+
+def test_declared_public_json_feed_preserves_fields_and_checks_schema():
+    config={'api_url':'https://feed.example.com/jobs.json','json_path':'Report_Entry','fields':{'title':'Title','description':'Description','locations':'Location','metadata.ats_job_id':'Req'},'url_template':'https://jobs.example.com/job/{Req}/{slug}/','slug_fields':['Title']}
+    result=collect('generic',lambda r:httpx.Response(200,json={'Report_Entry':[{'Req':'42','Title':'Software Intern','Description':'Build Python APIs','Location':'Chennai'}]}),config=config)
+    assert result.complete and result.coverage_scope=='discovery'
+    assert result.jobs[0]['external_id']=='42' and result.jobs[0]['description']=='Build Python APIs'
+    assert result.jobs[0]['apply_url']=='https://jobs.example.com/job/42/software-intern/'
+    invalid=collect('generic',lambda r:httpx.Response(200,json={'Error':'schema drift'}),config=config)
+    assert not invalid.complete and 'expected_array' in invalid.error
+
+
 def collect(provider, handler, url=None, config=None, **kwargs):
     async def run():
         async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
@@ -334,3 +370,25 @@ def test_oracle_snippet_is_not_full_detail_refresh():
     result = collect("oracle", handler, "https://acme.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1", config={"refresh_external_ids": ["123"]})
     assert not result.complete and result.jobs == []
     assert "full_description_missing" in result.error
+
+
+def test_standard_compression_and_identity_fallback_are_explicit():
+    attempts=[]
+    def handle(request):
+        attempts.append(request.headers['accept-encoding'])
+        if len(attempts)==1:raise httpx.DecodingError('fixture invalid compressed response')
+        return httpx.Response(200,json={'jobs':[]})
+    result=collect('greenhouse',handle)
+    assert result.complete and attempts==['gzip, deflate','identity']
+
+
+def test_generic_detail_cursor_resumes_without_claiming_full_inventory():
+    links='<a href="/jobs/one">One</a><a href="/jobs/two">Two</a>'
+    def handle(request):
+        if request.url.path=='/acme':return httpx.Response(200,text=links)
+        return httpx.Response(200,text='<script type="application/ld+json">'+json.dumps({'@type':'JobPosting','title':'Software Intern','identifier':request.url.path,'url':str(request.url),'description':'Build Python software','jobLocation':{'address':{'addressLocality':'Chennai','addressCountry':'India'}}})+'</script>')
+    first=collect('generic',handle,max_details=1)
+    second=collect('generic',handle,max_details=1,config={'detail_cursor':first.metadata['next_detail_cursor']})
+    assert first.jobs[0]['external_id']!=second.jobs[0]['external_id']
+    assert first.coverage_scope==second.coverage_scope=='discovery'
+    assert second.metadata['next_detail_cursor']==0
