@@ -11,9 +11,11 @@ Updated 3 October 2026. User authorized implementation of the seven-step plan. N
 - [x] Approved application queue: freshness, eligibility, employer/provider verification, immutable pack fingerprint, duplicate check, daily attempt limit, single lease and exact resume receipt checks.
 - [x] Extension queue executor: explicit batch start, local facts snapshot, supported provider permissions, pause for unknown answers/challenges/missing receipts; restart cannot silently retry an attempted application.
 - [x] Local tests and frontend production build pass: 110 backend, 11 frontend, 16 extension tests (137 total).
-- [ ] Publish current changes and verify hosted endpoints and scheduled worker.
+- [x] Production deployed; authenticated profile/dashboard/feed/analytics/settings/source-health/queue endpoints return 200, unauthenticated profile returns 401. Company priority order and strict location scope verified; Kaleris is present. Cloud CI passed, and repair run 37100957766 completed 96 source checks (23 complete, 41 partial, 32 errors). No worker-level exception.
 - [x] Existing connected repository made public; 608 historical Git objects checked with no known credential matches.
 
 Live submission is off. Actual employer forms, browser permissions and personal answers still require owner setup; fixtures do not prove compatibility with every live form. The browser executor needs an open browser and paired extension; Vercel does not host a browser. Unsupported sites and unresolved source checks remain visible rather than being counted as healthy coverage.
 
 Collection is scheduled every two hours, capped at 96 due sources per run, with six concurrent collectors and bounded continuation. The current enabled registry exceeds one batch: individual sources can lag their preferred cadence. This is scheduled background collection, not continuous exhaustive searching.
+
+Deployment asset packaging was corrected to include backend reference JSON while excluding root private runtime data. Remaining source failures are visible and need additional provider-specific work or manual capture; their presence is not disguised by the completed worker run. The 9 unresolved previous-feed leads are listed individually in PREVIOUS_FEED_RECONCILIATION.csv.

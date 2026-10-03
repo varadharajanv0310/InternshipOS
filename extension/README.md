@@ -1,9 +1,18 @@
 # InternshipOS browser extension
 
-In Chrome/Edge, open the extensions page, enable Developer mode, choose **Load unpacked**, and select this `extension` folder. In InternshipOS Settings, create a pairing token and paste it into the extension's Connect tab. Permission is requested only for your workspace URL; page access comes from your click.
+Load the extension folder as an unpacked Chrome/Edge extension. In the hosted workspace Settings, create a pairing token, then enter https://internshipos.vercel.app/api and the token in the extension Connect tab. The workspace origin permission is requested when you connect. Sensitive/contact question answers stay in local browser storage; passwords, cookies and OTPs are not copied to the server.
 
-Save a role reads public JobPosting metadata or visible page content, lets you review the employer/title, and preserves the page as provenance. Prepared applications come from your own workspace. Contact/sensitive question answers live only in `chrome.storage.local`; cookies, passwords and OTPs are never copied to the server.
+## Approved queue
 
-Attended filling supports semantic native fields, exact-answer selects, resume PDF files and repeat visits to successive pages. Existing answers are preserved. Complex dynamic or ambiguous required widgets are flagged for manual review. Greenhouse, Lever and Ashby have explicit provider boundaries; other pages can use conservative generic filling.
+1. Review your profile, project facts and an approved resume version in the workspace.
+2. Review the employer identity and official website-to-board association in Companies. Source candidates are not automatically trusted.
+3. Prepare an in-scope role, select its exact resume version, review eligibility, then approve its pack in Applications.
+4. Enable selected Greenhouse/Lever/Ashby forms and set the daily attempt limit in Settings. Submission remains off until you do this.
+5. Save accurate local contact facts and exact question/answer pairs in the extension. Review the batch consent checkbox, then choose Run approved queue and grant supported provider permissions. This snapshots your local facts for that run.
+6. Keep the browser open. The queue processes one approved job at a time, saves only confirmed receipts and pauses when a page, unknown answer, conflicting prefilled fact, required widget, resume upload, CAPTCHA or receipt needs attention. Pause queue stops subsequent work; it cannot undo a submission already underway.
 
-Automatic submission is **off by default**. It additionally requires workspace authorization for that provider, the user's per-application checkbox, an approved resume, no missing required fields and no detected CAPTCHA. A successful form fill is never recorded as Applied. A recognized same-provider confirmation receipt, or a separate user confirmation in the app, is required. Receipt text/URL and exact resume version are preserved. Real application submission has not been exercised during development.
+The queue does not retry uncertain attempts. Check the employer confirmation and use Check submission receipt with the original application/lease before starting again. Restart recovery also stops interrupted attempts. Browser permissions and real employer forms have not been validated by submitting personal applications during development. The hosted website collects jobs while the browser is closed; application execution requires the paired open browser.
+
+Individual attended filling remains available. Existing fields are preserved for manual review; strict queue execution additionally rejects conflicting prefilled answers. Complex forms, unsupported providers, account challenges and multi-step flows can require manual completion. A successful fill is not an application receipt.
+
+Implementation uses persisted state and alarms rather than assuming a browser service worker stays alive: [Chrome service worker lifecycle](https://developer.chrome.com/docs/extensions/develop/concepts/service-workers/lifecycle).

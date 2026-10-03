@@ -155,7 +155,7 @@ def classify(text, title="") -> dict:
     patterns = [
         ("AI_ML", r"machine learning|artificial intelligence|\bml\b|\bai\b|\bllm\b|\bmlops\b|generative ai|computer vision|\bnlp\b|deep learning"),
         ("Data", r"data scien|data engineer|data analy|analytics engineer|business intelligence|technical analy"),
-        ("SWE", r"software|developer|frontend|front.end|backend|back.end|full.stack|programmer|web engineer|mobile engineer|(?:web|app|mobile app|ios app|react native|blockchain|\.net) development|automation testing|manual testing|quality analyst"),
+        ("SWE", r"\b(?:sde|swe)\b|software|developer|frontend|front.end|backend|back.end|full.stack|programmer|web engineer|mobile engineer|(?:web|app|mobile app|ios app|react native|blockchain|\.net) development|automation testing|manual testing|quality analyst"),
         ("Adjacent", r"devops|cloud engineer|security engineer|database engineer|site reliability|\bsre\b|platform engineer"),
     ]
     for corpus in [title_low, body.lower()]:

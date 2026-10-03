@@ -26,7 +26,7 @@ def update_classification_rules(db):
     from .models import Setting,Opportunity,Activity
     from .domain import classify
     from .service import _evaluate_and_store
-    version='title-exclusions-v4'
+    version='title-exclusions-and-sde-v5'
     row=db.get(Setting,'classification_rules')
     if row and row.value==version:return
     changed=[]

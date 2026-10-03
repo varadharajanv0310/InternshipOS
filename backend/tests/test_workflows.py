@@ -203,6 +203,8 @@ def test_employer_boilerplate_does_not_make_nontechnical_jobs_technical():
     for title in ['UX Design - Intern','Game Artist - Internship','3D Artist Intern','Industrial Trainee - Finance & Accounting','Intern - Creative & Communications, People Team','Video Editor Intern']:
         assert classify('Our company uses AI and software for global analytics.',title)['role_family']=='excluded'
     assert classify('Build financial services.','Software Engineer Intern, Finance')['role_family']=='SWE'
+    assert classify('','SDE Intern')['role_family']=='SWE'
+    assert classify('','SWE Intern')['role_family']=='SWE'
     for title in ['React Native Development - Internship','.NET Development - Internship','Automation Testing - Internship','iOS App Development - Internship']:
         assert classify('Our company uses AI for analytics.',title)['role_family']=='SWE'
 
