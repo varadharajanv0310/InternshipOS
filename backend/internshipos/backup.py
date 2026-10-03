@@ -8,7 +8,7 @@ from pathlib import Path
 from sqlalchemy import DateTime, func, select
 from fastapi import HTTPException
 from .db import Base, utcnow
-from .models import Setting, Activity, ResumeVersion
+from .models import Setting, Activity, ResumeVersion, ResumeArtifact
 from .serialize import json_value
 
 def backup_status(db):
@@ -20,6 +20,9 @@ def create_backup(db):
     manifest={'format':'InternshipOS','version':1,'created_at':utcnow().isoformat(),'tables':{},'artifacts':{}}
     for table in Base.metadata.sorted_tables:
         records=[]
+        if table.name=='resume_artifacts':
+            manifest['tables'][table.name]=[]
+            continue
         for mapping in db.execute(select(table)).mappings():
             record=dict(mapping)
             record.pop('credentials_encrypted',None)
@@ -31,9 +34,10 @@ def create_backup(db):
     stream=io.BytesIO()
     with zipfile.ZipFile(stream,'w',zipfile.ZIP_DEFLATED) as archive:
         for version in db.scalars(select(ResumeVersion)).all():
+            uploaded=db.get(ResumeArtifact,version.id) if version.data.get('source')=='upload' else None
             source=Path(version.artifact_path) if version.artifact_path else None
-            if source and source.is_file() and source.stat().st_size<=5_000_000:
-                contents=source.read_bytes();name='resumes/'+version.id+'.pdf';archive.writestr(name,contents)
+            if uploaded or (source and source.is_file() and source.stat().st_size<=5_000_000):
+                contents=uploaded.contents if uploaded else source.read_bytes();name='resumes/'+version.id+'.pdf';archive.writestr(name,contents)
                 manifest['artifacts'][version.id]={'path':name,'sha256':hashlib.sha256(contents).hexdigest()}
         archive.writestr('manifest.json',json.dumps(manifest,ensure_ascii=False,default=str))
     contents=stream.getvalue();filename='internshipos-'+utcnow().strftime('%Y%m%d-%H%M%S-%f')+'.zip'
@@ -70,6 +74,7 @@ def restore_backup(db,path):
         folder=Path(os.getenv('APP_DATA_DIR','data'))/'resumes';folder.mkdir(parents=True,exist_ok=True)
         for version,contents in artifacts:
             target=folder/(version.id+'.pdf');target.write_bytes(contents);version.artifact_path=str(target.resolve())
+            if version.data.get('source')=='upload':db.add(ResumeArtifact(version_id=version.id,contents=contents))
         db.commit()
     return {'tables':len(manifest['tables']),'resumes':len(artifacts)}
 

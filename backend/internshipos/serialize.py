@@ -25,7 +25,7 @@ def row_dict(obj):
     if obj is None:
         return None
     return {c.key: json_value(getattr(obj, c.key)) for c in inspect(obj).mapper.column_attrs
-            if c.key not in {"credentials_encrypted"}}
+            if c.key not in {"credentials_encrypted", "contents"}}
 
 
 def source_dict(obj):

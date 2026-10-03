@@ -1,11 +1,11 @@
 """Immutable factual resume versions, public GitHub inventory and application packs."""
-import base64, hashlib, html, json, os, re
+import base64, hashlib, html, io, json, os, re
 from pathlib import Path
 from datetime import datetime, timezone
 import httpx
 from fastapi import HTTPException
 from sqlalchemy import select
-from .models import Resume, ResumeVersion, Project, Integration, Activity, Application
+from .models import Resume, ResumeVersion, ResumeArtifact, Project, Integration, Activity, Application
 from .serialize import row_dict
 from . import service
 
@@ -13,7 +13,37 @@ def resume_inventory(db):
     items=[]
     for resume in db.scalars(select(Resume).order_by(Resume.created_at.desc())).all():
         item=row_dict(resume);versions=db.scalars(select(ResumeVersion).where(ResumeVersion.resume_id==resume.id).order_by(ResumeVersion.created_at.desc())).all();item['versions']=[{**row_dict(v),'title':v.data.get('title',resume.name),'version_number':len(versions)-i} for i,v in enumerate(versions)];items.append(item)
-    return {'items':items,'total':len(items),'projects':[row_dict(p) for p in db.scalars(select(Project).order_by(Project.name)).all()]}
+    github=db.scalars(select(Integration).where(Integration.provider=='github')).first()
+    return {'items':items,'total':len(items),'projects':[row_dict(p) for p in db.scalars(select(Project).order_by(Project.name)).all()], 'github':{'connected':bool(github and github.status=='public_inventory'),'status':github.status if github else 'disconnected','data':github.data if github else {}},'upload_max_bytes':UPLOAD_MAX_BYTES}
+
+UPLOAD_MAX_BYTES=3*1024*1024
+
+def upload_resume(db,contents,filename,name='',role_focus='general',resume_id=''):
+    """Validate once, store the exact PDF separately from immutable version facts."""
+    if len(contents)>UPLOAD_MAX_BYTES:raise HTTPException(413,'Choose a PDF smaller than 3 MB.')
+    filename=re.split(r'[/\\]',filename or 'resume.pdf')[-1]
+    filename=''.join(c for c in filename if c.isprintable())[:200]
+    if not filename.lower().endswith('.pdf') or not contents.startswith(b'%PDF-'):raise HTTPException(422,'Upload a PDF resume.')
+    from pypdf import PdfReader
+    try:
+        reader=PdfReader(io.BytesIO(contents))
+        if reader.is_encrypted:raise ValueError('encrypted')
+        pages=len(reader.pages)
+        if not 1<=pages<=30:raise ValueError('page count')
+    except Exception as exc:raise HTTPException(422,'Choose a readable PDF with 1–30 pages and no password.') from exc
+    resume=db.get(Resume,resume_id) if resume_id else None
+    if resume_id and not resume:raise HTTPException(404,'Resume variant not found.')
+    if not resume:
+        resume=Resume(name=(name.strip() or filename[:-4])[:300],role_focus=role_focus[:100] or 'general',data={});db.add(resume);db.flush()
+    version=ResumeVersion(resume_id=resume.id,data={'source':'upload','title':name.strip()[:300] or filename[:-4],'filename':filename,'bytes':len(contents),'pages':pages,'role_focus':resume.role_focus},status='draft',artifact_hash=hashlib.sha256(contents).hexdigest())
+    db.add(version);db.flush();db.add(ResumeArtifact(version_id=version.id,contents=contents))
+    db.add(Activity(kind='resume_upload',title='Original resume uploaded',entity_type='resume_version',entity_id=version.id,data={'resume_id':resume.id,'sha256':version.artifact_hash}));db.commit()
+    return row_dict(version)
+
+def approve_upload(db,version):
+    if version.data.get('source')!='upload' or not db.get(ResumeArtifact,version.id):raise HTTPException(422,'This is not an uploaded resume.')
+    version.status='approved'
+    db.add(Activity(kind='resume_review',title='Uploaded resume approved for applications',entity_type='resume_version',entity_id=version.id));db.commit();return row_dict(version)
 
 def facts_inventory(db):
     profile=service.get_profile(db);facts=[]
@@ -72,6 +102,11 @@ def render_html(version):
 def pdf_artifact(db,version):
     folder=Path(os.getenv('APP_DATA_DIR','data'))/'resumes';folder.mkdir(parents=True,exist_ok=True)
     path=folder/(version.id+'.pdf')
+    if version.data.get('source')=='upload':
+        original=db.get(ResumeArtifact,version.id)
+        if not original:raise HTTPException(404,'Original uploaded PDF is unavailable. Upload it again.')
+        path.write_bytes(original.contents)
+        return path
     if path.exists() and version.artifact_path:return path
     try:
         if os.getenv('PDF_ENGINE','').lower()=='reportlab' or os.getenv('VERCEL'):
@@ -127,37 +162,52 @@ def render_portable_pdf(version,path):
     SimpleDocTemplate(str(path),pagesize=A4,rightMargin=18*mm,leftMargin=18*mm,topMargin=17*mm,bottomMargin=17*mm,title=version.data.get('title','Resume'),author=version.data.get('profile',{}).get('display_name','')).build(story)
 
 def github_inventory(db,username):
+    from concurrent.futures import ThreadPoolExecutor
+    from urllib.parse import quote
+    username=username.strip()
     if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9-]{0,38}',username):raise HTTPException(422,'Enter a valid GitHub username.')
     headers={'Accept':'application/vnd.github+json','User-Agent':'InternshipOS/0.1'}
     token=os.getenv('GITHUB_TOKEN')
     if token:headers['Authorization']='Bearer '+token
-    imported=0
-    with httpx.Client(timeout=25,headers=headers) as client:
-        response=client.get(f'https://api.github.com/users/{username}/repos',params={'per_page':100,'sort':'updated','type':'owner'})
-        if response.status_code==404:raise HTTPException(404,'This GitHub user was not found.')
-        if response.status_code in (403,429):raise HTTPException(429,'GitHub rate limit reached. Retry later or configure your own GitHub token.')
-        response.raise_for_status()
-        for index,repo in enumerate(response.json()):
-            if repo.get('fork') or repo.get('archived'):continue
-            project=db.scalars(select(Project).where(Project.github_url==repo['html_url'])).first()
-            technologies=[repo['language']] if repo.get('language') else []
-            if not project:project=Project(name=repo['name'],github_url=repo['html_url'],description=repo.get('description') or '',technologies=technologies,approved=False,approved_bullets=[],role_tags=[],data={});db.add(project)
-            # Approval and manually confirmed bullets are never overwritten by import.
-            project.data={**project.data,'github_id':repo['id'],'updated_at':repo['updated_at'],'stars':repo['stargazers_count'],'topics':repo.get('topics',[]),'imported_at':datetime.now(timezone.utc).isoformat(),'source':'GitHub API','features_need_review':True};imported+=1
-            if index<12:
-                # README claims are review material, never approved resume facts.
-                readme=client.get(repo['url']+'/readme')
-                if readme.status_code==200:
-                    detail=readme.json()
-                    if detail.get('encoding')=='base64' and detail.get('size',0)<=100000:
-                        text=base64.b64decode(detail.get('content','')).decode(errors='replace')[:16000]
-                        claims=[re.sub(r'^\s*[-*+]\s+','',line).strip() for line in text.splitlines() if re.match(r'^\s*[-*+]\s+\S',line)][:30]
-                        project.data={**project.data,'readme_url':detail.get('html_url'),'readme_excerpt':text,'unreviewed_feature_claims':claims,'measurable_claims_require_review':True}
-        row=db.scalars(select(Integration).where(Integration.provider=='github')).first()
-        if not row:row=Integration(provider='github');db.add(row)
-        row.status='public_inventory';row.data={'username':username,'last_imported_at':datetime.now(timezone.utc).isoformat(),'repositories':imported}
-        db.add(Activity(kind='github_import',title=f'Imported {imported} GitHub projects',data={'username':username,'approval_required':True}));db.commit()
-    return {'imported':imported,'projects':resume_inventory(db)['projects'],'note':'Review actual features and approve factual bullets before using these projects in a resume.'}
+    repositories=[]
+    try:
+        with httpx.Client(timeout=15,headers=headers) as client:
+            for page in range(1,21):
+                response=client.get(f'https://api.github.com/users/{username}/repos',params={'per_page':100,'sort':'updated','type':'owner','page':page})
+                if response.status_code==404:raise HTTPException(404,'This GitHub user was not found.')
+                if response.status_code in (403,429):raise HTTPException(429,'GitHub is limiting requests. Your previous projects are kept; try syncing later.')
+                response.raise_for_status();batch=response.json()
+                repositories.extend(r for r in batch if not r.get('fork') and not r.get('archived'))
+                if len(batch)<100:break
+            else:raise HTTPException(422,'This account exceeds the 2,000 repository import limit. Your previous connection is kept.')
+            def read_readme(repo):
+                try:
+                    result=client.get('https://api.github.com/repos/'+quote(username,safe='')+'/'+quote(repo['name'],safe='')+'/readme')
+                    return result.json() if result.status_code==200 else {}
+                except (httpx.HTTPError,ValueError):return {}
+            with ThreadPoolExecutor(max_workers=4) as pool:
+                readmes=list(pool.map(read_readme,repositories[:12]))
+    except (httpx.HTTPError,ValueError) as exc:
+        raise HTTPException(503,'GitHub could not be reached. Your previous connection and projects are kept. Try again shortly.') from exc
+    timestamp=datetime.now(timezone.utc).isoformat()
+    for index,repo in enumerate(repositories):
+        url='https://github.com/'+repo.get('owner',{}).get('login',username)+'/'+repo['name']
+        project=db.scalars(select(Project).where(Project.github_url==url)).first()
+        technologies=[repo['language']] if repo.get('language') else []
+        if not project:
+            project=Project(name=repo['name'],github_url=url,description=repo.get('description') or '',technologies=technologies,approved=False,approved_bullets=[],role_tags=[],data={});db.add(project);db.flush()
+        project.data={**project.data,'github_id':repo['id'],'github_username':username,'updated_at':repo.get('updated_at'),'stars':repo.get('stargazers_count',0),'topics':repo.get('topics',[]),'imported_at':timestamp,'source':'GitHub API','features_need_review':not project.approved}
+        detail=readmes[index] if index<len(readmes) else {}
+        if detail.get('encoding')=='base64' and detail.get('size',0)<=100000:
+            try:text=base64.b64decode(detail.get('content','')).decode(errors='replace')[:16000]
+            except (ValueError,TypeError):text=''
+            claims=[re.sub(r'^\s*[-*+]\s+','',line).strip() for line in text.splitlines() if re.match(r'^\s*[-*+]\s+\S',line)][:30]
+            project.data={**project.data,'readme_url':detail.get('html_url'),'readme_excerpt':text,'unreviewed_feature_claims':claims,'measurable_claims_require_review':True}
+    row=db.scalars(select(Integration).where(Integration.provider=='github')).first()
+    if not row:row=Integration(provider='github');db.add(row)
+    row.status='public_inventory';row.data={'username':username,'last_imported_at':timestamp,'repositories':len(repositories),'scope':'public repositories','readmes_imported':sum(bool(x) for x in readmes)}
+    db.add(Activity(kind='github_import',title=f'Imported {len(repositories)} GitHub projects',data={'username':username,'approval_required':True}));db.commit()
+    return {'imported':len(repositories),'projects':resume_inventory(db)['projects'],'note':'Review actual features and approve factual bullets before using these projects in a resume.'}
 
 def preparation_pack(db,application_id):
     application=service.list_applications(db)['items'];app=next((a for a in application if a['id']==application_id),None)

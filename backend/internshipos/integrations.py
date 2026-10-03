@@ -34,9 +34,10 @@ def google_row(db):
 
 def integration_status(db):
     row=google_row(db)
+    github=db.scalars(select(Integration).where(Integration.provider=='github')).first()
     return {'items':[
         {'provider':'google','configured':bool(os.getenv('GOOGLE_CLIENT_ID') and os.getenv('GOOGLE_CLIENT_SECRET')),'connected':bool(row and row.credentials_encrypted),'status':row.status if row else 'disconnected','data':row.data if row else {},'scopes':SCOPES},
-        {'provider':'github','configured':True,'connected':bool(db.scalars(select(Integration).where(Integration.provider=='github')).first()),'status':'public import available'},
+        {'provider':'github','configured':True,'connected':bool(github and github.status=='public_inventory'),'status':github.status if github else 'disconnected','data':github.data if github else {}},
         {'provider':'ai','configured':__import__('internshipos.providers',fromlist=['provider_configured']).provider_configured(),'connected':__import__('internshipos.providers',fromlist=['provider_configured']).provider_configured(),'status':'optional'},
     ]}
 

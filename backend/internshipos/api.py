@@ -2,7 +2,7 @@
 import hmac, os, re, secrets
 from datetime import datetime, timezone
 from urllib.parse import urlparse
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, Form
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, JSONResponse
 from pydantic import BaseModel, Field, ConfigDict
 from sqlalchemy import select
@@ -189,15 +189,30 @@ def backup_export(db:Session=Depends(get_db)):
 def resume_list(db:Session=Depends(get_db)):return resumes.resume_inventory(db)
 @router.post('/resumes',status_code=201)
 def resume_create(payload:dict,db:Session=Depends(get_db)):return resumes.create_resume(db,payload)
+@router.post('/resumes/upload',status_code=201)
+async def resume_upload(file:UploadFile=File(...),name:str=Form(''),role_focus:str=Form('general'),resume_id:str=Form(''),db:Session=Depends(get_db)):
+    try:return resumes.upload_resume(db,await file.read(resumes.UPLOAD_MAX_BYTES+1),file.filename,name,role_focus,resume_id)
+    finally:await file.close()
+@router.post('/resume-versions/{id}/approve')
+def version_approve(id:str,db:Session=Depends(get_db)):return resumes.approve_upload(db,must(db.get(ResumeVersion,id)))
 @router.post('/resumes/{id}/versions',status_code=201)
 def version_create(id:str,payload:dict,db:Session=Depends(get_db)):return resumes.create_version(db,id,payload)
 @router.get('/resume-versions/{id}/preview',response_class=HTMLResponse)
-def version_preview(id:str,db:Session=Depends(get_db)):return resumes.render_html(must(db.get(ResumeVersion,id)))
+def version_preview(id:str,db:Session=Depends(get_db)):
+    version=must(db.get(ResumeVersion,id))
+    if version.data.get('source')=='upload':return FileResponse(resumes.pdf_artifact(db,version),media_type='application/pdf',headers={'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'})
+    return resumes.render_html(version)
 @router.get('/resume-versions/{id}/download')
 def version_download(id:str,db:Session=Depends(get_db)):
-    version=must(db.get(ResumeVersion,id));path=resumes.pdf_artifact(db,version);return FileResponse(path,media_type='application/pdf',filename='InternshipOS-resume-'+id[:8]+'.pdf')
+    version=must(db.get(ResumeVersion,id));path=resumes.pdf_artifact(db,version);return FileResponse(path,media_type='application/pdf',filename=version.data.get('filename') or 'InternshipOS-resume-'+id[:8]+'.pdf',headers={'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'})
 @router.post('/projects/github')
 def github_import(payload:dict,db:Session=Depends(get_db)):return resumes.github_inventory(db,str(payload.get('username','')))
+@router.post('/projects/github/disconnect')
+def github_disconnect(db:Session=Depends(get_db)):
+    from .models import Integration
+    row=db.scalars(select(Integration).where(Integration.provider=='github')).first()
+    if row:row.status='disconnected';row.data={};row.credentials_encrypted=None;db.commit()
+    return {'connected':False,'note':'Your imported projects are kept.'}
 @router.post('/projects',status_code=201)
 def project_create(payload:dict,db:Session=Depends(get_db)):
     if not payload.get('name'):raise HTTPException(422,'Provide a project name.')

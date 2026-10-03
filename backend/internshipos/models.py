@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, Float, ForeignKey, Index, Integer, JSON, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, CheckConstraint, DateTime, Float, ForeignKey, Index, Integer, JSON, LargeBinary, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .db import Base, utcnow
@@ -247,6 +247,13 @@ class ResumeVersion(Identified, Created, Base):
     artifact_path: Mapped[str | None] = mapped_column(Text)
     artifact_hash: Mapped[str | None] = mapped_column(String(64))
     status: Mapped[str] = mapped_column(String(60), default="draft")
+
+
+class ResumeArtifact(Base):
+    """Original owner uploads survive serverless filesystem resets."""
+    __tablename__ = "resume_artifacts"
+    version_id: Mapped[str] = mapped_column(ForeignKey("resume_versions.id"), primary_key=True)
+    contents: Mapped[bytes] = mapped_column(LargeBinary)
 
 
 class Project(Identified, Updated, Base):

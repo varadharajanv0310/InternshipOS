@@ -1,5 +1,7 @@
 """End-to-end personal workflows with isolated fixtures, no external accounts."""
 import json
+import io
+import httpx
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 from pathlib import Path
@@ -14,6 +16,66 @@ from internshipos.db import Base,get_db,utcnow
 from internshipos import models as m,service,resumes,integrations,auth,ai,backup
 from internshipos.api import router,public
 from internshipos.providers import Provider,get_provider
+
+def uploaded_pdf():
+    from reportlab.pdfgen.canvas import Canvas
+    output=io.BytesIO();canvas=Canvas(output);canvas.drawString(50,750,'Test-only uploaded resume');canvas.save();return output.getvalue()
+
+def test_uploaded_resume_survives_cache_loss_and_preserves_original(client,db,tmp_path):
+    contents=uploaded_pdf()
+    response=client.post('/api/resumes/upload',files={'file':('original resume.pdf',contents,'application/pdf')},data={'name':'Uploaded SWE'})
+    assert response.status_code==201
+    v=response.json();assert v['status']=='draft' and v['data']['source']=='upload'
+    assert 'contents' not in client.get('/api/resumes').text
+    download=client.get('/api/resume-versions/'+v['id']+'/download');assert download.content==contents
+    for path in (tmp_path/'resumes').glob('*.pdf'):path.unlink()
+    assert client.get('/api/resume-versions/'+v['id']+'/preview').content==contents
+    assert client.post('/api/resume-versions/'+v['id']+'/approve').json()['status']=='approved'
+    app=application(db);assert client.patch('/api/applications/'+app['id'],json={'resume_version_id':v['id']}).status_code==200
+    assert client.get('/api/applications/'+app['id']+'/pack').json()['resume_version']['id']==v['id']
+
+def test_upload_rejects_bad_files_and_extension_scope(client,db,monkeypatch):
+    assert client.post('/api/resumes/upload',files={'file':('x.pdf',b'not a pdf','application/pdf')}).status_code==422
+    assert client.post('/api/resumes/upload',files={'file':('x.exe',uploaded_pdf(),'application/pdf')}).status_code==422
+    assert client.post('/api/resumes/upload',files={'file':('x.pdf',b'%PDF-'+b'x'*resumes.UPLOAD_MAX_BYTES,'application/pdf')}).status_code==413
+    assert db.scalar(select(func.count()).select_from(m.ResumeArtifact))==0
+    monkeypatch.setattr(auth,'PASSWORD','test-password')
+    assert client.post('/api/resumes/upload',files={'file':('x.pdf',uploaded_pdf(),'application/pdf')},headers={'Authorization':'Bearer '+auth.sign_token({'scope':'extension'})}).status_code==401
+
+def test_backup_restores_uploaded_pdf_from_database(db,tmp_path):
+    contents=uploaded_pdf();saved=resumes.upload_resume(db,contents,'test.pdf');resumes.approve_upload(db,db.get(m.ResumeVersion,saved['id']))
+    archive=backup.create_backup(db)
+    other=create_engine('sqlite://');Base.metadata.create_all(other)
+    with Session(other) as restored:
+        backup.restore_backup(restored,archive)
+        assert restored.get(m.ResumeArtifact,saved['id']).contents==contents
+        assert resumes.pdf_artifact(restored,restored.get(m.ResumeVersion,saved['id'])).read_bytes()==contents
+    other.dispose()
+
+def test_github_pagination_connection_and_review_preservation(client,db,monkeypatch):
+    original=httpx.Client;requests=[]
+    def handler(request):
+        requests.append(str(request.url))
+        if request.url.path.endswith('/readme'):return httpx.Response(404)
+        page=int(request.url.params.get('page','1'))
+        if page==1:return httpx.Response(200,json=[{'id':i,'name':'repo-'+str(i),'language':'Python','fork':i!=0} for i in range(100)])
+        return httpx.Response(200,json=[{'id':101,'name':'final-project','language':'TypeScript'}])
+    monkeypatch.setattr(resumes.httpx,'Client',lambda **kwargs:original(transport=httpx.MockTransport(handler),**kwargs))
+    result=resumes.github_inventory(db,'fixture');assert result['imported']==2 and any('page=2' in x for x in requests)
+    project=db.scalar(select(m.Project).where(m.Project.name=='repo-0'));project.approved=True;project.description='Owner-reviewed';project.approved_bullets=['Built a tested project.'];db.commit()
+    resumes.github_inventory(db,'fixture');assert project.approved and project.description=='Owner-reviewed' and project.approved_bullets==['Built a tested project.']
+    assert client.get('/api/integrations').json()['items'][1]['data']['username']=='fixture'
+    assert client.post('/api/projects/github/disconnect').status_code==200
+    assert client.get('/api/integrations').json()['items'][1]['connected'] is False
+    assert db.scalar(select(func.count()).select_from(m.Project))==2
+
+def test_failed_github_sync_preserves_connection_and_projects(db,monkeypatch):
+    db.add(m.Integration(provider='github',status='public_inventory',data={'username':'existing'}));db.commit()
+    original=httpx.Client
+    monkeypatch.setattr(resumes.httpx,'Client',lambda **kwargs:original(transport=httpx.MockTransport(lambda request:httpx.Response(503)),**kwargs))
+    with pytest.raises(HTTPException) as error:resumes.github_inventory(db,'fixture')
+    assert error.value.status_code==503
+    assert db.scalar(select(m.Integration)).data['username']=='existing'
 
 @pytest.fixture
 def db(tmp_path,monkeypatch):

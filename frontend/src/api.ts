@@ -4,7 +4,8 @@ export type Row = Record<string, any>;
 export type Collection<T = Row> = { items: T[]; total: number; page?: number; facets?: Row };
 export class APIError extends Error { constructor(message: string, public status: number) { super(message); } }
 export async function api<T = Row>(path: string, method = 'GET', body?: unknown, signal?: AbortSignal): Promise<T> {
-  const response = await fetch(`/api${path}`, {method, credentials:'same-origin', signal, headers: body ? {'Content-Type':'application/json'} : {}, body: body ? JSON.stringify(body) : undefined});
+  const multipart = body instanceof FormData;
+  const response = await fetch(`/api${path}`, {method, credentials:'same-origin', signal, headers: body && !multipart ? {'Content-Type':'application/json'} : {}, body: multipart ? body : body ? JSON.stringify(body) : undefined});
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
     if (response.status === 401) window.dispatchEvent(new Event('ios:unauthorized'));
