@@ -12,6 +12,25 @@ await build({entryPoints:[join(root,'tests','harness.tsx')],outfile:output,bundl
 const ui=await import(pathToFileURL(output).href);
 test.after(async()=>{await rm(output,{force:true});});
 
+test('PDF uploads send multipart data without overriding the browser boundary',async()=>{
+ const previous=globalThis.fetch;let request;
+ globalThis.fetch=async(url,options)=>{request={url,...options};return {ok:true,json:async()=>({id:'uploaded-version'})};};
+ try {
+  const body=new FormData();body.append('file',new Blob(['fixture'],{type:'application/pdf'}),'fixture.pdf');
+  const result=await ui.api('/resumes/upload','POST',body);
+  assert.equal(result.id,'uploaded-version');assert.equal(request.body,body);
+  assert.equal(request.url,'/api/resumes/upload');assert.equal(request.credentials,'same-origin');
+  assert.equal(request.headers['Content-Type'],undefined);
+ } finally {globalThis.fetch=previous;}
+});
+
+test('existing profile writes continue sending JSON',async()=>{
+ const previous=globalThis.fetch;let request;
+ globalThis.fetch=async(url,options)=>{request=options;return {ok:true,json:async()=>({saved:true})};};
+ try {await ui.api('/profile','PATCH',{display_name:'Test-only'});assert.equal(request.headers['Content-Type'],'application/json');assert.equal(JSON.parse(request.body).display_name,'Test-only');}
+ finally {globalThis.fetch=previous;}
+});
+
 test('dashboard opportunity cards include the actual role, employer, location and accessible save action',()=>{
  const html=ui.renderCard({id:'fixture-only',title:'Backend intern',company:{name:'Example employer'},location:'Bengaluru, India',opportunity_type:'internship',eligibility:'eligible',fit_score:null,worth_score:0,saved:false});
  for(const text of ['Backend intern','Example employer','Bengaluru, India','Eligible','Save opportunity'])assert.ok(html.includes(text),`Missing ${text}`);

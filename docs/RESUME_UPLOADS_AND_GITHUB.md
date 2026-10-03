@@ -13,14 +13,15 @@ Repository listings are paginated, excluding forks and archived repositories. Im
 ## Verification and deployment
 
 - Backend regression suite: 115 passed, including original-byte download, cache loss, approval, application selection, owner/extension scopes, malformed/oversized uploads, durable backup/restore, GitHub pagination, preservation and failure handling.
-- Frontend: 11 existing checks passed; production build passed.
+- Frontend: 13 checks passed, including multipart upload boundaries and unchanged JSON writes; production build passed. Original PDFs render through a lazy-loaded PDF.js viewer instead of relying on an embedded browser PDF plugin. All resume versions are visible, and application selection lists approved versions.
 - Database change: one additive `resume_artifacts` table; existing schema, profile, applications and integration credentials preserved.
-- Dependency: `pypdf>=6,<7` added for PDF validation.
+- Dependencies: `pypdf>=6,<7` for PDF validation; `pdfjs-dist` 6.3.289 for in-app preview. Vite updated to 7.3.6 to resolve its reported development-server advisories; frontend audit reports zero vulnerabilities.
 - Hosting: existing Vercel project and private Neon database; no new deployment project or paid provider.
 
 ## Technical references
 
 - [GitHub repository listing API](https://docs.github.com/en/rest/repos/repos#list-repositories-for-a-user)
 - [GitHub README API](https://docs.github.com/en/rest/repos/contents#get-a-repository-readme)
+- [Mozilla PDF.js rendering examples](https://mozilla.github.io/pdf.js/examples/)
 
 Hosted verification results will be appended after deployment.
