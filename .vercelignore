@@ -1,5 +1,5 @@
 research/
-data/
+/data/
 backend/.venv/
 backend/.jobspy-venv/
 frontend/node_modules/
