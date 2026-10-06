@@ -7,7 +7,8 @@ import os
 import re
 import sys
 from pathlib import Path
-from urllib.parse import urljoin, urlsplit
+from html import escape
+from urllib.parse import parse_qs, quote, unquote, urljoin, urlsplit
 
 from bs4 import BeautifulSoup
 
@@ -157,7 +158,7 @@ async def jobspy(c):
 def detect_source(url: str) -> dict | None:
     p = urlsplit(url)
     host, parts = (p.hostname or "").lower(), [x for x in p.path.split("/") if x]
-    if not host or p.scheme not in {"http", "https"}:
+    if not host or p.scheme not in {"http", "https"} or p.username or p.password:
         return None
     provider, normalized = None, url
     rules = {"greenhouse.io": "greenhouse", "lever.co": "lever", "ashbyhq.com": "ashby", "smartrecruiters.com": "smartrecruiters",
@@ -179,14 +180,42 @@ def detect_source(url: str) -> dict | None:
     if provider in expected_hosts and (host not in expected_hosts[provider] or not parts):
         return None
     config = {}
-    if provider == "greenhouse" and "boards" in parts:
-        index = parts.index("boards")
-        if len(parts) > index + 1:
-            config["token"] = parts[index + 1]
-            normalized = "https://job-boards.greenhouse.io/" + config["token"]
-    if provider in {"greenhouse", "lever", "ashby", "smartrecruiters", "workable"} and parts:
-        if not config:
-            normalized = f"{p.scheme}://{p.netloc}/{parts[0]}"
+    if provider in {"greenhouse", "lever", "ashby", "smartrecruiters", "workable"}:
+        token = parts[0]
+        if provider == "greenhouse":
+            if host == "boards-api.greenhouse.io":
+                if len(parts) < 3 or parts[:2] != ["v1", "boards"]:
+                    return None
+                token = parts[2]
+            elif token == "embed":
+                token = (parse_qs(p.query).get("for") or [None])[0]
+            board_host = "job-boards.eu.greenhouse.io" if ".eu." in host else "job-boards.greenhouse.io"
+        elif provider == "lever":
+            if host.startswith("api."):
+                if len(parts) < 3 or parts[:2] != ["v0", "postings"]:
+                    return None
+                token = parts[2]
+            board_host = "jobs.eu.lever.co" if ".eu." in host else "jobs.lever.co"
+        elif provider == "ashby":
+            if host == "api.ashbyhq.com":
+                if len(parts) < 3 or parts[:2] != ["posting-api", "job-board"]:
+                    return None
+                token = parts[2]
+            board_host = "jobs.ashbyhq.com"
+        elif provider == "smartrecruiters":
+            if host == "api.smartrecruiters.com":
+                if len(parts) < 3 or parts[:2] != ["v1", "companies"]:
+                    return None
+                token = parts[2]
+            board_host = "careers.smartrecruiters.com"
+        else:
+            board_host = "apply.workable.com"
+            if token == "j":  # A single application URL contains no employer board.
+                return None
+        if not token or not re.fullmatch(r"[A-Za-z0-9_.-]+", unquote(token)):
+            return None
+        config["token"] = unquote(token)
+        normalized = f"https://{board_host}/{quote(config['token'], safe='_.-')}"
     return {"provider": provider, "url": normalized, "config": config, "verified": False,
             "association_status": "candidate", "enabled": True, "poll_interval_hours": 24}
 
@@ -217,8 +246,12 @@ async def discover_company(name: str, domain=None, careers_url=None, *, trusted_
         return bool(supplied_domain and (host == supplied_domain or host.endswith("." + supplied_domain)))
     def career_links(html, base):
         return list(dict.fromkeys(urljoin(base, a["href"]) for a in BeautifulSoup(html, "html.parser").find_all("a", href=True)
-            if re.search(r"careers?|jobs|join.us|work.with.us", a.get_text(" ") + " " + a["href"], re.I)))
+            if re.search(r"careers?|jobs|open.positions|openings|vacancies|join.us|work.with.us", a.get_text(" ") + " " + a["href"], re.I)))
     target = (domain if str(domain).startswith(("https://", "http://")) else "https://" + str(domain)) if domain else careers_url
+    # A known official careers page is a better first request than a marketing
+    # homepage, which can have an unrelated bot policy or many footer links.
+    if careers_url and is_official(careers_url):
+        target = careers_url
     own = client is None
     client = client or httpx.AsyncClient(timeout=15, headers={"User-Agent": USER_AGENT}, trust_env=False)
     try:
@@ -226,25 +259,45 @@ async def discover_company(name: str, domain=None, careers_url=None, *, trusted_
         response = await http.request("GET", target)
         final_url = str(response.url)
         official = is_official(final_url)
+        official_redirect = is_official(target) and final_url != target and detect_source(final_url)
         result["evidence"].append({"kind": "public_site_reachable", "url": final_url,
                                    "status": response.status_code, "matches_supplied_domain": official})
-        if supplied_domain and not official:
+        if supplied_domain and not official and not official_redirect:
             result["warnings"].append("website_redirected_to_other_domain; binding_requires_review")
-        pages = [(final_url, response.text, official)]
-        links = career_links(response.text, final_url)
+        if official_redirect:
+            # The binding is the official URL's observed redirect, not arbitrary
+            # links found on a third-party board after following it.
+            pages = [(target, f'<a href="{escape(final_url, quote=True)}">Careers redirect</a>', True)]
+            links = []
+            result["evidence"].append({"kind": "official_careers_redirect", "linked_from": target,
+                                       "target": final_url, "observed_at": checked})
+        else:
+            pages = [(final_url, response.text, official)]
+            links = career_links(response.text, final_url)
         if careers_url and is_official(careers_url) and careers_url not in links:
             links.append(careers_url)
         # Inspect a few official career pages, never arbitrary unrelated links.
-        for url in links[:4]:
+        pending = list(links)
+        inspected = {final_url, target}
+        fetched_pages = 0
+        while pending and fetched_pages < 4:
+            url = pending.pop(0)
+            if url in inspected:
+                continue
+            inspected.add(url)
             if detect_source(url) or not is_official(url) or url == final_url:
                 continue
+            fetched_pages += 1
             try:
                 page = await http.request("GET", url)
                 if is_official(str(page.url)):
                     pages.append((str(page.url), page.text, True))
+                    # Employers often separate their culture page from the
+                    # actual openings page. Follow that bounded official chain.
+                    pending.extend(u for u in career_links(page.text, str(page.url)) if u not in inspected)
                 elif detect_source(str(page.url)):
                     # An official careers URL redirecting to an ATS is binding evidence.
-                    pages.append((url, f'<a href="{str(page.url)}">Careers redirect</a>', True))
+                    pages.append((url, f'<a href="{escape(str(page.url), quote=True)}">Careers redirect</a>', True))
             except SourceError as exc:
                 result["warnings"].append("career_page_unavailable: " + str(exc))
         found = {}
@@ -252,6 +305,12 @@ async def discover_company(name: str, domain=None, careers_url=None, *, trusted_
             parsed = BeautifulSoup(html, "html.parser")
             page_links = [urljoin(page_url, a["href"]) for a in parsed.find_all("a", href=True)]
             page_links += [urljoin(page_url, frame["src"]) for frame in parsed.find_all("iframe", src=True)]
+            # Greenhouse documents an embeddable job-board script. Its `for`
+            # token is an explicit board integration, even without an iframe.
+            page_links += [urljoin(page_url, script["src"]) for script in parsed.find_all("script", src=True)
+                           if "/embed/job_board/js" in urlsplit(urljoin(page_url, script["src"])).path
+                           and (urlsplit(urljoin(page_url, script["src"])).hostname or "") in
+                           {"boards.greenhouse.io", "boards.eu.greenhouse.io"}]
             if not supplied_domain:
                 page_links.append(page_url)
             for link in page_links:

@@ -117,7 +117,9 @@ def sources(db:Session=Depends(get_db)):
     for row in rows:
         data=source_dict(row);company=db.get(Company,row.company_id);data['company_name']=company.name if company else '';items.append(data)
     jobs=[row_dict(j) for j in db.scalars(select(BackgroundJob).order_by(BackgroundJob.created_at.desc()).limit(8)).all()]
-    return {'items':items,'total':len(items),'jobs':jobs}
+    from .collection_health import collection_health
+    from .serialize import json_value
+    return {'items':items,'total':len(items),'jobs':jobs,'collection_health':json_value(collection_health(db))}
 @router.post('/sources/collect',status_code=202)
 def collect(payload:dict|None=None,db:Session=Depends(get_db)):
     payload=payload or {};return enqueue(db,'collect',{'source_ids':payload.get('source_ids'),'limit':min(int(payload.get('limit',12)),30),'force':bool(payload.get('force',True))})

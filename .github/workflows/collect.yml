@@ -1,7 +1,9 @@
 name: Collect public opportunities
 on:
   schedule:
-    - cron: '17 */2 * * *'
+    # Extra off-minute trigger opportunities mitigate delayed/dropped scheduled
+    # events. Per-source due times and backoff still control actual requests.
+    - cron: '17 * * * *'
   workflow_dispatch:
 concurrency:
   group: internshipos-collection

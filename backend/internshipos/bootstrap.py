@@ -79,6 +79,9 @@ def bootstrap():
         result=seed_database(db);update_managed_seed_filters(db);update_classification_rules(db);install_discovery_sources(db);install_previous_board_candidates(db);install_previous_companies(db)
         from .company_priority import install_priorities
         install_priorities(db);install_owner_search_policy(db)
+        from .source_repairs import apply_endpoint_repairs, backfill_scoped_health
+        result['endpoint_repairs']=apply_endpoint_repairs(db)
+        result['scope_labels_corrected']=backfill_scoped_health(db)
     return result
 
 

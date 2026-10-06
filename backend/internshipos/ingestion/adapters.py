@@ -23,6 +23,97 @@ def rows_at(payload, key):
     return value
 
 
+def cursor_at(source, key="detail_cursor"):
+    """Read a nonnegative checkpoint without accepting malformed registry data."""
+    try:
+        return max(0, int(source.config.get(key, 0)))
+    except (TypeError, ValueError) as exc:
+        raise SchemaError(f"invalid_cursor:{key}") from exc
+
+
+def reported_count(value, *, required=False):
+    if value is None and not required:
+        return None
+    if isinstance(value, bool) or not isinstance(value, (str, int)) or not str(value).isdigit():
+        raise SchemaError("invalid_reported_inventory_count")
+    return int(value)
+
+
+def inventory_finished(c, complete):
+    """Listing coverage is independent of the bounded description pass."""
+    c.inventory_complete = bool(complete)
+    c.inventory_observed_count = len(c.jobs)
+
+
+def update_detail(c, item):
+    """Replace one already enumerated listing with its fetched full details."""
+    key = item.get("external_id")
+    if key not in c.jobs:
+        c.add(item)
+        return
+    item["raw"] = {"source_payload": item.get("raw", {}),
+                   "provider": c.source.provider, "source_url": c.source.url,
+                   "description_complete": bool(item.get("description"))}
+    c.jobs[key] = item
+
+
+async def rotating_details(c, records, enrich):
+    """Enumerate first; spend description requests on target roles before history.
+
+    Target and secondary refresh checkpoints advance only after a request finishes.
+    A shrinking inventory wraps safely; a timeout retries the interrupted record.
+    Historic foreign appearances use spare budget rather than delaying India roles.
+    """
+    async def group(selected_records, key="detail_cursor", required=True):
+        attribute = "next_" + key
+        if not selected_records:
+            setattr(c, attribute, 0)
+            return
+        start = cursor_at(c.source, key) % len(selected_records)
+        remaining = max(0, c.max_details - c.detail_requests)
+        selected = selected_records[start:start + remaining]
+        setattr(c, attribute, start)
+        for index, record in enumerate(selected, start):
+            setattr(c, attribute, index)
+            item = await enrich(record)
+            if item is not None:
+                update_detail(c, item)
+                if not item.get("description"):
+                    c.problem("full_description_unavailable")
+            setattr(c, attribute, index + 1 if index + 1 < len(selected_records) else 0)
+        if len(selected) < len(selected_records):
+            if required:
+                c.problem("detail_limit_reached")
+            else:
+                c.warnings.append("retained_foreign_detail_refresh_deferred; target_details_take_priority")
+    if not c.source.config.get("detail_target_only"):
+        await group(records)
+        return
+    from ..search_policy import location_decision, retain_new_candidate
+    retained = {str(x) for x in c.source.config.get("retained_external_ids", [])}
+    def item_for(record):
+        identifiers = [record.get("shortcode"), record.get("id"), record.get("Id"),
+                       record.get("_id"), (record.get("bulletFields") or [None])[0],
+                       record.get("externalPath"), record.get("RequisitionNumber")]
+        return next((c.jobs[str(key)] for key in identifiers if key is not None and str(key) in c.jobs), None)
+    def target(item):
+        if retain_new_candidate(item):
+            return True
+        # A narrowly generic official India title needs its JD before classifying.
+        return (location_decision(item.get("location"), item.get("country"), item.get("work_mode")) == "allowed"
+                and bool(re.fullmatch(r"(?:intern|internship|(?:engineering|technical|technology) intern(?:ship)?)",
+                                     item.get("title", "").strip(), re.I)))
+    prioritized, refresh_existing = [], []
+    for record in records:
+        item = item_for(record)
+        if item is not None and target(item):
+            prioritized.append(record)
+        elif item is not None and item["external_id"] in retained:
+            refresh_existing.append(record)
+    c.warnings.append("detail_scope:technical_internship_candidates_and_retained_appearances")
+    await group(prioritized)
+    await group(refresh_existing, "retained_detail_cursor", required=False)
+
 def slug(source, host_suffix=None):
     config = source.config
     value = config.get("token") or config.get("slug") or config.get("tenant") or config.get("company_identifier")
@@ -42,23 +133,53 @@ async def greenhouse(c):
     token = slug(c.source)
     if "/boards/" in c.source.url:
         token = c.source.url.split("/boards/", 1)[1].split("/")[0]
-    payload = await c.http.json("GET", f"https://boards-api.greenhouse.io/v1/boards/{token}/jobs", params={"content": "true"})
+    api = f"https://boards-api.greenhouse.io/v1/boards/{token}/jobs"
+    try:
+        payload = await c.http.json("GET", api, params={"content": "true"})
+    except SourceError as exc:
+        if str(exc) != "response_size_limit_exceeded":
+            raise
+        # Large boards can exceed the bounded transport when every JD is embedded.
+        # The lightweight inventory still provides every public listing identity.
+        c.warnings.append("oversized_embedded_descriptions; using_listing_and_bounded_details")
+        c.source.config = {"detail_target_only": True, **c.source.config}
+        payload = await c.http.json("GET", api)
     items = rows_at(payload, "jobs")
-    c.reported_total = payload.get("meta", {}).get("total", len(items))
-    for x in items:
+    c.reported_total = reported_count((payload.get("meta") or {}).get("total", len(items)), required=True)
+    def parse(x):
         pay = (x.get("pay_input_ranges") or [{}])[0]
-        c.add(job(c.source, x.get("id"), x.get("title"), description=x.get("content"),
+        return job(c.source, x.get("id"), x.get("title"), description=x.get("content"),
                   url=x.get("absolute_url"), location=x.get("location"), raw=x,
                   requisition_id=x.get("requisition_id"), posted_at=date_value(x.get("first_published")), deadline=date_value(x.get("application_deadline")),
                   compensation=compensation(pay.get("min_cents") / 100 if pay.get("min_cents") is not None else None,
-                    pay.get("max_cents") / 100 if pay.get("max_cents") is not None else None, pay.get("currency_type"), "year" if pay else None)))
-    c.finish(len(items) == c.reported_total)
+                    pay.get("max_cents") / 100 if pay.get("max_cents") is not None else None, pay.get("currency_type"), "year" if pay else None))
+    records = []
+    for x in items:
+        item = parse(x)
+        c.add(item)
+        if not item["description"]:
+            records.append(x)
+    listing_complete = len(c.jobs) == c.reported_total
+    inventory_finished(c, listing_complete)
+    if records:
+        c.warnings.append("detail_scope:technical_internship_candidates")
+        async def enrich(x):
+            detail = await c.detail_json(f"{api}/{quote(str(x.get('id')), safe='')}")
+            return parse({**x, **detail}) if isinstance(detail, dict) else parse(x)
+        await rotating_details(c, records, enrich)
+    else:
+        c.next_detail_cursor = 0
+    c.finish(listing_complete)
 
 
 async def lever(c):
     token = slug(c.source)
     host = "api.eu.lever.co" if "eu.lever.co" in c.source.url else "api.lever.co"
-    for page in range(c.max_pages):
+    start = cursor_at(c.source, "listing_cursor") // 100
+    if start:
+        c.scope = "query"
+    c.next_listing_cursor = start * 100
+    for page in range(start, start + c.max_pages):
         payload = await c.http.json("GET", f"https://{host}/v0/postings/{token}", params={"mode": "json", "skip": page * 100, "limit": 100})
         if not isinstance(payload, list):
             raise SchemaError("expected_lever_postings_array")
@@ -74,11 +195,14 @@ async def lever(c):
                 employment_type=cats.get("commitment"), work_mode=x.get("workplaceType") or "unknown",
                 posted_at=date_value(x.get("createdAt")),
                 compensation=compensation(salary.get("min"), salary.get("max"), salary.get("currency"), salary.get("interval"))))
+        c.next_listing_cursor = (page + 1) * 100
+        if not new and payload:
+            raise SourceError("pagination_repeated_page")
         if len(payload) < 100:
+            c.next_listing_cursor = 0
+            inventory_finished(c, start == 0)
             c.finish(True)
             return
-        if not new:
-            raise SourceError("pagination_repeated_page")
     c.problem("page_limit_reached")
 
 
@@ -97,30 +221,51 @@ async def ashby(c):
 
 async def smartrecruiters(c):
     token = slug(c.source)
+    records = []
+    listing_complete = False
+    def parse(x, detail=None):
+        ident = x.get("id")
+        d = detail or x
+        sections = (d.get("jobAd") or {}).get("sections") or {}
+        desc = "\n".join(v.get("text", "") for v in sections.values() if isinstance(v, dict))
+        return job(c.source, ident, d.get("name") or x.get("name"), description=desc,
+            url=d.get("postingUrl") or f"https://jobs.smartrecruiters.com/{token}/{ident}",
+            apply_url=d.get("applyUrl") or d.get("postingUrl") or f"https://jobs.smartrecruiters.com/{token}/{ident}",
+            location=d.get("location") or x.get("location"), raw={"listing": x, "detail": detail},
+            country=(d.get("location") or x.get("location") or {}).get("country"),
+            work_mode="remote" if (d.get("location") or x.get("location") or {}).get("remote") is True else "unknown",
+            posted_at=date_value(d.get("releasedDate") or x.get("releasedDate")),
+            employment_type=(d.get("typeOfEmployment") or x.get("typeOfEmployment") or {}).get("label"))
     for page in range(c.max_pages):
         data = await c.http.json("GET", f"https://api.smartrecruiters.com/v1/companies/{token}/postings", params={"limit": 100, "offset": page * 100})
         items = rows_at(data, "content")
-        c.reported_total = data.get("totalFound")
+        reported = reported_count(data.get("totalFound"))
+        if c.reported_total is not None and reported != c.reported_total:
+            c.problem("inventory_changed_during_scan")
+        c.reported_total = reported
         new = 0
         for x in items:
-            ident = x.get("id")
-            detail = await c.detail_json(f"https://api.smartrecruiters.com/v1/companies/{token}/postings/{quote(str(ident), safe='')}")
-            d = detail or x
-            sections = (d.get("jobAd") or {}).get("sections") or {}
-            desc = "\n".join(v.get("text", "") for v in sections.values() if isinstance(v, dict))
-            new += c.add(job(c.source, ident, d.get("name") or x.get("name"), description=desc,
-                url=d.get("postingUrl") or f"https://jobs.smartrecruiters.com/{token}/{ident}",
-                apply_url=d.get("applyUrl") or d.get("postingUrl") or f"https://jobs.smartrecruiters.com/{token}/{ident}",
-                location=d.get("location"), raw=d, country=(d.get("location") or {}).get("country"),
-                work_mode="remote" if (d.get("location") or {}).get("remote") is True else "unknown",
-                posted_at=date_value(d.get("releasedDate")), employment_type=(d.get("typeOfEmployment") or {}).get("label")))
-        if c.reported_total is not None and (page + 1) * 100 >= int(c.reported_total):
-            c.finish(True); return
+            accepted = c.add(parse(x))
+            new += accepted
+            if accepted:
+                records.append(x)
+        if items and not new:
+            c.problem("pagination_repeated_page")
+            break
+        if c.reported_total is not None and len(c.jobs) >= int(c.reported_total):
+            listing_complete = "inventory_changed_during_scan" not in c.errors
+            break
         if len(items) < 100:
-            c.finish(c.reported_total is None or len(c.jobs) >= int(c.reported_total)); return
-        if not new:
-            raise SourceError("pagination_repeated_page")
-    c.problem("page_limit_reached")
+            listing_complete = c.reported_total is None or len(c.jobs) >= int(c.reported_total)
+            break
+    else:
+        c.problem("page_limit_reached")
+    inventory_finished(c, listing_complete)
+    async def enrich(x):
+        detail = await c.detail_json(f"https://api.smartrecruiters.com/v1/companies/{token}/postings/{quote(str(x.get('id')), safe='')}")
+        return parse(x, detail)
+    await rotating_details(c, records, enrich)
+    c.finish(listing_complete)
 
 
 def workday_target(source):
@@ -178,55 +323,89 @@ async def workday(c):
             c.warnings.append("country_facet_unavailable; locations_must_be_filtered_after_collection")
     if query or facets:
         c.scope = "query"
-    cursor=max(0,int(c.source.config.get('detail_cursor',0)))
-    start_page=cursor//20
-    if cursor: c.scope='query'  # A continuation cannot prove full-board absence.
-    for page in range(start_page,start_page+c.max_pages):
-        data = await c.http.json("POST", f"{api}/jobs", json={"limit": 20, "offset": page * 20, "searchText": query, "appliedFacets": facets})
+    offset = cursor_at(c.source, "listing_cursor")
+    initial_offset = offset
+    c.next_listing_cursor = offset
+    if initial_offset:
+        c.scope = "query"
+        c.warnings.append("continued_listing_segment; full_inventory_not_proven")
+    records = []
+    listing_complete = False
+    def parse(x, detail=None):
+        d = (detail or {}).get("jobPostingInfo") or {}
+        path = x.get("externalPath")
+        ident = (x.get("bulletFields") or [None])[0] or path
+        locations = [d.get("location")] + (d.get("additionalLocations") or [])
+        return job(c.source, ident, d.get("title") or x.get("title"),
+            description=d.get("jobDescription"), url=f"{origin}/{site}{path}",
+            location=list(filter(None, locations)) or x.get("locationsText"),
+            raw={"listing": x, "detail": detail}, requisition_id=d.get("jobReqId") or ident,
+            posted_at=date_value(d.get("startDate")), deadline=date_value(d.get("endDate")),
+            employment_type=d.get("timeType"), work_mode=d.get("remoteType") or "unknown")
+    for _ in range(c.max_pages):
+        data = await c.http.json("POST", f"{api}/jobs", json={"limit": 20, "offset": offset, "searchText": query, "appliedFacets": facets})
         items = rows_at(data, "jobPostings")
         total = data.get("total")
-        if not isinstance(total, int):
+        if not isinstance(total, int) or isinstance(total, bool) or total < 0:
             raise SchemaError("missing_workday_total")
+        if c.reported_total is not None and c.reported_total != total:
+            c.problem("inventory_changed_during_scan")
         c.reported_total = total
-        if cursor and cursor>=total:
-            c.next_detail_cursor=0;c.problem('inventory_incomplete');c.finish(False);return
         if total >= 2000:
             c.problem("workday_query_cap_requires_partitioning")
         new = 0
-        for index,x in enumerate(items):
-            position=page*20+index
-            if position<cursor:continue
-            if c.max_details>0 and c.detail_requests>=c.max_details:
-                c.next_detail_cursor=position;c.problem('detail_limit_reached');c.finish(False);return
+        for x in items:
             path = x.get("externalPath")
             if not path:
                 c.problem("workday_missing_external_path"); continue
-            detail = await c.detail_json(api + path)
-            d = (detail or {}).get("jobPostingInfo") or {}
-            locations = [d.get("location")] + (d.get("additionalLocations") or [])
-            ident = d.get("jobReqId") or (x.get("bulletFields") or [None])[0] or path
-            url = f"{origin}/{site}{path}"
-            new += c.add(job(c.source, ident, d.get("title") or x.get("title"),
-                description=d.get("jobDescription"), url=url, location=list(filter(None, locations)) or x.get("locationsText"),
-                raw={"listing": x, "detail": detail}, requisition_id=d.get("jobReqId") or ident,
-                posted_at=date_value(d.get("startDate")), deadline=date_value(d.get("endDate")),
-                employment_type=d.get("timeType"), work_mode=d.get("remoteType") or "unknown"))
-            c.next_detail_cursor=position+1
-        if page * 20 + len(items) >= total:
-            c.next_detail_cursor=0
-            c.finish(total < 2000); return
+            accepted = c.add(parse(x))
+            new += accepted
+            if accepted:
+                records.append(x)
+        if items and not new:
+            c.problem("workday_pagination_incomplete_or_repeated")
+            break
+        offset += len(items)
+        c.next_listing_cursor = offset
+        if offset >= total:
+            c.next_listing_cursor = 0
+            listing_complete = (initial_offset == 0 and len(c.jobs) >= total and total < 2000
+                                and "inventory_changed_during_scan" not in c.errors)
+            break
         if not items or not new:
-            raise SourceError("workday_pagination_incomplete_or_repeated")
-    c.problem("page_limit_reached")
+            c.next_listing_cursor = 0 if not items else offset
+            c.problem("workday_pagination_incomplete_or_repeated")
+            break
+    else:
+        c.problem("page_limit_reached")
+    inventory_finished(c, listing_complete)
+    async def enrich(x):
+        detail = await c.detail_json(api + x["externalPath"])
+        return parse(x, detail)
+    await rotating_details(c, records, enrich)
+    c.finish(listing_complete)
 
 
 async def oracle(c):
     site_match = re.search(r"/sites/([^/?#]+)", c.source.url)
     site = c.source.config.get("site_number") or c.source.config.get("site") or (site_match.group(1) if site_match else "CX_1")
     api = c.source.origin + "/hcmRestApi/resources/latest/"
-    cursor=max(0,int(c.source.config.get('detail_cursor',0)))
-    if cursor:c.scope='query'
-    for page in range(cursor//100,cursor//100+c.max_pages):
+    records = []
+    listing_complete = False
+    def parse(x, detail=None):
+        ident = x.get("Id") or x.get("RequisitionNumber")
+        detail_items = (detail or {}).get("items") or []
+        d = detail_items[0] if detail_items else {}
+        desc = "\n".join(d.get(k) or "" for k in ("ExternalDescriptionStr", "ExternalResponsibilitiesStr", "ExternalQualificationsStr"))
+        if not d.get("ExternalDescriptionStr"):
+            desc = ""  # Search previews must not advance the full-JD refresh clock.
+        url = f"{c.source.origin}/hcmUI/CandidateExperience/en/sites/{site}/job/{ident}"
+        return job(c.source, ident, x.get("Title"), description=desc, url=url,
+            location=x.get("PrimaryLocation"), country=x.get("PrimaryLocationCountry"), raw={"listing": x, "detail": d},
+            requisition_id=x.get("RequisitionNumber") or str(ident), posted_at=date_value(x.get("PostedDate")),
+            deadline=date_value(x.get("PostingEndDate")), employment_type=x.get("JobType") or x.get("WorkerType"),
+            work_mode={"ORA_REMOTE": "remote", "ORA_HYBRID": "hybrid", "ORA_ON_SITE": "onsite"}.get(x.get("WorkplaceTypeCode"), "unknown"))
+    for page in range(c.max_pages):
         finder = f"findReqs;siteNumber={site},limit=100,offset={page * 100}"
         if c.source.config.get("keyword"):
             finder += ",keyword=" + str(c.source.config["keyword"])
@@ -237,41 +416,37 @@ async def oracle(c):
             raise SchemaError("oracle_requisition_envelope_missing")
         items = rows_at(envelope[0], "requisitionList")
         total = envelope[0].get("TotalJobsCount")
-        c.reported_total = int(total) if total is not None else None
+        reported = reported_count(total)
+        if c.reported_total is not None and reported != c.reported_total:
+            c.problem("inventory_changed_during_scan")
+        c.reported_total = reported
         new = 0
-        for index,x in enumerate(items):
-            position=page*100+index
-            if position<cursor:continue
-            if c.max_details>0 and c.detail_requests>=c.max_details:
-                c.next_detail_cursor=position;c.problem('detail_limit_reached');c.finish(False);return
-            ident = x.get("Id") or x.get("RequisitionNumber")
-            response = await c.detail_json(api + "recruitingCEJobRequisitionDetails", params={"onlyData": "true", "finder": f"ById;Id={ident}"})
-            detail_items = (response or {}).get("items") or []
-            d = detail_items[0] if detail_items else x
-            desc = "\n".join(d.get(k) or "" for k in ("ExternalDescriptionStr", "ExternalResponsibilitiesStr", "ExternalQualificationsStr"))
-            # Search snippets remain raw evidence; they must not overwrite a
-            # saved full JD or advance the detail-refresh clock.
-            if not d.get("ExternalDescriptionStr"):
-                desc = ""
-                c.problem("oracle_full_description_unavailable")
-            url = f"{c.source.origin}/hcmUI/CandidateExperience/en/sites/{site}/job/{ident}"
-            new += c.add(job(c.source, ident, x.get("Title"), description=desc, url=url,
-                location=x.get("PrimaryLocation"), country=x.get("PrimaryLocationCountry"), raw={"listing": x, "detail": d},
-                requisition_id=x.get("RequisitionNumber") or str(ident), posted_at=date_value(x.get("PostedDate")),
-                deadline=date_value(x.get("PostingEndDate")), employment_type=x.get("JobType") or x.get("WorkerType"),
-                work_mode={"ORA_REMOTE": "remote", "ORA_HYBRID": "hybrid", "ORA_ON_SITE": "onsite"}.get(x.get("WorkplaceTypeCode"), "unknown")))
-            c.next_detail_cursor=position+1
-        if c.reported_total is not None and page * 100 + len(items) >= c.reported_total:
-            c.next_detail_cursor=0
-            c.finish(True); return
-        if not items:
-            c.next_detail_cursor=0
-            c.finish(c.reported_total is None or len(c.jobs) >= c.reported_total); return
-        if not new:
-            raise SourceError("pagination_repeated_page")
-        if len(items) < 100 and c.reported_total is None:
-            c.finish(True); return
-    c.problem("page_limit_reached")
+        for x in items:
+            accepted = c.add(parse(x))
+            new += accepted
+            if accepted:
+                records.append(x)
+        if items and not new:
+            c.problem("pagination_repeated_page")
+            break
+        if reported is not None and len(c.jobs) >= reported:
+            listing_complete = "inventory_changed_during_scan" not in c.errors
+            break
+        if len(items) < 100:
+            listing_complete = reported is None
+            break
+    else:
+        c.problem("page_limit_reached")
+    inventory_finished(c, listing_complete)
+    async def enrich(x):
+        ident = x.get("Id") or x.get("RequisitionNumber")
+        detail = await c.detail_json(api + "recruitingCEJobRequisitionDetails", params={"onlyData": "true", "finder": f"ById;Id={ident}"})
+        item = parse(x, detail)
+        if detail is not None and not item["description"]:
+            c.problem("oracle_full_description_unavailable")
+        return item
+    await rotating_details(c, records, enrich)
+    c.finish(listing_complete)
 
 
 async def eightfold(c):
@@ -281,49 +456,77 @@ async def eightfold(c):
     query = c.source.config.get("query", "")
     if query:
         c.scope = "query"
-    start = max(0,int(c.source.config.get('detail_cursor',0)))
-    if start:c.scope='query'
+    start = cursor_at(c.source, "listing_cursor")
+    initial_offset = start
+    c.next_listing_cursor = start
+    if initial_offset:
+        c.scope = "query"
+        c.warnings.append("continued_listing_segment; full_inventory_not_proven")
+    records = []
+    listing_complete = False
+    def parse(x, detail=None):
+        d = (detail or {}).get("data") or {}
+        ident = x.get("id")
+        return job(c.source, ident, x.get("name"), description=d.get("jobDescription") or x.get("job_description"),
+            url=x.get("positionUrl") or f"{c.source.origin}/careers/job/{ident}", location=x.get("locations"),
+            raw={"listing": x, "detail": d}, requisition_id=x.get("atsJobId") or x.get("displayJobId"),
+            posted_at=date_value(x.get("postedTs")), work_mode=x.get("workLocationOption") or "unknown")
     for _ in range(c.max_pages):
         payload = await c.http.json("GET", c.source.origin + "/api/pcsx/search", params={"domain": domain, "query": query, "start": start, "sort_by": "timestamp"})
         data = payload.get("data") or {}
         items = rows_at(data, "positions")
-        c.reported_total = int(data["count"]) if data.get("count") is not None else None
+        reported = reported_count(data.get("count"))
+        if c.reported_total is not None and reported != c.reported_total:
+            c.problem("inventory_changed_during_scan")
+        c.reported_total = reported
         new = 0
-        for index,x in enumerate(items):
-            if c.max_details>0 and c.detail_requests>=c.max_details:
-                c.next_detail_cursor=start+index;c.problem('detail_limit_reached');c.finish(False);return
-            ident = x.get("id")
-            detail = await c.detail_json(c.source.origin + "/api/pcsx/position_details", params={"position_id": ident, "domain": domain, "hl": "en"})
-            d = (detail or {}).get("data") or {}
-            url = x.get("positionUrl") or f"{c.source.origin}/careers/job/{ident}"
-            new += c.add(job(c.source, ident, x.get("name"), description=d.get("jobDescription") or x.get("job_description"),
-                url=url, location=x.get("locations"), raw={"listing": x, "detail": d},
-                requisition_id=x.get("atsJobId") or x.get("displayJobId"), posted_at=date_value(x.get("postedTs")),
-                work_mode=x.get("workLocationOption") or "unknown"))
+        for x in items:
+            accepted = c.add(parse(x))
+            new += accepted
+            if accepted:
+                records.append(x)
+        if items and not new:
+            c.problem("pagination_repeated_page")
+            break
         start += len(items)
-        c.next_detail_cursor=start
-        if c.reported_total is not None and start >= c.reported_total:
-            c.next_detail_cursor=0
-            c.finish(True); return
+        c.next_listing_cursor = start
+        if reported is not None and start >= reported:
+            c.next_listing_cursor = 0
+            listing_complete = initial_offset == 0 and len(c.jobs) >= reported and "inventory_changed_during_scan" not in c.errors
+            break
         if not items:
-            c.next_detail_cursor=0
-            c.finish(c.reported_total is None or start >= c.reported_total); return
-        if not new:
-            raise SourceError("pagination_repeated_page")
-    c.problem("page_limit_reached")
-
+            c.next_listing_cursor = 0
+            listing_complete = reported is None and initial_offset == 0
+            break
+    else:
+        c.problem("page_limit_reached")
+    inventory_finished(c, listing_complete)
+    async def enrich(x):
+        detail = await c.detail_json(c.source.origin + "/api/pcsx/position_details", params={"position_id": x.get("id"), "domain": domain, "hl": "en"})
+        return parse(x, detail)
+    await rotating_details(c, records, enrich)
+    c.finish(listing_complete)
 
 async def workable(c):
     token = slug(c.source)
     payload = await c.http.json("GET", f"https://apply.workable.com/api/v1/widget/accounts/{token}")
-    for x in rows_at(payload, "jobs"):
+    records = rows_at(payload, "jobs")
+    def parse(x, desc=None):
         ident = x.get("shortcode") or x.get("id")
-        desc = await c.detail_text(f"https://apply.workable.com/{token}/jobs/view/{ident}.md")
-        c.add(job(c.source, ident, x.get("title"), description=desc or x.get("description"),
+        return job(c.source, ident, x.get("title"), description=desc or x.get("description"),
             url=x.get("url") or f"https://apply.workable.com/{token}/j/{ident}/", location=x.get("location"), raw=x,
             posted_at=date_value(x.get("published_on") or x.get("created_at")), employment_type=x.get("employment_type"),
-            country=x.get("country"), work_mode="remote" if x.get("telecommuting") is True else "unknown"))
-    c.finish(True)
+            country=x.get("country"), work_mode="remote" if x.get("telecommuting") is True else "unknown")
+    for x in records:
+        c.add(parse(x))
+    listing_complete = len(c.jobs) == len(records)
+    inventory_finished(c, listing_complete)
+    async def enrich(x):
+        ident = x.get("shortcode") or x.get("id")
+        desc = await c.detail_text(f"https://apply.workable.com/{token}/jobs/view/{ident}.md")
+        return parse(x, desc)
+    await rotating_details(c, [x for x in records if not x.get("description")], enrich)
+    c.finish(listing_complete)
 
 
 async def recruitee(c):
@@ -369,10 +572,17 @@ async def amazon(c):
         if c.source.config.get(key):
             params[key] = c.source.config[key]
             c.scope = "query"
-    for page in range(c.max_pages):
+    start = cursor_at(c.source, "listing_cursor") // 100
+    if start:
+        c.scope = "query"
+    c.next_listing_cursor = start * 100
+    for page in range(start, start + c.max_pages):
         data = await c.http.json("GET", "https://www.amazon.jobs/en/search.json", params={**params, "offset": page * 100}, headers={"Accept-Encoding": "identity"})
         items = rows_at(data, "jobs")
-        c.reported_total = int(data["hits"]) if data.get("hits") is not None else None
+        reported = reported_count(data.get("hits"))
+        if c.reported_total is not None and reported != c.reported_total:
+            c.problem("inventory_changed_during_scan")
+        c.reported_total = reported
         new = 0
         for x in items:
             desc = "\n".join(x.get(k) or "" for k in ("description", "basic_qualifications", "preferred_qualifications"))
@@ -381,12 +591,17 @@ async def amazon(c):
                 requisition_id=str(x.get("id_icims")) if x.get("id_icims") else None,
                 country=x.get("country_code"), posted_at=date_value(x.get("posted_date")),
                 employment_type="internship" if x.get("is_intern") is True else x.get("job_schedule_type")))
+        c.next_listing_cursor = (page + 1) * 100
+        if items and not new:
+            raise SourceError("pagination_repeated_page")
         if c.reported_total is not None and page * 100 + len(items) >= c.reported_total:
+            c.next_listing_cursor = 0
+            inventory_finished(c, start == 0 and len(c.jobs) >= c.reported_total)
             c.finish(True); return
         if len(items) < 100:
+            c.next_listing_cursor = 0
+            inventory_finished(c, start == 0 and c.reported_total is None)
             c.finish(c.reported_total is None); return
-        if not new:
-            raise SourceError("pagination_repeated_page")
     c.problem("page_limit_reached")
 
 
@@ -394,58 +609,106 @@ async def breezy(c):
     data = await c.http.json("GET", c.source.origin + "/json")
     if not isinstance(data, list):
         raise SchemaError("expected_breezy_array")
-    for x in data:
+    def parse(x, desc=None):
         url = x.get("url") or c.source.origin + "/p/" + str(x.get("id") or x.get("_id"))
-        desc = x.get("description")
-        if not desc:
-            html = await c.detail_text(url)
-            details = parse_jsonld(c.source, html or "", url)
-            desc = details[0]["description_html"] if details else ""
-        c.add(job(c.source, x.get("id") or x.get("_id"), x.get("name"), description=desc,
+        return job(c.source, x.get("id") or x.get("_id"), x.get("name"), description=desc or x.get("description"),
             url=url, location=x.get("location"), raw=x, employment_type=x.get("type"),
-            posted_at=date_value(x.get("published_date"))))
-    c.finish(True)
+            posted_at=date_value(x.get("published_date")))
+    for x in data:
+        c.add(parse(x))
+    listing_complete = len(c.jobs) == len(data)
+    inventory_finished(c, listing_complete)
+    async def enrich(x):
+        url = x.get("url") or c.source.origin + "/p/" + str(x.get("id") or x.get("_id"))
+        html = await c.detail_text(url)
+        details = parse_jsonld(c.source, html or "", url)
+        if html is not None and not details:
+            c.problem("detail_jobposting_unavailable")
+        return parse(x, details[0]["description_html"] if details else None)
+    await rotating_details(c, [x for x in data if not x.get("description")], enrich)
+    c.finish(listing_complete)
 
 
 async def pinpoint(c):
-    data = await c.http.json("GET", c.source.origin + "/postings.json")
-    items = rows_at(data, "data")
-    for x in items:
+    records = []
+    listing_complete = False
+    next_url = c.source.origin + "/postings.json"
+    visited = set()
+    def parse(x, fetched=None):
         a = x.get("attributes") or x
-        description = a.get("description") or a.get("description_html") or a.get("job_description")
+        description = fetched or a.get("description") or a.get("description_html") or a.get("job_description")
         if description:
             description += "\n" + "\n".join(a.get(k) or "" for k in ("key_responsibilities", "skills_knowledge_expertise", "benefits"))
         url = a.get("url") or a.get("job_url") or f"{c.source.origin}/postings/{x.get('id')}"
-        if not description:
-            html = await c.detail_text(url)
-            details = parse_jsonld(c.source, html or "", url)
-            description = details[0]["description_html"] if details else ""
-        c.add(job(c.source, x.get("id"), a.get("title"), description=description, url=url,
+        return job(c.source, x.get("id"), a.get("title"), description=description, url=url,
                   location=a.get("location") or a.get("location_name"), raw=x,
                   posted_at=date_value(a.get("published_at")), deadline=date_value(a.get("deadline_at")),
                   employment_type=a.get("employment_type_text") or a.get("employment_type"),
                   work_mode=a.get("workplace_type_text") or a.get("workplace_type") or "unknown",
-                  compensation=compensation(a.get("compensation_minimum"), a.get("compensation_maximum"), a.get("compensation_currency"), a.get("compensation_frequency"), a.get("compensation"))))
-    # Some deployments paginate. A next link cannot be silently declared complete.
-    c.finish(not (data.get("links") or {}).get("next"))
+                  compensation=compensation(a.get("compensation_minimum"), a.get("compensation_maximum"), a.get("compensation_currency"), a.get("compensation_frequency"), a.get("compensation")))
+    for _ in range(c.max_pages):
+        if next_url in visited:
+            c.problem("pagination_repeated_page")
+            break
+        visited.add(next_url)
+        data = await c.http.json("GET", next_url)
+        items = rows_at(data, "data")
+        new = 0
+        for x in items:
+            accepted = c.add(parse(x))
+            new += accepted
+            if accepted:
+                records.append(x)
+        if items and not new:
+            c.problem("pagination_repeated_page")
+            break
+        target = (data.get("links") or {}).get("next")
+        if not target:
+            listing_complete = True
+            break
+        if not isinstance(target, str):
+            raise SchemaError("invalid_pagination_next_link")
+        candidate = urljoin(next_url, target)
+        if urlsplit(candidate).netloc != urlsplit(c.source.origin).netloc:
+            raise SourceError("unsafe_pagination_next_origin")
+        next_url = candidate
+    else:
+        c.problem("page_limit_reached")
+    inventory_finished(c, listing_complete)
+    async def enrich(x):
+        item = parse(x)
+        html = await c.detail_text(item["canonical_url"])
+        details = parse_jsonld(c.source, html or "", item["canonical_url"])
+        if html is not None and not details:
+            c.problem("detail_jobposting_unavailable")
+        return parse(x, details[0]["description_html"] if details else None)
+    await rotating_details(c, [x for x in records if not parse(x)["description"]], enrich)
+    c.finish(listing_complete)
 
 
 async def bamboohr(c):
     data = await c.http.json("GET", c.source.origin + "/careers/list")
     items = rows_at(data, "result")
-    for x in items:
+    def parse(x, detail=None):
         ident = x.get("id")
-        detail = await c.detail_json(c.source.origin + f"/careers/{ident}/detail")
         d = (detail or {}).get("result") or detail or x
         if isinstance(d, dict):
             d = d.get("jobOpening") or d
         if isinstance(d, list):
             d = d[0] if d else x
-        c.add(job(c.source, ident, x.get("jobOpeningName") or x.get("title"),
+        return job(c.source, ident, x.get("jobOpeningName") or x.get("title"),
             description=d.get("description") or d.get("jobDescription"), url=c.source.origin + f"/careers/{ident}",
             location=x.get("location"), raw={"listing": x, "detail": d},
-            employment_type=x.get("employmentStatusLabel")))
-    c.finish(True)
+            employment_type=x.get("employmentStatusLabel"))
+    for x in items:
+        c.add(parse(x))
+    listing_complete = len(c.jobs) == len(items)
+    inventory_finished(c, listing_complete)
+    async def enrich(x):
+        detail = await c.detail_json(c.source.origin + f"/careers/{x.get('id')}/detail")
+        return parse(x, detail)
+    await rotating_details(c, [x for x in items if not parse(x)["description"]], enrich)
+    c.finish(listing_complete)
 
 
 async def generic(c):
@@ -493,38 +756,240 @@ async def generic(c):
     c.finish(True)
 
 
-async def configured_public_api(c):
-    """Use declared public feed fields without executing registry expressions."""
-    config=c.source.config
-    if config.get('method','GET').upper()!='GET':raise SchemaError('configured_feed_requires_get')
-    payload=await c.http.json('GET',config['api_url'])
-    def field(data,path):
-        for key in str(path or '').split('.'):
-            if not isinstance(data,dict):return None
-            data=data.get(key)
-        return data
-    records=field(payload,config.get('json_path')) if config.get('json_path') else payload
-    if not isinstance(records,list):raise SchemaError('configured_feed_expected_array')
-    c.reported_total=field(payload,config.get('total_path')) if config.get('total_path') else len(records)
-    mapping=config.get('fields') or {}
-    for record in records:
-        if not isinstance(record,dict):raise SchemaError('configured_feed_expected_record')
-        values={name:field(record,path) for name,path in mapping.items() if isinstance(path,str)}
-        ident=values.get('metadata.ats_job_id') or values.get('id') or record.get('id')
-        title=values.get('title')
-        url=values.get('url') or values.get('apply_url')
-        if config.get('url_template'):
-            terms={key:quote(str(value),safe='') for key,value in record.items() if isinstance(value,(str,int,float))}
-            terms['slug']='-'.join(re.sub(r'[^a-z0-9]+',' ',plain(' '.join(str(record.get(k) or '') for k in config.get('slug_fields',[]))).lower()).split())
-            try:url=config['url_template'].format(**terms)
-            except KeyError as exc:raise SchemaError('configured_feed_missing_url_field') from exc
-        if not title or not url:raise SchemaError('configured_feed_missing_title_or_url')
-        c.add(job(c.source,ident or url,title,description=values.get('description') or '',url=url,
-            location=values.get('locations') or values.get('location') or '',employment_type=values.get('employment_type'),
-            posted_at=date_value(values.get('date_posted')),raw=record))
-    if isinstance(c.reported_total,int) and c.reported_total>len(records):c.problem('inventory_incomplete')
-    c.finish(True)
+def feed_field(data, specification):
+    """Interpret a small declared field grammar; never execute registry expressions."""
+    if isinstance(specification, dict):
+        if "path" in specification:
+            value = feed_field(data, specification["path"])
+            mapping = specification.get("map")
+            return mapping.get(str(value), value) if isinstance(mapping, dict) else value
+        if "concat" in specification:
+            parts = []
+            for part in specification["concat"]:
+                if isinstance(part, str):
+                    value = feed_field(data, part)
+                    if value is not None:
+                        parts.append(str(value))
+                elif isinstance(part, dict) and part.get("each"):
+                    values = feed_field(data, part["each"]) or []
+                    if not isinstance(values, list):
+                        raise SchemaError("configured_feed_expected_each_array")
+                    template = str(part.get("wrap") or "{content}")
+                    for value in values:
+                        if isinstance(value, dict):
+                            parts.append(re.sub(r"\{([A-Za-z_][A-Za-z0-9_]*)\}",
+                                lambda match: str(value.get(match.group(1)) or ""), template))
+                else:
+                    raise SchemaError("configured_feed_unsupported_concat")
+            return str(specification.get("separator") or "\n").join(parts)
+        raise SchemaError("configured_feed_unsupported_field_specification")
+    if not isinstance(specification, str):
+        raise SchemaError("configured_feed_field_requires_path")
+    alternatives = specification.split("||")
+    last_value = None
+    for alternative in alternatives:
+        tokens = alternative.strip().split(".") if alternative.strip() else []
+        def walk(value, index):
+            if index == len(tokens):
+                return value
+            token = re.fullmatch(r"([A-Za-z_$][A-Za-z0-9_$-]*)(?:\[(\d+|\*)?\])?", tokens[index])
+            if not token:
+                raise SchemaError("configured_feed_unsupported_path")
+            if not isinstance(value, dict):
+                return None
+            child = value.get(token.group(1))
+            if "[" in tokens[index]:
+                if not isinstance(child, list):
+                    return None
+                selector = token.group(2)
+                if selector and selector.isdigit():
+                    position = int(selector)
+                    return walk(child[position], index + 1) if position < len(child) else None
+                results = [walk(item, index + 1) for item in child]
+                return [item for item in results if item is not None]
+            return walk(child, index + 1)
+        result = walk(data, 0)
+        if result is not None:
+            last_value = result
+        if result is not None and result != "" and result != []:
+            return result
+    return last_value
 
+
+def feed_set_parameter(data, path, value):
+    """Set a declared scalar parameter, including a JSON object in a form value."""
+    keys = str(path).split(".")
+    if not keys or any(not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_-]*", key) for key in keys):
+        raise SchemaError("configured_feed_invalid_pagination_parameter")
+    def set_value(container, index):
+        encoded = isinstance(container, str)
+        if encoded:
+            try:
+                container = json.loads(container)
+            except ValueError as exc:
+                raise SchemaError("configured_feed_pagination_body_not_json") from exc
+        if not isinstance(container, dict):
+            raise SchemaError("configured_feed_pagination_requires_object")
+        key = keys[index]
+        if index + 1 == len(keys):
+            container[key] = value
+        else:
+            container[key] = set_value(container.get(key, {}), index + 1)
+        return json.dumps(container) if encoded else container
+    return set_value(data, 0)
+
+
+def feed_page_size(config, body, params):
+    declared = (config.get("pagination") or {}).get("page_size")
+    if declared:
+        return int(declared)
+    size_keys = {"limit", "pageSize", "page_size", "pagesize", "result_limit", "maxResults", "numberOfRecordsPerPage"}
+    def search(value):
+        if isinstance(value, str) and value.startswith("{"):
+            try:
+                value = json.loads(value)
+            except ValueError:
+                return None
+        if not isinstance(value, dict):
+            return None
+        for key, item in value.items():
+            if key in size_keys:
+                try:
+                    size = int(item)
+                except (TypeError, ValueError):
+                    continue
+                if size > 0:
+                    return size
+        return next((size for item in value.values() if (size := search(item))), None)
+    return search(body) or search(params)
+
+
+async def configured_public_api(c):
+    """Read explicitly declared public search requests and their bounded pages."""
+    config = c.source.config
+    method = str(config.get("method", "GET")).upper()
+    if method not in {"GET", "POST"}:
+        raise SchemaError("configured_feed_requires_read_method")
+    headers = config.get("request_headers") or {}
+    if not isinstance(headers, dict) or not all(isinstance(k, str) and isinstance(v, str) for k, v in headers.items()):
+        raise SchemaError("configured_feed_invalid_headers")
+    content_type = next((value for key, value in headers.items() if key.lower() == "content-type"), "application/json")
+    params = dict(config.get("params") or {})
+    body = config.get("post_data")
+    if method == "POST":
+        if "application/x-www-form-urlencoded" in content_type:
+            if isinstance(body, str):
+                body = {key: values[-1] for key, values in parse_qs(body, keep_blank_values=True).items()}
+            elif body is None:
+                body, params = params, {}
+        elif isinstance(body, str):
+            try:
+                body = json.loads(body)
+            except ValueError as exc:
+                raise SchemaError("configured_feed_invalid_json_body") from exc
+        if body is None:
+            body = {}
+        if not isinstance(body, dict):
+            raise SchemaError("configured_feed_body_requires_object")
+        if isinstance(body.get("query"), str):
+            query = body["query"].replace("\\n", "\n")
+            if re.search(r"\b(?:mutation|subscription)\b", query, re.I):
+                raise SourceError("configured_feed_graphql_write_operation_rejected")
+            body = {**body, "query": query}
+    mapping = config.get("fields") or {}
+    if not isinstance(mapping, dict):
+        raise SchemaError("configured_feed_fields_require_object")
+    pagination = config.get("pagination") or {}
+    initial = int(pagination.get("start_value", 0))
+    increment = int(pagination.get("increment", 1))
+    if increment <= 0 or initial < 0:
+        raise SchemaError("configured_feed_invalid_pagination_increment")
+    page_start = cursor_at(c.source, "listing_cursor") if pagination else 0
+    page_size = feed_page_size(config, body, params)
+    listing_complete = False
+    c.scope = "discovery"
+    if page_start:
+        c.warnings.append("continued_listing_segment; full_inventory_not_proven")
+    c.next_listing_cursor = page_start
+    for page in range(page_start, page_start + (c.max_pages if pagination else 1)):
+        request_body = json.loads(json.dumps(body)) if body is not None else None
+        request_params = dict(params)
+        if pagination:
+            location = pagination.get("location", "query")
+            parameter = pagination.get("param_name")
+            value = initial + page * increment
+            if location == "body" and method == "POST":
+                request_body = feed_set_parameter(request_body, parameter, value)
+            elif location in {"query", "params", "url"}:
+                request_params = feed_set_parameter(request_params, parameter, value)
+            else:
+                raise SchemaError("configured_feed_unsupported_pagination_location")
+        kwargs = {"params": request_params, "headers": headers}
+        if method == "POST":
+            kwargs["data" if "application/x-www-form-urlencoded" in content_type else "json"] = request_body
+        payload = await c.http.json(method, config["api_url"], **kwargs)
+        records = feed_field(payload, config["json_path"]) if config.get("json_path") else payload
+        if not isinstance(records, list):
+            raise SchemaError("configured_feed_expected_array")
+        # An explicit response count is necessary to reject truncated short pages.
+        total = feed_field(payload, config["total_path"]) if config.get("total_path") else None
+        if total is not None:
+            if isinstance(total, bool) or not str(total).isdigit():
+                raise SchemaError("configured_feed_invalid_total")
+            total = int(total)
+            if c.reported_total is not None and total != c.reported_total:
+                c.problem("inventory_changed_during_scan")
+            c.reported_total = total
+        new = 0
+        for record in records:
+            if not isinstance(record, dict):
+                raise SchemaError("configured_feed_expected_record")
+            values = {name: feed_field(record, specification) for name, specification in mapping.items()}
+            ident = values.get("metadata.ats_job_id") or values.get("id") or record.get("id")
+            title = values.get("title")
+            url = values.get("url") or values.get("apply_url") or values.get("metadata.apply_url")
+            if config.get("url_field"):
+                url = feed_field(record, config["url_field"]) or url
+            if config.get("url_template"):
+                terms = {key: quote(str(value), safe="") for key, value in record.items() if isinstance(value, (str, int, float))}
+                terms["slug"] = "-".join(re.sub(r"[^a-z0-9]+", " ", plain(" ".join(str(record.get(k) or "") for k in config.get("slug_fields", []))).lower()).split())
+                try:
+                    url = config["url_template"].format(**terms)
+                except KeyError as exc:
+                    raise SchemaError("configured_feed_missing_url_field") from exc
+            transform = config.get("url_transform") or {}
+            if url and transform.get("find"):
+                url = re.sub(transform["find"], str(transform.get("replace", "")), str(url))
+            if config.get("url_filter") and url and not re.search(config["url_filter"], str(url)):
+                continue
+            if not title or not url:
+                raise SchemaError("configured_feed_missing_title_or_url")
+            description = "" if config.get("description_is_partial") else values.get("description") or ""
+            new += c.add(job(c.source, ident or url, title, description=description, url=url,
+                location=values.get("locations") or values.get("location") or "", employment_type=values.get("employment_type"),
+                posted_at=date_value(values.get("date_posted")), raw=record))
+        c.next_listing_cursor = page + 1
+        if records and not new:
+            c.problem("pagination_repeated_page_or_unrecognized_records")
+            break
+        if total is not None and page_start == 0 and len(c.jobs) >= total:
+            listing_complete = "inventory_changed_during_scan" not in c.errors
+            c.next_listing_cursor = 0
+            break
+        terminal = not records or (page_size is not None and len(records) < page_size) or not pagination
+        if terminal:
+            listing_complete = page_start == 0 and (total is None or len(c.jobs) >= total) and "inventory_changed_during_scan" not in c.errors
+            c.next_listing_cursor = 0
+            break
+    else:
+        c.problem("page_limit_reached")
+    if config.get("inventory_unproven"):
+        listing_complete = False
+        c.warnings.append("configured_feed_inventory_unproven")
+    if config.get("description_is_partial"):
+        c.warnings.append("summary_only_description; full_job_detail_refresh_required")
+    inventory_finished(c, listing_complete)
+    c.finish(listing_complete)
 
 def parse_internshala(source, html, page_url):
     """Keep employer and role within the same card; never zip unrelated labels."""
@@ -537,14 +1002,16 @@ def parse_internshala(source, html, page_url):
         cards = [soup]
     results = []
     for card in cards:
-        title = card.select_one('.job-title, .profile, h1')
-        employer = card.select_one('.company-name, .company_name')
+        title = card.select_one('.job-internship-name, .job-title-href, .job-title, .profile, h1')
+        employer = card.select_one('.company-name') or card.select_one('.company_name')
         anchor = card.select_one('a[href*="/internship/detail/"]')
         url = urljoin(page_url, anchor['href']) if anchor else page_url
         if not title or not employer or '/internship/detail/' not in urlsplit(url).path:
             continue
-        location_node = card.select_one('.location_link, .locations')
+        location_node = card.select_one('.locations') or card.select_one('.location_link')
         location = location_node.get_text(' ', strip=True) if location_node else ''
+        if re.fullmatch(r'work\s*from\s*home', location, re.I):
+            location = 'Remote, India'
         if not location:
             path = urlsplit(url).path
             if 'work-from-home' in path: location = 'Remote, India'
@@ -554,18 +1021,72 @@ def parse_internshala(source, html, page_url):
         results.append(job(source, url, title.get_text(' ', strip=True), url=url,
             company_name=employer.get_text(' ', strip=True), location=location,
             employment_type='internship', description=detail.get_text(' ', strip=True) if detail else '',
-            raw={'page_url':page_url,'parser':'internshala-scoped-card-v1'}))
+            raw={'page_url':page_url,'parser':'internshala-scoped-card-v2'}))
     return results
 
 
 async def internshala(c):
     c.scope = 'discovery'
-    html = await c.http.text(c.source.url)
-    for item in parse_internshala(c.source, html, c.source.url):
-        c.add(item)
-    if not c.jobs:
-        raise SchemaError('internshala_no_recognized_cards_or_jobposting; manual_capture_available')
-    c.finish(True)
+    start = cursor_at(c.source, 'listing_cursor')
+    c.next_listing_cursor = start
+    page_url = c.source.url
+    html = await c.http.text(page_url)
+    def next_link(text, current):
+        soup = BeautifulSoup(text, 'html.parser')
+        anchor = soup.select_one('a.next_page[href], a#navigation-forward[href], a[rel="next"][href]')
+        if anchor is None or 'disabled' in (anchor.get('class') or []) or anchor.get('aria-disabled') == 'true':
+            return None
+        href = anchor.get('href')
+        if not href or href == '#':
+            return None
+        target = urljoin(current, href)
+        parsed = urlsplit(target)
+        if parsed.scheme not in {'http', 'https'} or parsed.netloc != urlsplit(c.source.url).netloc:
+            raise SourceError('unsafe_pagination_next_origin')
+        return target
+    if start:
+        observed = next_link(html, page_url)
+        if observed is None:
+            # Reset a stale checkpoint, then let a new zero-offset pass prove it.
+            c.next_listing_cursor = 0
+            c.warnings.append('listing_cursor_reset; fresh_inventory_pass_required')
+        elif re.search(r'/page-\d+/?(?:\?|$)', observed):
+            page_url = re.sub(r'/page-\d+(?=/|\?|$)', f'/page-{start + 1}', observed)
+            html = await c.http.text(page_url)
+            c.warnings.append('continued_listing_segment; full_inventory_not_proven')
+        else:
+            c.problem('listing_cursor_resume_unavailable')
+            c.next_listing_cursor = 0
+    visited = set()
+    listing_complete = False
+    for page in range(start, start + c.max_pages):
+        if page_url in visited:
+            c.problem('pagination_repeated_page')
+            break
+        visited.add(page_url)
+        items = parse_internshala(c.source, html, page_url)
+        new = sum(c.add(item) for item in items)
+        if not items:
+            raise SchemaError('internshala_no_recognized_cards_or_jobposting; manual_capture_available')
+        if not new:
+            c.problem('pagination_repeated_page')
+            break
+        target = next_link(html, page_url)
+        if not target:
+            c.next_listing_cursor = 0
+            listing_complete = start == 0
+            break
+        if target in visited:
+            c.problem('pagination_repeated_page')
+            break
+        c.next_listing_cursor = page + 1
+        if page + 1 < start + c.max_pages:
+            page_url = target
+            html = await c.http.text(page_url)
+    else:
+        c.problem('page_limit_reached')
+    inventory_finished(c, listing_complete)
+    c.finish(listing_complete)
 
 
 ADAPTERS = {

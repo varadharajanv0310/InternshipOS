@@ -30,25 +30,24 @@ async def collect_boards(source_ids=None,limit=None,force=False):
     from .ingestion import collect_source
     from .service import ingest_batch
     batch_size=limit or int(os.getenv('COLLECTION_BATCH_SIZE','12'))
+    from .source_health import timing
     with SessionLocal() as db:
         query=select(CompanySource).where(CompanySource.enabled==True)
         if source_ids:query=query.where(CompanySource.id.in_(source_ids))
         rows=db.scalars(query.options(joinedload(CompanySource.company))).all()
-        def board_checked(row):
-            stamp=(row.config or {}).get('board_checked_at')
-            try:return aware(__import__('datetime').datetime.fromisoformat(stamp)) if stamp else aware(row.last_checked)
-            except (ValueError,TypeError):return aware(row.last_checked)
+        def board_checked(row):return timing(row)['board_checked_at']
         # Overdue age eventually outweighs source priority, avoiding starvation.
         rows.sort(key=lambda r: (-(72 if not board_checked(r) else (utcnow()-board_checked(r)).total_seconds()/3600)/(r.cadence_hours or 24)-1/max(1,r.priority),r.id))
         now=utcnow();sources=[]
         for row in rows:
-            last=board_checked(row)
-            retry_hours=min(72,2**min(row.consecutive_failures or 0,6)) if row.consecutive_failures else 0
-            interval=max(row.cadence_hours or 24,retry_hours)
-            if force or not last or now-last>=timedelta(hours=interval):
+            if force or timing(row,now)['due']:
                 source={c.name:getattr(row,c.name) for c in row.__table__.columns}
                 company=row.company
                 source.update(company_name=company.name if company else '',company_domain=company.domain if company else '')
+                if os.getenv('COLLECTION_TARGET_ONLY','false').lower()=='true':
+                    from .models import JobSource
+                    source['config']={**source.get('config',{}),'detail_target_only':True,
+                        'retained_external_ids':list(db.scalars(select(JobSource.external_id).where(JobSource.company_source_id==row.id)).all())}
                 sources.append(source)
             if len(sources)>=batch_size:break
     semaphore=asyncio.Semaphore(int(os.getenv('COLLECTION_CONCURRENCY','3')))
@@ -71,14 +70,16 @@ async def collect_boards(source_ids=None,limit=None,force=False):
                     # Existing appearances always update, preserving full-scan
                     # absence proofs even if a job's title/location changes.
                     result.jobs=[j for j in result.jobs if str(j.get('external_id')) in existing or retain_new_candidate(j)]
-                outcome=await asyncio.to_thread(ingest_batch,db,source['id'],result.jobs,complete=result.complete,error=result.error,coverage_scope=result.coverage_scope,observed_count=result.observed_count,inventory_ids=inventory_ids)
-                from .models import FetchRun
-                fetched=db.get(FetchRun,outcome['run_id']);fetched.data={**fetched.data,'collection':result.metadata};db.commit()
-                if result.metadata.get('next_detail_cursor') is not None:
-                    row=db.get(CompanySource,source['id']);row.config={**row.config,'detail_cursor':result.metadata['next_detail_cursor']};db.commit()
+                outcome=await asyncio.to_thread(ingest_batch,db,source['id'],result.jobs,complete=result.complete,error=result.error,coverage_scope=result.coverage_scope,observed_count=result.observed_count,inventory_ids=inventory_ids,
+                    inventory_complete=result.metadata.get('inventory_complete'),collection_metadata=result.metadata)
+                from .source_repairs import retire_replaced_sources
+                retire_replaced_sources(db,source['id'])
                 return outcome
     outcomes=await asyncio.gather(*(one(source) for source in sources),return_exceptions=True)
-    return {'boards':len(sources),'results':[str(o) if isinstance(o,Exception) else o for o in outcomes]}
+    results=[{'source_id':sources[i]['id'],'status':'worker_error','error':str(o)[:600]} if isinstance(o,Exception) else o for i,o in enumerate(outcomes)]
+    from collections import Counter
+    return {'boards':len(sources),'results':results,'statuses':dict(Counter(o.get('status','unknown') for o in results)),
+            'worker_errors':sum(o.get('status')=='worker_error' for o in results)}
 
 def morning_digest(db):
     from .service import dashboard
@@ -160,8 +161,9 @@ def run_tick(force=False):
             else:result={'status':'unsupported_job'}
             with SessionLocal() as db:
                 if job_id:
-                    job=db.get(BackgroundJob,job_id);job.status='completed';job.finished_at=utcnow();job.payload={**job.payload,'result':result}
-                if job_id or result.get('boards') or kind=='discover':db.add(Activity(kind='collection',title='Collection completed',data=result))
+                    job=db.get(BackgroundJob,job_id);job.status='failed' if result.get('worker_errors') else 'completed';job.finished_at=utcnow();job.payload={**job.payload,'result':result}
+                    if result.get('worker_errors'):job.error='One or more source results could not be persisted; inspect collection evidence.'
+                if job_id or result.get('boards') or kind=='discover':db.add(Activity(kind='collection',title='Collection needs attention' if result.get('worker_errors') else 'Collection completed',data=result))
                 db.commit()
         except Exception as exc:
             log.exception('Background collection failed')

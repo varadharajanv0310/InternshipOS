@@ -435,7 +435,7 @@ def undo_activity(db, id):
 AGGREGATORS = {"freehire", "unstop", "jobspy", "linkedin", "indeed", "naukri", "google_jobs", "google", "wellfound", "internshala", "cutshort"}
 
 
-def _employer_for_job(db, source, job):
+def _employer_for_job(db, source, job, preferred=None):
     """A global feed owns the observation, never all employers in that feed."""
     from urllib.parse import urlsplit
     name = str(job.get("company_name") or "").strip()
@@ -450,6 +450,15 @@ def _employer_for_job(db, source, job):
     if not name and not domain:
         raise ValueError("Aggregator record lacks employer identity")
     name = name or domain
+    if preferred is not None:
+        # A later discovery pass must not pick a different same-named Company
+        # merely because an official/candidate row was added after ingestion.
+        # Preserve the stable appearance only for an exact name/declared alias
+        # and no conflicting domain claim. Actual identity changes still fail.
+        exact_names={str(x).strip().casefold() for x in [preferred.name,*list(preferred.aliases or [])]}
+        existing_domain=(preferred.domain or '').lower().removeprefix('www.')
+        if name.casefold() in exact_names and (not domain or not existing_domain or domain==existing_domain):
+            return preferred
     company = None
     if domain:
         # Domain evidence narrows identity; conflicting domains must not name-merge.
@@ -507,14 +516,29 @@ def _normalize_job(job, now):
                      "source_evidence": json_value(job.get("evidence") or []), "preferred_skills": job.get("preferred_skills") or []}}
 
 
-def ingest_batch(db, company_source_id, jobs, *, complete, error=None, coverage_scope="full", observed_count=None, inventory_ids=None):
+def reconcile_availability(db, opportunity):
+    appearances = db.scalars(select(m.JobSource).where(m.JobSource.opportunity_id == opportunity.id)).all()
+    current = [x for x in appearances if (x.company_source.config or {}).get('replacement_state') != 'superseded']
+    authoritative = [x for x in current if x.company_source.verified]
+    states = [x.status for x in authoritative or current]
+    if 'active' in states:
+        opportunity.status = 'active'
+    elif states and all(x == 'confirmed_closed' for x in states):
+        opportunity.status = 'confirmed_closed'
+    elif 'possibly_closed' in states:
+        opportunity.status = 'possibly_closed'
+    elif appearances and not current and opportunity.status != 'confirmed_closed':
+        opportunity.status = 'needs_recheck'
+
+
+def ingest_batch(db, company_source_id, jobs, *, complete, error=None, coverage_scope="full", observed_count=None, inventory_ids=None, inventory_complete=None, collection_metadata=None):
     """One atomic observation batch. An incomplete result never advances absence.
 
     Source rows are locked on Postgres to serialize concurrent scans of one board.
     Exact natural IDs or non-conflicting canonical URLs may associate appearances;
     fuzzy similarity only records review candidates, never destructive merges.
     """
-    source = db.scalar(select(m.CompanySource).where(m.CompanySource.id == company_source_id).with_for_update())
+    source = db.scalar(select(m.CompanySource).where(m.CompanySource.id == company_source_id).with_for_update().execution_options(populate_existing=True))
     if not source:
         raise ValueError("CompanySource not found")
     now = utcnow()
@@ -534,8 +558,8 @@ def ingest_batch(db, company_source_id, jobs, *, complete, error=None, coverage_
             external_id = values.pop("external_id")
             if external_id in seen:
                 continue
-            employer = _employer_for_job(db, source, raw_job)
             appearance = existing.get(external_id)
+            employer = _employer_for_job(db, source, raw_job,preferred=appearance.opportunity.company if appearance else None)
             if appearance and appearance.requisition_id and values["requisition_id"] and appearance.requisition_id != values["requisition_id"]:
                 raise ValueError("Stable external ID changed trusted requisition; quarantined for identity review")
             if appearance and appearance.opportunity.company_id != employer.id:
@@ -579,6 +603,15 @@ def ingest_batch(db, company_source_id, jobs, *, complete, error=None, coverage_
                     db.add(m.IdentityDecision(opportunity_id=opportunity.id, job_source_id=appearance.id, decision="exact_url",
                                               evidence={"canonical_url": values["canonical_url"], "reversible_source_link": True,
                                                         "company_id": employer.id, "requisition_id": values["requisition_id"]}))
+            if not values['description'] and opportunity.description:
+                # Sparse listings must retain conclusions grounded in the cached
+                # JD. This does not refresh the description's observation clock.
+                retained = classify(opportunity.description,values['title'])
+                for field in ('role_family','opportunity_type','risk_reasons','summary','trust_state'):
+                    values[field]=retained[field]
+                if not raw_job.get('requirements'):
+                    values['requirements']=retained['requirements']
+                digest=stable_hash(json_value(values))
             old_status = appearance.status
             appearance.last_seen = now
             appearance.missed_complete_runs = 0
@@ -644,12 +677,17 @@ def ingest_batch(db, company_source_id, jobs, *, complete, error=None, coverage_
             stats["invalid"] += 1
             issues.append(str(exc)[:300])
 
-    effective_complete = bool(complete and not error and not issues and coverage_scope == "full")
+    from .source_health import budget_only
+    # A bounded detail pass does not invalidate a proven listing inventory.
+    # Other budgets (pages/time/records) and every transport/schema error do.
+    detail_only = inventory_complete is True and bool(error) and all(part.strip()=='detail_limit_reached' for part in str(error).split(';'))
+    listing_proven = bool(complete if inventory_complete is None else inventory_complete)
+    effective_complete = bool(listing_proven and (not error or detail_only) and not issues and coverage_scope == "full")
     if inventory_ids is not None:
         inventory_ids={str(x) for x in inventory_ids}
         if (set(existing)&inventory_ids)-seen:
             effective_complete=False;issues.append("Storage filter omitted an existing source appearance")
-    if complete and coverage_scope=="full" and observed_count is not None and int(observed_count) > (len(inventory_ids) if inventory_ids is not None else len(seen)):
+    if listing_proven and coverage_scope=="full" and observed_count is not None and int(observed_count) > (len(inventory_ids) if inventory_ids is not None else len(seen)):
         effective_complete = False
         issues.append("Reported inventory exceeds unique accepted records; completeness rejected")
     prior_count = len(existing) if inventory_ids is not None else source.job_count or 0
@@ -692,18 +730,13 @@ def ingest_batch(db, company_source_id, jobs, *, complete, error=None, coverage_
     db.flush()
     for opportunity_id in touched:
         op = db.get(m.Opportunity, opportunity_id)
-        appearances = db.scalars(select(m.JobSource).where(m.JobSource.opportunity_id == opportunity_id)).all()
-        authoritative = [x for x in appearances if x.company_source.verified]
-        states = [x.status for x in authoritative or appearances]
-        if "active" in states:
-            op.status = "active"
-        elif states and all(x == "confirmed_closed" for x in states):
-            op.status = "confirmed_closed"
-        elif "possibly_closed" in states:
-            op.status = "possibly_closed"
-    from .source_health import budget_only
+        reconcile_availability(db,op)
     soft=budget_only(error)
-    status = "partial" if soft else "error" if error else "quarantined" if issues else "complete" if effective_complete else "partial"
+    scoped_complete = listing_proven and not error and not issues and coverage_scope in {'query','discovery'}
+    status = "error" if error and not soft else "quarantined" if issues else "partial" if soft else "complete" if effective_complete else "scoped_complete" if scoped_complete else "partial"
+    prior_board=(source.config or {}).get('board_health') or {}
+    prior_board_success=prior_board.get('last_success',iso(source.last_success))
+    prior_board_failures=int(prior_board.get('consecutive_failures',source.consecutive_failures) or 0)
     source.last_checked = now
     source.status = status
     source.last_error = (str(error) if error else "; ".join(issues))[:4000] or None
@@ -712,10 +745,25 @@ def ingest_batch(db, company_source_id, jobs, *, complete, error=None, coverage_
     else:
         source.consecutive_failures = 0
         source.last_success = now
+    if coverage_scope != 'targeted':
+        source.config={**source.config,'board_health':{'status':status,'last_error':source.last_error,
+            'last_success':prior_board_success if (error and not soft) or issues else iso(now),
+            'consecutive_failures':prior_board_failures+1 if (error and not soft) or issues else 0,
+            'full_inventory':effective_complete,'coverage_scope':coverage_scope,
+            'inventory_complete':listing_proven and not issues and (inventory_complete is True or not error),
+            'description_complete':not error}}
     run.status, run.complete, run.finished_at = status, effective_complete, now
     run.error = source.last_error
     run.data = {**stats, "accepted_unique": len(seen), "requested_complete": bool(complete), "storage_filtered":inventory_ids is not None, "parsed_inventory_count":len(inventory_ids) if inventory_ids is not None else len(seen), "issues": issues,
                 "can_infer_absence": effective_complete, "employer_source_verified": source.verified}
+    if collection_metadata is not None:
+        run.data['collection']=json_value(collection_metadata)
+        if coverage_scope != 'targeted':
+            checkpoints={target:collection_metadata[key] for key,target in [
+                ('next_detail_cursor','detail_cursor'),('next_listing_cursor','listing_cursor'),
+                ('next_retained_detail_cursor','retained_detail_cursor')]
+                if collection_metadata.get(key) is not None}
+            source.config={**source.config,**checkpoints}
     _audit(db, "source.fetched", f"{source.company.name}: {len(seen)} observations ({status})", "source", source.id,
            data={"run_id": run.id, **run.data})
     db.commit()

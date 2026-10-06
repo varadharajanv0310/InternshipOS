@@ -28,6 +28,8 @@ class _Context:
         self.complete = False
         self.reported_total = None
         self.detail_requests = 0
+        self.inventory_complete = None
+        self.inventory_observed_count = None
 
     def problem(self, message):
         if message not in self.errors:
@@ -50,6 +52,9 @@ class _Context:
 
     def finish(self, complete):
         self.complete = bool(complete)
+        if self.inventory_complete is None:
+            self.inventory_complete = bool(complete)
+            self.inventory_observed_count = len(self.jobs)
         if not complete:
             self.problem("inventory_incomplete")
 
@@ -96,7 +101,11 @@ async def collect_source(source, *, client=None, max_pages=25, max_jobs=5000,
     own = client is None
     client = client or httpx.AsyncClient(timeout=httpx.Timeout(20, connect=8), trust_env=False,
         headers={"User-Agent": USER_AGENT, "Accept": "application/json,text/html,application/xml;q=0.9,*/*;q=0.8"})
-    http = PublicHTTP(client, max_requests=max_requests, resolve_dns=resolve_dns)
+    # Ashby returns descriptions inside its single public listing response.
+    # A bounded larger JSON allowance handles large legitimate boards; HTML
+    # discovery and other providers retain the smaller default ceiling.
+    http = PublicHTTP(client, max_requests=max_requests, resolve_dns=resolve_dns,
+                      max_bytes=32_000_000 if source.provider == 'ashby' else 8_000_000)
     context = _Context(source, http, max(1, min(max_pages, 100)), max(1, min(max_jobs, 20000)), max(0, min(max_details, 500)))
     started = time.monotonic()
     try:
@@ -115,6 +124,10 @@ async def collect_source(source, *, client=None, max_pages=25, max_jobs=5000,
             "observed_at": datetime.now(timezone.utc).isoformat(), "reported_total": context.reported_total,
             "requests": http.requests, "http_statuses": dict(http.status_counts),
             "elapsed_seconds": round(time.monotonic() - started, 3), "detail_requests": context.detail_requests, "next_detail_cursor":getattr(context,"next_detail_cursor",None),
+            "next_listing_cursor":getattr(context,"next_listing_cursor",None),
+            "next_retained_detail_cursor":getattr(context,"next_retained_detail_cursor",None),
+            "inventory_complete":bool(context.inventory_complete),
+            "inventory_observed_count":context.inventory_observed_count,
             "description_count": sum(bool(x["description"]) for x in jobs), "errors": context.errors, "warnings": context.warnings})
 
 

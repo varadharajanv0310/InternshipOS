@@ -1,0 +1,186 @@
+{
+  "schema_version": 1,
+  "observed_on": "2026-10-06",
+  "policy": "Match the named employer and old endpoint exactly. Preserve owner settings, historical appearances and audit evidence. A replacement must pass a live check before health is successful. Duplicate aliases retain an explicit replacement reference.",
+  "repairs": [
+    {
+      "company": "Amplitude",
+      "from_provider": "greenhouse",
+      "from_url": "https://job-boards.greenhouse.io/amplitude",
+      "provider": "ashby",
+      "url": "https://jobs.ashbyhq.com/amplitude",
+      "config": {"token": "amplitude"},
+      "evidence": {
+        "kind": "official_site_ats_link",
+        "linked_from": "https://amplitude.com/careers",
+        "target": "https://jobs.ashbyhq.com/amplitude",
+        "observed_at": "2026-10-06",
+        "checked_api": "https://api.ashbyhq.com/posting-api/job-board/amplitude",
+        "checked_status": 200,
+        "listed_jobs": 36,
+        "note": "Official careers page explicitly links the new Ashby board; the old Greenhouse board returns 404."
+      }
+    },
+    {
+      "company": "Observe.AI",
+      "from_provider": "generic",
+      "from_url": "https://www.observe.ai/careers",
+      "provider": "greenhouse",
+      "url": "https://job-boards.greenhouse.io/observeai",
+      "config": {"token": "observeai"},
+      "evidence": {
+        "kind": "official_site_ats_embed",
+        "linked_from": "https://www.observe.ai/careers",
+        "target": "https://boards.greenhouse.io/embed/job_board/js?for=observeai",
+        "observed_at": "2026-10-06",
+        "checked_api": "https://boards-api.greenhouse.io/v1/boards/observeai/jobs",
+        "checked_status": 200,
+        "listed_jobs": 12,
+        "note": "Official careers HTML embeds Greenhouse's documented board script with an explicit observeai token."
+      }
+    },
+    {
+      "company": "Icertis",
+      "from_provider": "generic",
+      "from_url": "https://www.icertis.com/company/careers/",
+      "provider": "oracle_hcm",
+      "url": "https://iaaviz.fa.ocs.oraclecloud.com/hcmUI/CandidateExperience/en/sites/Jobs-at-Icertis/",
+      "config": {"host": "iaaviz.fa.ocs.oraclecloud.com", "site": "Jobs-at-Icertis", "keyword": "intern"},
+      "evidence": {
+        "kind": "official_site_ats_link",
+        "linked_from": "https://www.icertis.com/company/careers/",
+        "target": "https://iaaviz.fa.ocs.oraclecloud.com/hcmUI/CandidateExperience/en/sites/Jobs-at-Icertis/",
+        "observed_at": "2026-10-06",
+        "checked_api": "https://iaaviz.fa.ocs.oraclecloud.com/hcmRestApi/resources/latest/recruitingCEJobRequisitions?onlyData=true&finder=findReqs;siteNumber=Jobs-at-Icertis,limit=25,offset=0,keyword=intern",
+        "checked_status": 200,
+        "note": "Official employer careers page directly links this Oracle tenant and site. Public finder returns a typed requisitions envelope; keyword scope is not a full-board absence proof."
+      }
+    },
+    {
+      "company": "PhonePe",
+      "from_provider": "greenhouse",
+      "from_url": "https://job-boards.greenhouse.io/phonepe",
+      "from_urls": ["https://job-boards.greenhouse.io/phonepe", "https://boards.greenhouse.io/phonepe"],
+      "provider": "smartrecruiters",
+      "url": "https://careers.smartrecruiters.com/PHONEPELIMITED",
+      "config": {"token": "PHONEPELIMITED"},
+      "evidence": {
+        "kind": "official_careers_feed_ats_links",
+        "linked_from": "https://www.phonepe.com/careers/job-openings/",
+        "integration_script": "https://www.phonepe.com/webstatic/15102/component---src-pages-careers-job-openings-index-js-1f7467adb370882a0aba.js",
+        "official_feed": "https://www.phonepe.com/apollo/job-postings/latest.json",
+        "target": "https://careers.smartrecruiters.com/PHONEPELIMITED",
+        "observed_at": "2026-10-06",
+        "checked_api": "https://api.smartrecruiters.com/v1/companies/PHONEPELIMITED/postings?limit=100",
+        "checked_status": 200,
+        "listed_jobs": 89,
+        "note": "Official first-party careers JavaScript fetches the declared first-party JSON feed. Public records with status PUBLIC and applyUrl point to PhonePe's SmartRecruiters board. NOT_PUBLISHED rows are not public opportunities."
+      }
+    },
+    {
+      "company": "AlphaGrep",
+      "from_provider": "generic",
+      "from_url": "https://www.alpha-grep.com/careers",
+      "provider": "greenhouse",
+      "url": "https://job-boards.greenhouse.io/alphagrepsecurities",
+      "config": {"token": "alphagrepsecurities"},
+      "evidence": {
+        "kind": "official_careers_feed_ats_links",
+        "linked_from": "https://www.alpha-grep.com/career/",
+        "integration_script": "https://www.alpha-grep.com/assets/greenhouse-legacy.js",
+        "official_feed": "https://www.alpha-grep.com/api/greenhouse-jobs.php",
+        "target": "https://job-boards.greenhouse.io/alphagrepsecurities",
+        "observed_at": "2026-10-06",
+        "checked_api": "https://boards-api.greenhouse.io/v1/boards/alphagrepsecurities/jobs?content=true",
+        "checked_status": 200,
+        "listed_jobs": 15,
+        "note": "Official /career/ page links the integration script; its read-only first-party jobs proxy returns explicit job-board URLs matching the live Greenhouse board."
+      }
+    },
+    {
+      "company": "ClickHouse",
+      "from_provider": "greenhouse",
+      "from_url": "https://job-boards.greenhouse.io/clickhouse",
+      "provider": "ashby",
+      "url": "https://jobs.ashbyhq.com/clickhouse",
+      "config": {"token": "clickhouse"},
+      "evidence": {
+        "kind": "official_careers_script_public_api",
+        "linked_from": "https://clickhouse.com/company/careers",
+        "integration_script": "https://clickhouse.com/_next/static/immutable/chunks/2rry_oep3kltq.js",
+        "target": "https://jobs.ashbyhq.com/clickhouse",
+        "observed_at": "2026-10-06",
+        "checked_api": "https://api.ashbyhq.com/posting-api/job-board/clickhouse",
+        "checked_status": 200,
+        "listed_jobs": 195,
+        "note": "Official careers page references this first-party JavaScript chunk, which explicitly fetches the ClickHouse Ashby public posting API. The old Greenhouse board returns 404."
+      }
+    },
+    {
+      "company": "Cerebras Systems",
+      "from_provider": "greenhouse",
+      "from_url": "https://job-boards.greenhouse.io/cerebrassystems",
+      "provider": "ashby",
+      "url": "https://jobs.ashbyhq.com/cerebras",
+      "config": {"token": "cerebras"},
+      "evidence": {
+        "kind": "official_site_ats_link",
+        "linked_from": "https://www.cerebras.ai/open-positions",
+        "official_careers_url": "https://www.cerebras.ai/join-us",
+        "target": "https://jobs.ashbyhq.com/cerebras",
+        "observed_at": "2026-10-06",
+        "checked_api": "https://api.ashbyhq.com/posting-api/job-board/Cerebras",
+        "checked_status": 200,
+        "listed_jobs": 117,
+        "note": "Official Join Us page links the separate official Open Positions page. That page embeds explicit Cerebras Ashby application links, including Bengaluru roles, matching the live public inventory."
+      }
+    },
+    {
+      "company": "Zoho",
+      "from_provider": "generic",
+      "from_url": "https://www.zoho.com/careers/",
+      "provider": "generic",
+      "url": "https://www.zoho.com/careers/",
+      "config": {
+        "api_url": "https://careers.zohocorp.com/recruit/v2/public/Job_Openings",
+        "method": "GET",
+        "params": {"pagename": "Careers", "source": "CareerSite", "extra_fields": "[\"Remote_Job\",\"Job_Description\"]"},
+        "json_path": "data",
+        "fields": {"id": "id", "title": "Job_Opening_Name||Posting_Title", "url": "$url", "location": "City||Country1", "description": "Job_Description", "employment_type": "Job_Type"},
+        "description_scope": "summary",
+        "inventory_scope": "discovery",
+        "description_is_partial": true,
+        "inventory_unproven": true
+      },
+      "evidence": {
+        "kind": "official_careers_script_public_api",
+        "linked_from": "https://www.zoho.com/careers/",
+        "integration_script": "https://www.zohowebstatic.com/sites/zweb/js/translation/zoho_general_pages/29220.js",
+        "target": "https://careers.zohocorp.com/recruit/v2/public/Job_Openings",
+        "observed_at": "2026-10-06",
+        "checked_status": 200,
+        "listed_jobs": 2,
+        "note": "Official careers script declares this public India careers API. It provides summary descriptions and no total-count/pagination proof, so this is discovery coverage, not a full internship inventory."
+      }
+    }
+  ],
+  "existing_canonical_bindings": [
+    {
+      "company": "Freshworks",
+      "generic_url": "https://www.freshworks.com/company/careers/",
+      "provider": "smartrecruiters",
+      "url": "https://careers.smartrecruiters.com/Freshworks",
+      "evidence": {"kind": "official_site_ats_link", "linked_from": "https://www.freshworks.com/company/careers/", "target": "https://careers.smartrecruiters.com/Freshworks", "observed_at": "2026-10-06", "checked_status": 200, "listed_jobs": 123}
+    },
+    {
+      "company": "BrowserStack",
+      "generic_url": "https://www.browserstack.com/careers",
+      "provider": "workday",
+      "url": "https://browserstack.wd3.myworkdayjobs.com/External",
+      "evidence": {"kind": "official_site_ats_link", "linked_from": "https://www.browserstack.com/careers", "target": "https://browserstack.wd3.myworkdayjobs.com/External", "observed_at": "2026-10-06", "checked_status": 200, "note": "Canonical Workday source already exists. Marketing page failure does not mean missing Workday inventory."}
+    }
+  ],
+  "unresolved_candidates": [
+    {"company": "Postman", "reason": "Old Greenhouse board returns 404; guessed Ashby and postmanlabs boards also return 404. Current official page uses a custom integration requiring further endpoint inspection."}
+  ]
+}

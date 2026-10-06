@@ -27,7 +27,7 @@ def test_internshala_cards_preserve_employer_and_internship_context():
     assert not empty.complete and 'no_recognized_cards' in empty.error
 
 
-def test_workday_budget_continues_at_next_job_without_full_inventory_claim():
+def test_workday_budget_rotates_details_without_losing_listing_inventory():
     def handler(request):
         if request.method=='POST':
             return httpx.Response(200,json={'total':3,'jobPostings':[{'externalPath':'/job/Chennai/Software-Intern_R'+str(i),'title':'Software Intern','bulletFields':['R'+str(i)]} for i in range(3)]})
@@ -35,11 +35,14 @@ def test_workday_budget_continues_at_next_job_without_full_inventory_claim():
         return httpx.Response(200,json={'jobPostingInfo':{'jobReqId':ident,'title':'Software Intern','location':'Chennai','jobDescription':'Build Python software.'}})
     url='https://fixture.wd1.myworkdayjobs.com/Careers'
     first=collect('workday',handler,url=url,max_details=1)
-    assert not first.complete and first.jobs[0]['external_id']=='R0' and first.metadata['next_detail_cursor']==1
+    assert not first.complete and len(first.jobs)==3 and first.metadata['inventory_complete'] and first.metadata['next_detail_cursor']==1
+    assert [x['external_id'] for x in first.jobs if x['description']]==['R0']
     second=collect('workday',handler,url=url,max_details=1,config={'detail_cursor':1})
-    assert second.jobs[0]['external_id']=='R1' and second.coverage_scope=='query' and second.metadata['next_detail_cursor']==2
+    assert [x['external_id'] for x in second.jobs if x['description']]==['R1']
+    assert second.coverage_scope=='full' and second.metadata['next_detail_cursor']==2 and second.metadata['inventory_complete']
     last=collect('workday',handler,url=url,max_details=1,config={'detail_cursor':2})
-    assert last.jobs[0]['external_id']=='R2' and last.coverage_scope=='query' and last.metadata['next_detail_cursor']==0
+    assert [x['external_id'] for x in last.jobs if x['description']]==['R2']
+    assert last.coverage_scope=='full' and last.metadata['next_detail_cursor']==0 and last.metadata['inventory_complete']
 
 
 def test_declared_public_json_feed_preserves_fields_and_checks_schema():
