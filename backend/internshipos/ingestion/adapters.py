@@ -868,6 +868,12 @@ def feed_page_size(config, body, params):
 async def configured_public_api(c):
     """Read explicitly declared public search requests and their bounded pages."""
     config = c.source.config
+    if config.get("api_url") == "https://a.sfdcstatic.com/digital/xsf/careers/prod/jobs_2.json":
+        # Salesforce publishes one static JSON inventory with all full JDs.
+        # Verified 7 October: 1,517 identities, 9,836,365 decoded bytes (2.38 MB
+        # gzipped). Only this exact official asset receives a 16 MB ceiling;
+        # arbitrary configured feeds keep their normal transport limit.
+        c.http.max_bytes = max(c.http.max_bytes, 16_000_000)
     method = str(config.get("method", "GET")).upper()
     if method not in {"GET", "POST"}:
         raise SchemaError("configured_feed_requires_read_method")
@@ -995,22 +1001,45 @@ async def configured_public_api(c):
 
 def parse_internshala(source, html, page_url):
     """Keep employer and role within the same card; never zip unrelated labels."""
-    structured = parse_jsonld(source, html, page_url)
-    if structured:
-        return structured
+    is_detail = '/internship/detail/' in urlsplit(page_url).path
     soup = BeautifulSoup(html, 'html.parser')
+    canonical_node = soup.select_one('link[rel="canonical"][href]') if is_detail else None
+    detail_url = urljoin(page_url, canonical_node['href']) if canonical_node else page_url
+    # Related internships have the same card classes as the primary role. The
+    # observed detail_view contains the primary header and description only.
+    detail_view = soup.select_one('#details_container .detail_view, .detail_view') if is_detail else None
+    primary_card = detail_view.select_one('.individual_internship') if detail_view else None
+    def internship_id(card):
+        if card is None:
+            return None
+        value = card.get('internshipid')
+        match = re.fullmatch(r'individual_internship_(\d+)', str(card.get('id') or ''))
+        return str(value) if value else match.group(1) if match else None
+    structured = parse_jsonld(source, html, detail_url)
+    if structured:
+        if is_detail:
+            for item in structured:
+                item['raw'] = {'jobposting': item.get('raw'),
+                    'internship_id': internship_id(primary_card),
+                    'page_url': page_url, 'page_canonical': detail_url,
+                    'parser': 'internshala-detail-jsonld-v3'}
+        return structured
     cards = soup.select('.individual_internship')
-    if '/internship/detail/' in urlsplit(page_url).path:
-        cards = [soup]
+    if is_detail:
+        # Do not infer the main role from the first recommended-card anchor.
+        # An unknown detail layout remains unsupported instead of mixing jobs.
+        if detail_view is None or detail_view.select_one('.internship_details') is None:
+            return []
+        cards = [primary_card or detail_view]
     results = []
     for card in cards:
         title = card.select_one('.job-internship-name, .job-title-href, .job-title, .profile, h1')
         employer = card.select_one('.company-name') or card.select_one('.company_name')
-        anchor = card.select_one('a[href*="/internship/detail/"]')
-        url = urljoin(page_url, anchor['href']) if anchor else page_url
+        anchor = card.select_one('a[href*="/internship/detail/"]') if not is_detail else None
+        url = detail_url if is_detail else urljoin(page_url, anchor['href']) if anchor else page_url
         if not title or not employer or '/internship/detail/' not in urlsplit(url).path:
             continue
-        location_node = card.select_one('.locations') or card.select_one('.location_link')
+        location_node = card.select_one('.locations') or card.select_one('.location_link') or card.select_one('#location_names')
         location = location_node.get_text(' ', strip=True) if location_node else ''
         if re.fullmatch(r'work\s*from\s*home', location, re.I):
             location = 'Remote, India'
@@ -1019,11 +1048,13 @@ def parse_internshala(source, html, page_url):
             if 'work-from-home' in path: location = 'Remote, India'
             elif 'internship-in-chennai-at-' in path: location = 'Chennai, India'
             elif any('internship-in-'+city+'-at-' in path for city in ('bangalore','bengaluru')): location = 'Bengaluru, India'
-        detail = card.select_one('.internship_details') if '/internship/detail/' in urlsplit(page_url).path else None
+        detail = detail_view.select_one('.internship_details') if is_detail else None
         results.append(job(source, url, title.get_text(' ', strip=True), url=url,
             company_name=employer.get_text(' ', strip=True), location=location,
             employment_type='internship', description=detail.get_text(' ', strip=True) if detail else '',
-            raw={'page_url':page_url,'parser':'internshala-scoped-card-v2'}))
+            raw={'page_url':page_url,'internship_id':internship_id(card),
+                 'page_canonical':detail_url if is_detail else None,
+                 'parser':'internshala-scoped-card-v3'}))
     return results
 
 
@@ -1102,6 +1133,16 @@ async def internshala(c):
     from ..domain import canonicalize_url
     def employer_key(value):
         return re.sub(r'[^a-z0-9]+', '', plain(value).casefold())
+    def record_id(item):
+        raw = item.get('raw') or {}
+        if isinstance(raw, dict) and isinstance(raw.get('source_payload'), dict):
+            raw = raw['source_payload']
+        return str(raw.get('internship_id')) if isinstance(raw, dict) and raw.get('internship_id') else None
+    def page_canonical(item):
+        raw = item.get('raw') or {}
+        if isinstance(raw, dict) and isinstance(raw.get('source_payload'), dict):
+            raw = raw['source_payload']
+        return raw.get('page_canonical') if isinstance(raw, dict) else None
     async def enrich(listing):
         target_url = listing['canonical_url']
         c.detail_requests += 1
@@ -1111,14 +1152,17 @@ async def internshala(c):
             c.problem('detail_fetch_failed: ' + str(exc))
             return None
         if canonicalize_url(str(response.url)) != canonicalize_url(target_url):
-            c.problem('internshala_detail_identity_mismatch: redirected_url')
+            c.problem(f'internshala_detail_identity_mismatch: redirected_url, job_url={target_url}, final_url={response.url}')
             return None
         details = parse_internshala(c.source, response.text, target_url)
-        candidates = [item for item in details
+        same_url = [item for item in details
             if canonicalize_url(item.get('canonical_url')) == canonicalize_url(target_url)
-            and employer_key(item.get('company_name')) == employer_key(listing.get('company_name'))]
+            and (not page_canonical(item) or canonicalize_url(page_canonical(item)) == canonicalize_url(target_url))]
+        same_employer = [item for item in same_url if employer_key(item.get('company_name')) == employer_key(listing.get('company_name'))]
+        candidates = [item for item in same_employer if not record_id(listing) or not record_id(item) or record_id(listing) == record_id(item)]
         if not candidates:
-            c.problem('internshala_detail_identity_mismatch' if details else 'full_description_unavailable')
+            component = 'canonical_url' if not same_url else 'employer' if not same_employer else 'internship_id'
+            c.problem(f'internshala_detail_identity_mismatch: {component}, job_url={target_url}' if details else f'full_description_unavailable: job_url={target_url}')
             return None
         detail = candidates[0]
         if not detail.get('description'):

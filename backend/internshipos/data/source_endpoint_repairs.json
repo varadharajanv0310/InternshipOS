@@ -173,6 +173,13 @@
       "evidence": {"kind": "official_site_ats_link", "linked_from": "https://www.freshworks.com/company/careers/", "target": "https://careers.smartrecruiters.com/Freshworks", "observed_at": "2026-10-06", "checked_status": 200, "listed_jobs": 123}
     },
     {
+      "company": "Mastercard",
+      "generic_url": "https://careers.mastercard.com/",
+      "provider": "workday",
+      "url": "https://mastercard.wd1.myworkdayjobs.com/CorporateCareers",
+      "evidence": {"kind": "official_site_ats_link", "linked_from": "https://careers.mastercard.com/us/en/", "target": "https://mastercard.wd1.myworkdayjobs.com/CorporateCareers", "observed_at": "2026-10-07", "checked_status": 200, "note": "The current official careers page explicitly links this exact existing Workday board. The generic route currently has no recognized JobPosting inventory. This binding preserves source identity and owner settings; alias retirement still requires a fresh successful canonical inventory result."}
+    },
+    {
       "company": "BrowserStack",
       "generic_url": "https://www.browserstack.com/careers",
       "provider": "workday",

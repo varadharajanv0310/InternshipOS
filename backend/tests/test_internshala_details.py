@@ -10,6 +10,8 @@ CATEGORY='https://internshala.com/internships/software-development-internship-in
 DETAIL_URL='https://internshala.com/internship/detail/full-stack-development-internship-in-chennai-at-voicedots-infotech1790388263'
 FINAL_URL='https://internshala.com/internship/detail/backend-development-internship-in-chennai-at-final1790000002'
 DETAIL=(Path(__file__).parent/'fixtures/internshala_detail_v2.html').read_text(encoding='utf-8')
+FALLBACK=(Path(__file__).parent/'fixtures/internshala_detail_no_jsonld.html').read_text(encoding='utf-8')
+FALLBACK_URL='https://internshala.com/internship/detail/part-time-java-full-stack-developer-internship-in-multiple-locations-at-gradtwin-services-opc-private-limited1790589363'
 
 
 def card(url=DETAIL_URL,title='Full Stack Development',employer='Voicedots Infotech',location='Chennai'):
@@ -88,3 +90,45 @@ def test_description_budget_rotates_target_roles_without_fetching_unwanted_city(
     second=collect(handler,max_details=1,config={'detail_cursor':1})
     assert [job['external_id'] for job in second.jobs if job['description']]==[FINAL_URL]
     assert all('mumbai' not in url for url in requests)
+
+
+def test_html_detail_is_bound_to_main_card_not_first_related_anchor():
+    parsed=parse_internshala(Source('internshala',CATEGORY),FALLBACK,FALLBACK_URL)
+    assert len(parsed)==1
+    assert parsed[0]['canonical_url']==FALLBACK_URL
+    assert parsed[0]['company_name']=='GRADTWIN SERVICES (OPC) PRIVATE LIMITED'
+    assert parsed[0]['location']=='Chennai, Tamil Nadu'
+    assert parsed[0]['raw']['internship_id']=='3305152'
+    assert 'Build Java APIs' in parsed[0]['description']
+    assert 'Related description' not in parsed[0]['description']
+
+
+def test_main_html_card_enriches_without_rebinding_identity():
+    listing=card(FALLBACK_URL,'Java Full Stack Developer','GRADTWIN SERVICES (OPC) PRIVATE LIMITED')
+    listing=listing.replace('class="individual_internship"','class="individual_internship" internshipid="3305152"')
+    result=collect(lambda request:httpx.Response(200,text=listing if request.url.path.startswith('/internships/') else FALLBACK),max_details=1)
+    assert result.jobs[0]['external_id']==FALLBACK_URL
+    assert result.metadata['description_complete'] is True
+    assert 'Build Java APIs' in result.jobs[0]['description']
+
+
+def test_same_employer_and_url_with_different_dom_internship_id_is_rejected():
+    listing=card(FALLBACK_URL,'Java Full Stack Developer','GRADTWIN SERVICES (OPC) PRIVATE LIMITED')
+    listing=listing.replace('class="individual_internship"','class="individual_internship" internshipid="3305152"')
+    wrong=FALLBACK.replace('individual_internship_3305152','individual_internship_9999999')
+    result=collect(lambda request:httpx.Response(200,text=listing if request.url.path.startswith('/internships/') else wrong),max_details=1)
+    assert result.jobs[0]['description']==''
+    assert 'internship_id' in result.error and FALLBACK_URL in result.error
+
+
+def test_canonical_html_conflict_is_rejected_even_if_jsonld_url_matches():
+    wrong=DETAIL.replace('<head>','<head><link rel="canonical" href="'+FINAL_URL+'">')
+    wrong=wrong.replace('"title":"Full Stack Development - Internship",','"title":"Full Stack Development - Internship","url":"'+DETAIL_URL+'",')
+    result=collect(lambda request:httpx.Response(200,text=card() if request.url.path.startswith('/internships/') else wrong),max_details=1)
+    assert result.jobs[0]['description']==''
+    assert 'canonical_url' in result.error and DETAIL_URL in result.error
+
+
+def test_unscoped_recommendation_markup_cannot_be_promoted_as_detail():
+    wrong=FALLBACK.replace('class="detail_view"','class="unknown_layout"')
+    assert parse_internshala(Source('internshala',CATEGORY),wrong,FALLBACK_URL)==[]

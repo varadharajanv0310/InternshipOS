@@ -15,9 +15,9 @@ def collection_health(db, now=None):
     stamp = _timestamp(value.get('at'))
     interval_setting = db.get(Setting, 'collection_worker_interval_hours')
     try:
-        interval = max(0.25, float(interval_setting.value)) if interval_setting else 2.0
+        interval = max(0.25, float(interval_setting.value)) if interval_setting else 1.0
     except (TypeError, ValueError):
-        interval = 2.0
+        interval = 1.0
     grace = min(1.0, max(0.25, interval * 0.5))
     expected = stamp + timedelta(hours=interval) if stamp else None
     overdue = bool(stamp and now > expected + timedelta(hours=grace))

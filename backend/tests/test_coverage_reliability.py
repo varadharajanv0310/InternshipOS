@@ -376,3 +376,25 @@ def test_declared_snippet_feed_does_not_claim_full_jd_or_inventory():
     assert not result.complete and not result.metadata["inventory_complete"]
     assert result.jobs[0]["description"] == "" and not result.jobs[0]["raw"]["description_complete"]
     assert "summary_only_description" in result.metadata["warnings"][-1]
+
+
+def test_known_salesforce_static_feed_has_scoped_bounded_size_allowance(monkeypatch):
+    original = ingestion.PublicHTTP
+    monkeypatch.setattr(ingestion, "PublicHTTP", lambda client, **kwargs: original(client, **{**kwargs, "max_bytes": 3000}))
+    config = {"api_url": "https://a.sfdcstatic.com/digital/xsf/careers/prod/jobs_2.json",
+        "json_path": "Report_Entry", "total_path": "Total_Jobs",
+        "fields": {"id": "Job_Requisition_Ref_ID", "title": "Job_Posting_Title", "description": "Job_Description"},
+        "url_template": "https://www.salesforce.com/company/careers/jobs/{Job_Requisition_Ref_ID}/"}
+    payload = {"Total_Jobs": 1, "Report_Entry": [{"Job_Requisition_Ref_ID": "JR1",
+        "Job_Posting_Title": "Software Intern", "Job_Description": "Build Python APIs" + " " * 4000}]}
+    known = collect("generic", lambda request: httpx.Response(200, json=payload), config=config)
+    other = collect("generic", lambda request: httpx.Response(200, json=payload),
+        config={**config, "api_url": "https://api.example.com/jobs"})
+    assert known.complete and known.metadata["inventory_complete"] and known.jobs[0]["external_id"] == "JR1"
+    assert not other.complete and other.error == "response_size_limit_exceeded"
+
+
+def test_known_salesforce_feed_still_rejects_payload_beyond_its_ceiling():
+    config = {"api_url": "https://a.sfdcstatic.com/digital/xsf/careers/prod/jobs_2.json", "json_path": "Report_Entry"}
+    result = collect("generic", lambda request: httpx.Response(200, content=b"x" * 16_000_001), config=config)
+    assert not result.complete and not result.jobs and result.error == "response_size_limit_exceeded"
