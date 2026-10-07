@@ -1,13 +1,44 @@
 """Durable bounded work compatible with a local worker or free scheduled CI runs."""
-import asyncio, logging, os, threading, time
+import asyncio, copy, logging, os, threading, time
 from datetime import timedelta
 from zoneinfo import ZoneInfo
 from sqlalchemy import String, JSON, DateTime, Integer, select, update
 from sqlalchemy.orm import Mapped, mapped_column, joinedload
+from sqlalchemy.exc import DBAPIError
 from .db import Base, SessionLocal, utcnow, aware
 from .models import Company, CompanySource, Activity, Integration, Setting, Task, Notification
 
 log=logging.getLogger(__name__)
+
+
+def _aborted_postgres_transaction(db, exc):
+    """Only server-confirmed transaction aborts are safe to replay.
+
+    Transport/connection failures may have an ambiguous commit outcome and must
+    remain failures. Do not match exception messages or retry other databases.
+    """
+    if not isinstance(exc, DBAPIError) or exc.connection_invalidated:
+        return False
+    original = exc.orig
+    code = getattr(original, 'sqlstate', None) or getattr(original, 'pgcode', None)
+    return code in {'40P01', '40001'} and db.get_bind().dialect.name == 'postgresql'
+
+
+def _persist_transaction(db, operation, *, source_id, stage, max_attempts=3):
+    """Replay a rolled-back atomic operation, with at most three attempts."""
+    max_attempts = max(1, min(3, max_attempts))
+    for attempt in range(max_attempts):
+        try:
+            return operation(), attempt
+        except Exception as exc:
+            retryable = _aborted_postgres_transaction(db, exc)
+            db.rollback()  # Ends the failed transaction; the next call starts fresh.
+            if not retryable or attempt + 1 >= max_attempts:
+                raise
+            code = getattr(exc.orig, 'sqlstate', None) or getattr(exc.orig, 'pgcode', None)
+            log.warning('Retrying %s for source %s after PostgreSQL %s (%s/%s)',
+                        stage, source_id, code, attempt + 1, max_attempts)
+            time.sleep(0.1 * (attempt + 1))
 
 class BackgroundJob(Base):
     __tablename__='background_jobs'
@@ -60,20 +91,34 @@ async def collect_boards(source_ids=None,limit=None,force=False):
             except Exception as exc:
                 from .ingestion import CollectionResult
                 result=CollectionResult(jobs=[],complete=False,error=str(exc)[:600],coverage_scope='unknown')
-            inventory_ids=None
+            # Keep the collected observation immutable across transaction aborts.
+            # Re-read existing appearances in each fresh transaction before the
+            # storage filter, so another collector cannot make that filter stale.
+            collected_jobs=copy.deepcopy(result.jobs)
+            collected_metadata=copy.deepcopy(result.metadata)
+            target_only=os.getenv('COLLECTION_TARGET_ONLY','false').lower()=='true'
             with SessionLocal() as db:
-                if os.getenv('COLLECTION_TARGET_ONLY','false').lower()=='true':
-                    from .models import JobSource
-                    from .search_policy import retain_new_candidate
-                    inventory_ids=[str(j.get('external_id')) for j in result.jobs]
-                    existing=set(db.scalars(select(JobSource.external_id).where(JobSource.company_source_id==source['id'])).all())
-                    # Existing appearances always update, preserving full-scan
-                    # absence proofs even if a job's title/location changes.
-                    result.jobs=[j for j in result.jobs if str(j.get('external_id')) in existing or retain_new_candidate(j)]
-                outcome=await asyncio.to_thread(ingest_batch,db,source['id'],result.jobs,complete=result.complete,error=result.error,coverage_scope=result.coverage_scope,observed_count=result.observed_count,inventory_ids=inventory_ids,
-                    inventory_complete=result.metadata.get('inventory_complete'),collection_metadata=result.metadata)
+                def ingest():
+                    observations=copy.deepcopy(collected_jobs)
+                    inventory_ids=None
+                    if target_only:
+                        from .models import JobSource
+                        from .search_policy import retain_new_candidate
+                        inventory_ids=[str(j.get('external_id')) for j in observations]
+                        existing=set(db.scalars(select(JobSource.external_id).where(JobSource.company_source_id==source['id'])).all())
+                        observations=[j for j in observations if str(j.get('external_id')) in existing or retain_new_candidate(j)]
+                    return ingest_batch(db,source['id'],observations,complete=result.complete,error=result.error,
+                        coverage_scope=result.coverage_scope,observed_count=result.observed_count,inventory_ids=inventory_ids,
+                        inventory_complete=collected_metadata.get('inventory_complete'),
+                        collection_metadata=copy.deepcopy(collected_metadata))
+                outcome,ingest_retries=await asyncio.to_thread(_persist_transaction,db,ingest,
+                    source_id=source['id'],stage='ingest')
                 from .source_repairs import retire_replaced_sources
-                retire_replaced_sources(db,source['id'])
+                # Ingestion commits before retirement. Retrying retirement must
+                # never replay a successfully committed observation batch.
+                _,retire_retries=await asyncio.to_thread(_persist_transaction,db,
+                    lambda:retire_replaced_sources(db,source['id']),source_id=source['id'],stage='retire')
+                outcome['persistence_retries']={'ingest':ingest_retries,'retire':retire_retries}
                 return outcome
     outcomes=await asyncio.gather(*(one(source) for source in sources),return_exceptions=True)
     results=[{'source_id':sources[i]['id'],'status':'worker_error','error':str(o)[:600]} if isinstance(o,Exception) else o for i,o in enumerate(outcomes)]
@@ -202,14 +247,21 @@ def worker_loop(stop):
     while not stop.wait(10):
         run_tick();stop.wait(50)
 
-if __name__=='__main__':
+def main(argv=None):
     from .db import init_db
     from .seed import seed_database
     import argparse
-    parser=argparse.ArgumentParser();parser.add_argument('command',choices=['tick','worker']);parser.add_argument('--force',action='store_true');args=parser.parse_args()
+    parser=argparse.ArgumentParser();parser.add_argument('command',choices=['tick','worker']);parser.add_argument('--force',action='store_true');args=parser.parse_args(argv)
     init_db()
     with SessionLocal() as db:seed_database(db)
-    if args.command=='tick':print(run_tick(args.force))
+    if args.command=='tick':
+        result=run_tick(args.force);print(result)
+        return 1 if result.get('worker_errors') or result.get('status')=='failed' else 0
     else:
         try:worker_loop(threading.Event())
         except KeyboardInterrupt:pass
+    return 0
+
+
+if __name__=='__main__':
+    raise SystemExit(main())

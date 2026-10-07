@@ -330,6 +330,20 @@ async def workday(c):
     if initial_offset:
         c.scope = "query"
         c.warnings.append("continued_listing_segment; full_inventory_not_proven")
+    async def listing_page(page_offset):
+        data = await c.http.json("POST", f"{api}/jobs", json={"limit": 20, "offset": page_offset, "searchText": query, "appliedFacets": facets})
+        items = rows_at(data, "jobPostings")
+        total = data.get("total")
+        if not isinstance(total, int) or isinstance(total, bool) or total < 0:
+            raise SchemaError("missing_workday_total")
+        return items, total
+    if initial_offset:
+        # Later Workday pages can report total=0 while still returning jobs.
+        # A resumed segment needs a fresh head for its final query/facets, not
+        # the unfiltered facet-discovery count or a previous run's cached total.
+        head_items, c.reported_total = await listing_page(0)
+        if c.reported_total > 0 and not head_items:
+            c.problem("workday_pagination_incomplete_or_repeated")
     records = []
     listing_complete = False
     def parse(x, detail=None):
@@ -344,15 +358,11 @@ async def workday(c):
             posted_at=date_value(d.get("startDate")), deadline=date_value(d.get("endDate")),
             employment_type=d.get("timeType"), work_mode=d.get("remoteType") or "unknown")
     for _ in range(c.max_pages):
-        data = await c.http.json("POST", f"{api}/jobs", json={"limit": 20, "offset": offset, "searchText": query, "appliedFacets": facets})
-        items = rows_at(data, "jobPostings")
-        total = data.get("total")
-        if not isinstance(total, int) or isinstance(total, bool) or total < 0:
-            raise SchemaError("missing_workday_total")
-        if c.reported_total is not None and c.reported_total != total:
-            c.problem("inventory_changed_during_scan")
-        c.reported_total = total
-        if total >= 2000:
+        items, total = await listing_page(offset)
+        if c.reported_total is None:
+            c.reported_total = total
+        expected_total = c.reported_total
+        if expected_total >= 2000 or total >= 2000:
             c.problem("workday_query_cap_requires_partitioning")
         new = 0
         for x in items:
@@ -363,15 +373,24 @@ async def workday(c):
             new += accepted
             if accepted:
                 records.append(x)
+        zero_total_sentinel = (offset > 0 and total == 0 and expected_total > 0
+                               and bool(items) and new == len(items))
+        if (total != expected_total and not zero_total_sentinel) or (offset == 0 and total == 0 and items):
+            c.problem("inventory_changed_during_scan")
+        if items and new != len(items):
+            c.problem("workday_pagination_incomplete_or_repeated")
         if items and not new:
             c.problem("workday_pagination_incomplete_or_repeated")
             break
         offset += len(items)
         c.next_listing_cursor = offset
-        if offset >= total:
+        if offset > expected_total:
+            c.problem("inventory_changed_during_scan")
+        if offset >= expected_total:
             c.next_listing_cursor = 0
-            listing_complete = (initial_offset == 0 and len(c.jobs) >= total and total < 2000
-                                and "inventory_changed_during_scan" not in c.errors)
+            listing_complete = (initial_offset == 0 and len(c.jobs) >= expected_total and expected_total < 2000
+                                and "inventory_changed_during_scan" not in c.errors
+                                and "workday_pagination_incomplete_or_repeated" not in c.errors)
             break
         if not items or not new:
             c.next_listing_cursor = 0 if not items else offset
@@ -1064,6 +1083,7 @@ async def internshala(c):
     c.next_listing_cursor = start
     page_url = c.source.url
     html = await c.http.text(page_url)
+    initial_html, initial_url = html, page_url
     def next_link(text, current):
         soup = BeautifulSoup(text, 'html.parser')
         anchor = soup.select_one('a.next_page[href], a#navigation-forward[href], a[rel="next"][href]')
@@ -1100,6 +1120,32 @@ async def internshala(c):
         items = parse_internshala(c.source, html, page_url)
         new = sum(c.add(item) for item in items)
         if not items:
+            terminal = BeautifulSoup(html, 'html.parser')
+            empty_terminal = bool(terminal.select_one('input#isLastPage[value="1"]')
+                and terminal.select_one('#individual_location_end_result .end_result_container'))
+            if empty_terminal:
+                # Public pagination explicitly ends this location scope. SEO
+                # headline counts include other suggestions and are not an
+                # inventory total. A resumed terminal page still needs a new
+                # zero-offset pass before the query can claim completeness.
+                if start:
+                    for item in parse_internshala(c.source, initial_html, initial_url):
+                        c.add(item)
+                    c.warnings.append('empty_terminal_checkpoint_reset; fresh_inventory_pass_required')
+                c.next_listing_cursor = 0
+                listing_complete = start == 0
+                break
+            # A saved cursor can lead to an unrendered second page even while
+            # the current category head supplies valid public cards. Retain
+            # those leads and reset the checkpoint; never claim an empty or
+            # complete inventory from this unsupported pagination response.
+            head_items = parse_internshala(c.source, initial_html, initial_url)
+            if head_items and page_url != initial_url:
+                for item in head_items:
+                    c.add(item)
+                c.next_listing_cursor = 0
+                c.problem(f'internshala_pagination_page_unrecognized: page_url={page_url}, checkpoint_reset=0')
+                break
             raise SchemaError('internshala_no_recognized_cards_or_jobposting; manual_capture_available')
         if not new:
             c.problem('pagination_repeated_page')
