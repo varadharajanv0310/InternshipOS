@@ -16,7 +16,7 @@ def apply_endpoint_repairs(db, manifest=None):
     rows = db.scalars(select(CompanySource).order_by(CompanySource.id).with_for_update()
                       .execution_options(populate_existing=True)).all()
     index = {(r.company_id, r.provider, r.url): r for r in rows}
-    added = linked = 0
+    added = linked = configured = 0
     for repair in manifest.get('repairs', []):
         company = companies.get(repair['company'].casefold())
         if not company:
@@ -70,12 +70,24 @@ def apply_endpoint_repairs(db, manifest=None):
                 'replacement_url':replacement.url, 'replacement_evidence':binding['evidence'],
                 'replacement_state':'awaiting_live_inventory'}
             linked += 1
-    if added or linked:
+    for repair in manifest.get('config_repairs', []):
+        company=companies.get(repair['company'].casefold())
+        row=index.get((company.id,repair['provider'],repair['url'])) if company else None
+        if not row:
+            continue
+        repair_key=manifest['observed_on']+':'+repair['provider']+':'+repair['url']
+        applied=row.config.get('config_repairs_applied',[])
+        if repair_key in applied or any(row.config.get(k)!=v for k,v in repair['expected_config'].items()):
+            continue
+        row.config={**row.config,**repair['config'],'config_repairs_applied':[*applied,repair_key],
+            'config_repair_evidence':repair['evidence']}
+        configured+=1
+    if added or linked or configured:
         db.add(Activity(kind='registry.repaired', title='Verified source replacements installed',
-            data={'sources_added':added, 'old_sources_linked':linked,
+            data={'sources_added':added, 'old_sources_linked':linked,'source_configs_corrected':configured,
                   'evidence_date':manifest['observed_on']}))
     db.commit()
-    return {'sources_added':added, 'old_sources_linked':linked}
+    return {'sources_added':added, 'old_sources_linked':linked,**({'source_configs_corrected':configured} if configured else {})}
 
 
 def retire_replaced_sources(db, replacement_id):

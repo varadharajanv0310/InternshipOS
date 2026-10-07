@@ -52,3 +52,22 @@ The idempotent repair manifest is [source_endpoint_repairs.json](../backend/inte
 - Access challenges for Tower Research and Coinbase remained explicit failures; no anti-bot or CAPTCHA bypass was attempted.
 
 Raw responses, SHA-256 fingerprints, bounded probe scripts and source-level baseline are persisted privately in `data/private/source-reliability/`. They contain no account credentials. The repair manifest and this report contain only public endpoint evidence.
+
+## Hosted follow-up audit — 7 October 2026
+
+Read-only hosted snapshot checked at 16:20 UTC: 579 enabled sources, comprising 198 complete, 177 complete for the requested scope, 68 partial, 135 errors and one quarantined source. Errors include 119 broken connections and 16 access restrictions. The 158 historical scope-label corrections preserve their previous check times and do not represent new successful network checks.
+
+The collection service was on schedule, but 423 sources were due, 255 stale and 28 awaiting a retry. This backlog needs collection capacity and prioritization review; an on-time scheduled run alone does not prove fresh coverage of every source.
+
+| Employer | Verified failure | Guarded correction | Public observation |
+|---|---|---|---|
+| Atlassian | An array used as a description field fails the declared field grammar. | Join overview, responsibilities and qualifications through the supported safe concat specification; retain role ID and type. | [Public feed](https://www.atlassian.com/endpoint/careers/listings) responds HTTP200 with 348 records and all declared fields. |
+| Publicis Groupe | Nested records have no declared title/fields mapping. | Map fields inside `data`, keep existing canonical URL extraction, and use `full_location` so multiple cities remain visible. | [Public API](https://careers.publicisgroupe.com/api/jobs?page=1&limit=2) responds HTTP200 and reports 3,047 public jobs. Example `full_location` includes both Melbourne and Sydney. This count is not a claim that the bounded collector read all pages. |
+| GitHub | The adapter replaced the native slug with an empty derived value, collapsing distinct role URLs; no stable ID was declared. | Preserve native slug unless derivation is explicitly declared, use `req_id`, and declare the observed default page size of ten. | [Public API](https://www.github.careers/api/jobs?page=2) responds HTTP200, reports 71 jobs, and returns distinct IDs on pages one and two. The corrected adapter has 37 passing coverage regression tests. |
+| Persistent Systems | The paging parameter is inside JSON encoded in the `filterCri` form field, but the old declaration updated a separate top-level field. | Update `filterCri.paginationStartNo` using the supported nested form grammar. | The existing public search endpoint currently responds HTTP503. This is a request-grammar correction only; its health stays failed until a fresh successful inventory check. |
+
+All four `config_repairs` require the exact existing employer, provider, URL, API endpoint and broken configuration values. They preserve source identity and owner settings. Local validation confirms every expected configuration matches the fresh hosted snapshot and every new field uses the safe extraction grammar. The endpoint migration observation date remains unchanged to preserve existing migration identities.
+
+The largest remaining failure groups are 71 generic pages without public JobPosting data, 20 HTTP404 responses, 16 HTTP403 responses and eight JobSpy timeouts. These require additional supported employer integrations, verified endpoint replacements or honest access-restriction handling. They must not be counted as successful merely by hiding or disabling failures.
+
+Private evidence: `resumed-2026-10-07-sources.json`, `resumed-2026-10-07-summary.json` and `resumed-2026-10-07-public-mapping-probes.json` under `data/private/source-reliability/`. The read-only audit also confirms unauthorized source access returns HTTP401 and automatic application submission remains off.

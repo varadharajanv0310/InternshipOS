@@ -115,3 +115,27 @@ def test_owner_paused_source_remains_availability_evidence(db):
     appearance=db.scalar(select(JobSource))
     reconcile_availability(db,appearance.opportunity)
     assert appearance.opportunity.status=='active'
+
+
+def test_config_repair_preserves_owner_controls_and_employer_verification(db):
+    old=source(db,provider='generic',verified=False); old.config={'fields':{'description':['bad']},'owner_key':'keep'}
+    old.enabled=False; old.cadence_hours=72; db.commit()
+    data={'observed_on':'2026-10-07','config_repairs':[{'company':old.company.name,
+        'provider':old.provider,'url':old.url,'expected_config':{'fields':{'description':['bad']}},
+        'config':{'fields':{'description':{'concat':['overview','requirements']}}},
+        'evidence':{'kind':'public_feed_schema'}}]}
+    assert apply_endpoint_repairs(db,data)['source_configs_corrected']==1
+    assert not old.verified and not old.enabled and old.cadence_hours==72
+    assert old.config['owner_key']=='keep'
+    old.config={**old.config,'fields':{'description':'owner-custom-field'}}; db.commit()
+    assert 'source_configs_corrected' not in apply_endpoint_repairs(db,data)
+    assert old.config['fields']['description']=='owner-custom-field'
+
+
+def test_config_repair_cannot_replace_an_owner_edited_mapping(db):
+    old=source(db,provider='generic'); old.config={'fields':{'description':'custom'}}; db.commit()
+    data={'observed_on':'2026-10-07','config_repairs':[{'company':old.company.name,
+        'provider':old.provider,'url':old.url,'expected_config':{'fields':{'description':['bad']}},
+        'config':{'fields':{'description':'new'}},'evidence':{}}]}
+    assert 'source_configs_corrected' not in apply_endpoint_repairs(db,data)
+    assert old.config['fields']['description']=='custom'

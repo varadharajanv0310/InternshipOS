@@ -344,6 +344,28 @@ def test_configured_mapping_does_not_execute_expressions():
     assert not result.complete and "unsupported_path" in result.error
 
 
+def test_configured_feed_preserves_native_slug_without_declared_derivation():
+    config = {"api_url": "https://api.example.com/jobs", "json_path": "jobs",
+        "fields": {"title": "title", "id": "req_id"},
+        "url_template": "https://jobs.example.com/{language}/jobs/{slug}"}
+    result = collect("generic", lambda request: httpx.Response(200, json={"jobs": [
+        {"req_id": "5816", "slug": "5816", "language": "en-us", "title": "Software Intern"},
+        {"req_id": "5817", "slug": "5817", "language": "en-us", "title": "Data Science Intern"}]}), config=config)
+    assert result.complete and len(result.jobs) == 2
+    assert [item["external_id"] for item in result.jobs] == ["5816", "5817"]
+    assert [item["canonical_url"] for item in result.jobs] == [
+        "https://jobs.example.com/en-us/jobs/5816", "https://jobs.example.com/en-us/jobs/5817"]
+
+
+def test_configured_feed_derives_slug_only_when_explicitly_requested():
+    config = {"api_url": "https://api.example.com/jobs", "json_path": "jobs",
+        "fields": {"title": "title", "id": "req_id"}, "slug_fields": ["title"],
+        "url_template": "https://jobs.example.com/{req_id}/{slug}"}
+    result = collect("generic", lambda request: httpx.Response(200, json={"jobs": [
+        {"req_id": "5816", "slug": "native-slug", "title": "Software Engineer Intern"}]}), config=config)
+    assert result.complete and result.jobs[0]["canonical_url"] == "https://jobs.example.com/5816/software-engineer-intern"
+
+
 def test_declared_snippet_feed_does_not_claim_full_jd_or_inventory():
     config = {"api_url": "https://api.example.com/Job_Openings", "json_path": "data",
         "inventory_unproven": True, "description_is_partial": True,

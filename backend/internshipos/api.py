@@ -134,7 +134,7 @@ def source_create(payload:dict,db:Session=Depends(get_db)):
     row=CompanySource(company_id=company.id,provider=payload.get('provider','html'),url=url,tenant=payload.get('tenant'),board=payload.get('board'),config=payload.get('config',{}),priority=int(payload.get('priority',2)),cadence_hours=float(payload.get('cadence_hours',24)),verified=False,enabled=True);db.add(row);db.add(Activity(kind='source_added',title='New employer source added',entity_type='company',entity_id=company.id,data={'url':url}));db.commit();return source_dict(row)
 @router.patch('/sources/{id}')
 def source_control(id:str,payload:dict,db:Session=Depends(get_db)):
-    row=must(db.get(CompanySource,id));before={'enabled':row.enabled,'cadence_hours':row.cadence_hours,'priority':row.priority}
+    row=must(db.scalar(select(CompanySource).where(CompanySource.id==id).with_for_update().execution_options(populate_existing=True)));before={'enabled':row.enabled,'cadence_hours':row.cadence_hours,'priority':row.priority}
     if 'verified' in payload:
         if not isinstance(payload['verified'],bool):raise HTTPException(422,'Verification must be true or false.')
         if payload['verified']:

@@ -180,6 +180,64 @@
       "evidence": {"kind": "official_site_ats_link", "linked_from": "https://www.browserstack.com/careers", "target": "https://browserstack.wd3.myworkdayjobs.com/External", "observed_at": "2026-10-06", "checked_status": 200, "note": "Canonical Workday source already exists. Marketing page failure does not mean missing Workday inventory."}
     }
   ],
+  "config_repairs": [
+    {
+      "company": "Atlassian",
+      "provider": "generic",
+      "url": "https://www.atlassian.com/company/careers/all-jobs",
+      "expected_config": {
+        "api_url": "https://www.atlassian.com/endpoint/careers/listings",
+        "fields": {"title": "title", "locations": "locations", "description": ["overview", "responsibilities", "qualifications"], "metadata.team": "category"}
+      },
+      "config": {
+        "fields": {"id": "id", "title": "title", "locations": "locations", "description": {"concat": ["overview", "responsibilities", "qualifications"], "separator": "\n\n"}, "employment_type": "type", "metadata.team": "category"}
+      },
+      "evidence": {"kind": "verified_public_feed_schema", "checked_api": "https://www.atlassian.com/endpoint/careers/listings", "checked_status": 200, "observed_at": "2026-10-07", "listed_jobs": 348, "public_fields": ["id", "title", "type", "locations", "overview", "responsibilities", "qualifications", "portalJobPost.portalUrl"], "note": "The public response is an array. Description parts are HTML strings; the old array field specification fails the safe path grammar. A declared concat preserves the full supplied sections without executing expressions."}
+    },
+    {
+      "company": "Publicis Groupe",
+      "provider": "generic",
+      "url": "https://careers.publicisgroupe.com/jobs",
+      "expected_config": {
+        "api_url": "https://careers.publicisgroupe.com/api/jobs",
+        "json_path": "jobs",
+        "url_field": "data.meta_data.canonical_url",
+        "fields": null
+      },
+      "config": {
+        "fields": {"id": "data.req_id", "title": "data.title", "description": {"concat": ["data.description", "data.qualifications", "data.responsibilities"], "separator": "\n\n"}, "locations": "data.full_location||data.location_name", "employment_type": "data.employment_type", "date_posted": "data.posted_date"}
+      },
+      "evidence": {"kind": "verified_public_feed_schema", "checked_api": "https://careers.publicisgroupe.com/api/jobs?page=1&limit=2", "checked_status": 200, "observed_at": "2026-10-07", "reported_total": 3047, "public_fields": ["jobs[].data.req_id", "jobs[].data.title", "jobs[].data.description", "jobs[].data.qualifications", "jobs[].data.responsibilities", "jobs[].data.full_location", "jobs[].data.employment_type", "jobs[].data.posted_date", "jobs[].data.meta_data.canonical_url"], "note": "The configured array contains a nested data object, but no fields were declared, producing missing_title_or_url. The existing canonical URL path is verified. full_location retains multiple cities (observed Melbourne, Australia; Sydney, Australia), unlike the street-address location_name. The total is a response count, not a claim that the bounded collector has already read all pages."}
+    },
+    {
+      "company": "Persistent Systems",
+      "provider": "generic",
+      "url": "https://careers.persistent.com/",
+      "expected_config": {
+        "api_url": "https://apipersistent.zwayam.com/jobs/search",
+        "pagination": {"param_name": "paginationStartNo", "style": "offset", "start_value": 0, "increment": 9, "location": "body"}
+      },
+      "config": {
+        "pagination": {"param_name": "filterCri.paginationStartNo", "style": "offset", "start_value": 0, "increment": 9, "location": "body", "page_size": 9}
+      },
+      "evidence": {"kind": "configured_public_form_pagination_schema", "checked_api": "https://apipersistent.zwayam.com/jobs/search", "checked_status": 503, "observed_at": "2026-10-07", "public_fields": ["filterCri.paginationStartNo", "filterCri.numberOfRecordsPerPage"], "note": "The existing declared public form stores paginationStartNo inside the JSON-encoded filterCri form value. Updating a top-level paginationStartNo cannot advance that declared search. This corrects the request grammar only. The current upstream response is HTTP503, so it remains failed until a fresh successful inventory check; no response-field or health claim is inferred."}
+    },
+    {
+      "company": "GitHub",
+      "provider": "generic",
+      "url": "https://www.github.careers/careers-home/jobs",
+      "expected_config": {
+        "api_url": "https://www.github.careers/api/jobs?page=1&sortBy=relevance&descending=false&internal=false",
+        "fields": {"title": "title", "description": "description", "locations": "location_name", "employment_type": "employment_type", "date_posted": "posted_date", "qualifications": "qualifications", "responsibilities": "responsibilities"},
+        "pagination": {"param_name": "page", "style": "page", "start_value": 1, "increment": 1, "location": "query", "browser": true}
+      },
+      "config": {
+        "fields": {"id": "req_id", "title": "title", "description": "description", "locations": "location_name", "employment_type": "employment_type", "date_posted": "posted_date", "qualifications": "qualifications", "responsibilities": "responsibilities"},
+        "pagination": {"param_name": "page", "style": "page", "start_value": 1, "increment": 1, "location": "query", "browser": true, "page_size": 10}
+      },
+      "evidence": {"kind": "verified_public_feed_schema_and_pagination", "checked_api": "https://www.github.careers/api/jobs?page=2", "checked_status": 200, "observed_at": "2026-10-07", "reported_total": 71, "public_fields": ["jobs[].data.req_id", "jobs[].data.slug", "jobs[].data.language", "jobs[].data.title"], "verified_pages": [{"page": 1, "limit": 2, "ids": ["5822", "5580"]}, {"page": 2, "limit": 2, "ids": ["5816", "5638"]}, {"page": 2, "default_limit": 10, "first_ids": ["5773", "5774", "5770", "5584", "5769"]}], "note": "The public API advances pages and supplies a role-specific req_id plus native slug. The old mapping omitted id, and the adapter overwrote native slug with an empty derived value when slug_fields was absent, collapsing role URLs. This config repair relies on the accompanying adapter correction that preserves native slug. The observed default page size is ten; the response total does not itself prove a completed scan."}
+    }
+  ],
   "unresolved_candidates": [
     {"company": "Postman", "reason": "Old Greenhouse board returns 404; guessed Ashby and postmanlabs boards also return 404. Current official page uses a custom integration requiring further endpoint inspection."}
   ]

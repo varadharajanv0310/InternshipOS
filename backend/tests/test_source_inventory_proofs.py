@@ -75,3 +75,17 @@ def test_checkpoint_metadata_and_board_observation_commit_together(db):
     assert board.config['owner_setting']=='keep' and board.config['detail_cursor']==7
     assert board.config['listing_cursor']==20 and board.config['retained_detail_cursor']==3
     assert db.get(m.FetchRun,result['run_id']).data['collection']==metadata
+
+
+def test_owner_cadence_change_preserves_newer_persisted_worker_checkpoint(db):
+    from sqlalchemy import update
+    from internshipos.api import source_control
+    board=source(db)
+    # Simulate a newer worker commit while this session retains an older row.
+    db.execute(update(m.CompanySource).where(m.CompanySource.id==board.id).values(
+        config={'detail_cursor':37,'owner_setting':'keep'}).execution_options(synchronize_session=False))
+    db.commit()
+    assert board.config=={}
+    result=source_control(board.id,{'cadence_hours':48},db)
+    assert result['cadence_hours']==48 and board.config['detail_cursor']==37
+    assert board.config['owner_setting']=='keep' and board.config['cadence_override']

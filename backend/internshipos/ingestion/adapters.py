@@ -953,7 +953,8 @@ async def configured_public_api(c):
                 url = feed_field(record, config["url_field"]) or url
             if config.get("url_template"):
                 terms = {key: quote(str(value), safe="") for key, value in record.items() if isinstance(value, (str, int, float))}
-                terms["slug"] = "-".join(re.sub(r"[^a-z0-9]+", " ", plain(" ".join(str(record.get(k) or "") for k in config.get("slug_fields", []))).lower()).split())
+                if "slug_fields" in config:
+                    terms["slug"] = "-".join(re.sub(r"[^a-z0-9]+", " ", plain(" ".join(str(record.get(k) or "") for k in config["slug_fields"])).lower()).split())
                 try:
                     url = config["url_template"].format(**terms)
                 except KeyError as exc:
