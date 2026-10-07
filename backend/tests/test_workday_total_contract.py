@@ -6,6 +6,7 @@ import httpx
 import pytest
 
 from internshipos.ingestion import collect_source
+from internshipos.ingestion.adapters import workday_listing_identifiers
 
 
 def listings(start, end):
@@ -148,3 +149,34 @@ def test_resumed_positive_head_with_missing_records_stays_incomplete():
         "jobPostings": [] if body["offset"] == 0 else listings(20, 30)}, config={"listing_cursor": 20})
     assert not result.complete and not result.metadata["inventory_complete"]
     assert "workday_pagination_incomplete_or_repeated" in result.error
+
+
+def test_location_first_bullets_do_not_merge_roles_or_skip_target_details():
+    def pages(body, _):
+        jobs = listings(body["offset"], min(32, body["offset"] + 20))
+        for item in jobs:
+            item["bulletFields"] = ["India, Chennai", item["bulletFields"][0]]
+        return {"total": 32 if body["offset"] == 0 else 0, "jobPostings": jobs}
+    result, _ = run(pages, config={"detail_target_only": True})
+    assert result.complete and result.metadata["inventory_complete"]
+    assert len(result.jobs) == 32 and {item["external_id"] for item in result.jobs} == {f"R{i}" for i in range(32)}
+    assert all(item["description"] for item in result.jobs)
+
+
+def test_duplicate_post_paths_share_proven_req_but_remain_distinct_records():
+    base = "/job/Chennai/Software-Intern_JR1"
+    rows = [{"title": "Software Intern", "externalPath": path,
+             "bulletFields": ["India, Chennai", "JR1"], "locationsText": "Chennai"}
+            for path in (base, base + "-1")]
+    result, _ = run(lambda body, _: {"total": 2, "jobPostings": rows}, config={"detail_target_only": True})
+    assert result.complete and result.metadata["inventory_complete"]
+    assert {item["external_id"] for item in result.jobs} == {"JR1", base + "-1"}
+    assert all(item["description"] for item in result.jobs)
+    assert workday_listing_identifiers(rows[0]) == ("JR1", "JR1")
+    assert workday_listing_identifiers(rows[1]) == (base + "-1", "JR1")
+
+
+@pytest.mark.parametrize("bullets", [["India, Chennai"], [], ["Unrelated administrative value", "12"]])
+def test_unproven_bullets_use_unique_path_without_inventing_req(bullets):
+    path = "/job/Chennai/Software-Intern_A123"
+    assert workday_listing_identifiers({"externalPath": path, "bulletFields": bullets}) == (path, None)

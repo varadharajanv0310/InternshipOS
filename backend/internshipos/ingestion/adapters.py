@@ -100,9 +100,11 @@ async def rotating_details(c, records, enrich):
         return
     retained = {str(x) for x in c.source.config.get("retained_external_ids", [])}
     def item_for(record):
+        bullets = record.get("bulletFields") or []
+        if not isinstance(bullets, list):
+            bullets = []
         identifiers = [record.get("external_id"), record.get("shortcode"), record.get("id"), record.get("Id"),
-                       record.get("_id"), (record.get("bulletFields") or [None])[0],
-                       record.get("externalPath"), record.get("RequisitionNumber")]
+                       record.get("_id"), record.get("externalPath"), record.get("RequisitionNumber")] + bullets
         return next((c.jobs[str(key)] for key in identifiers if key is not None and str(key) in c.jobs), None)
     prioritized, refresh_existing = [], []
     for record in records:
@@ -269,6 +271,24 @@ async def smartrecruiters(c):
     c.finish(listing_complete)
 
 
+def workday_listing_identifiers(record):
+    """Bullet order varies by tenant; locations are not requisition identities."""
+    path = str(record.get("externalPath") or "")
+    bullets = record.get("bulletFields") or []
+    if not isinstance(bullets, list):
+        bullets = []
+    candidates = [str(value) for value in bullets if isinstance(value, (str, int)) and not isinstance(value, bool) and str(value)]
+    for candidate in candidates:
+        if path.rsplit("/", 1)[-1] == candidate or path.endswith("_" + candidate):
+            return candidate, candidate
+    for candidate in candidates:
+        if re.search("_" + re.escape(candidate) + r"-\d+$", path):
+            # Multiple public posting variants can share one requisition. Keep
+            # their paths distinct while recording the explicitly supplied req.
+            return path, candidate
+    return path, None
+
+
 def workday_target(source):
     p = urlsplit(source.url)
     if not p.hostname or not re.search(r"\.myworkday(?:jobs|site)\.com$", p.hostname):
@@ -349,12 +369,12 @@ async def workday(c):
     def parse(x, detail=None):
         d = (detail or {}).get("jobPostingInfo") or {}
         path = x.get("externalPath")
-        ident = (x.get("bulletFields") or [None])[0] or path
+        ident, requisition = workday_listing_identifiers(x)
         locations = [d.get("location")] + (d.get("additionalLocations") or [])
         return job(c.source, ident, d.get("title") or x.get("title"),
             description=d.get("jobDescription"), url=f"{origin}/{site}{path}",
             location=list(filter(None, locations)) or x.get("locationsText"),
-            raw={"listing": x, "detail": detail}, requisition_id=d.get("jobReqId") or ident,
+            raw={"listing": x, "detail": detail}, requisition_id=d.get("jobReqId") or requisition,
             posted_at=date_value(d.get("startDate")), deadline=date_value(d.get("endDate")),
             employment_type=d.get("timeType"), work_mode=d.get("remoteType") or "unknown")
     for _ in range(c.max_pages):
