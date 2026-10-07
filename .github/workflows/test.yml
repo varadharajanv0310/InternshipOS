@@ -24,6 +24,7 @@ jobs:
         env:
           PYTHONPATH: backend
           SCHEDULER_ENABLED: 'false'
+          TEST_POSTGRES_URL: postgresql+psycopg://postgres:test-only@localhost:5432/internshipos
       - run: python -m internshipos.bootstrap
         env:
           PYTHONPATH: backend

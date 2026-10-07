@@ -751,7 +751,9 @@ def ingest_batch(db, company_source_id, jobs, *, complete, error=None, coverage_
             'consecutive_failures':prior_board_failures+1 if (error and not soft) or issues else 0,
             'full_inventory':effective_complete,'coverage_scope':coverage_scope,
             'inventory_complete':listing_proven and not issues and (inventory_complete is True or not error),
-            'description_complete':not error}}
+            'description_complete':collection_metadata['description_complete'] if collection_metadata and collection_metadata.get('description_complete') is not None else not error,
+            'description_scope':collection_metadata.get('description_scope') if collection_metadata else None,
+            'description_target_count':collection_metadata.get('description_target_count') if collection_metadata else None}}
     run.status, run.complete, run.finished_at = status, effective_complete, now
     run.error = source.last_error
     run.data = {**stats, "accepted_unique": len(seen), "requested_complete": bool(complete), "storage_filtered":inventory_ids is not None, "parsed_inventory_count":len(inventory_ids) if inventory_ids is not None else len(seen), "issues": issues,

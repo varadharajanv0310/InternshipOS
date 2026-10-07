@@ -161,3 +161,16 @@ def test_never_reported_worker_does_not_appear_healthy():
     with Session(engine) as db:
         assert collection_health(db,NOW)['status'] == 'not_checked'
     engine.dispose()
+
+
+def test_listing_only_success_cannot_claim_full_description_coverage():
+    board={'status':'scoped_complete','inventory_complete':True,'description_complete':False,
+           'description_scope':'listing_only','description_target_count':4}
+    state=health(source(config={'board_checked_at':NOW.isoformat(),'board_health':board}),NOW)
+    assert state['label']=='Partial' and state['issue_code']=='descriptions_pending'
+    assert state['description_target_count']==4 and state['description_scope']=='listing_only'
+
+
+def test_inventory_that_changes_during_scan_requires_review():
+    state=health(source(status='error',last_error='inventory_changed_during_scan; inventory_incomplete'),NOW)
+    assert state['label']=='Needs review' and state['full_inventory'] is False

@@ -57,6 +57,15 @@ def update_detail(c, item):
     c.jobs[key] = item
 
 
+def detail_candidate(item):
+    from ..search_policy import location_decision, retain_new_candidate
+    if retain_new_candidate(item):
+        return True
+    return (location_decision(item.get("location"), item.get("country"), item.get("work_mode")) == "allowed"
+            and bool(re.fullmatch(r"(?:intern|internship|(?:engineering|technical|technology) intern(?:ship)?)",
+                                 item.get("title", "").strip(), re.I)))
+
+
 async def rotating_details(c, records, enrich):
     """Enumerate first; spend description requests on target roles before history.
 
@@ -89,24 +98,16 @@ async def rotating_details(c, records, enrich):
     if not c.source.config.get("detail_target_only"):
         await group(records)
         return
-    from ..search_policy import location_decision, retain_new_candidate
     retained = {str(x) for x in c.source.config.get("retained_external_ids", [])}
     def item_for(record):
-        identifiers = [record.get("shortcode"), record.get("id"), record.get("Id"),
+        identifiers = [record.get("external_id"), record.get("shortcode"), record.get("id"), record.get("Id"),
                        record.get("_id"), (record.get("bulletFields") or [None])[0],
                        record.get("externalPath"), record.get("RequisitionNumber")]
         return next((c.jobs[str(key)] for key in identifiers if key is not None and str(key) in c.jobs), None)
-    def target(item):
-        if retain_new_candidate(item):
-            return True
-        # A narrowly generic official India title needs its JD before classifying.
-        return (location_decision(item.get("location"), item.get("country"), item.get("work_mode")) == "allowed"
-                and bool(re.fullmatch(r"(?:intern|internship|(?:engineering|technical|technology) intern(?:ship)?)",
-                                     item.get("title", "").strip(), re.I)))
     prioritized, refresh_existing = [], []
     for record in records:
         item = item_for(record)
-        if item is not None and target(item):
+        if item is not None and detail_candidate(item):
             prioritized.append(record)
         elif item is not None and item["external_id"] in retained:
             refresh_existing.append(record)
@@ -1086,6 +1087,53 @@ async def internshala(c):
     else:
         c.problem('page_limit_reached')
     inventory_finished(c, listing_complete)
+    targets = [item for item in c.jobs.values() if detail_candidate(item)]
+    c.description_target_count = len(targets)
+    c.description_scope = 'target_candidates' if c.max_details else 'listing_only'
+    if not c.max_details:
+        c.description_complete = all(bool(item.get('description')) for item in targets)
+        if not c.description_complete:
+            c.warnings.append('listing_only; candidate_job_descriptions_not_requested')
+        c.next_detail_cursor = 0
+        c.finish(listing_complete)
+        return
+    c.source.config = {**c.source.config, 'detail_target_only': True}
+    from ..domain import canonicalize_url
+    def employer_key(value):
+        return re.sub(r'[^a-z0-9]+', '', plain(value).casefold())
+    async def enrich(listing):
+        target_url = listing['canonical_url']
+        c.detail_requests += 1
+        try:
+            response = await c.http.request('GET', target_url)
+        except SourceError as exc:
+            c.problem('detail_fetch_failed: ' + str(exc))
+            return None
+        if canonicalize_url(str(response.url)) != canonicalize_url(target_url):
+            c.problem('internshala_detail_identity_mismatch: redirected_url')
+            return None
+        details = parse_internshala(c.source, response.text, target_url)
+        candidates = [item for item in details
+            if canonicalize_url(item.get('canonical_url')) == canonicalize_url(target_url)
+            and employer_key(item.get('company_name')) == employer_key(listing.get('company_name'))]
+        if not candidates:
+            c.problem('internshala_detail_identity_mismatch' if details else 'full_description_unavailable')
+            return None
+        detail = candidates[0]
+        if not detail.get('description'):
+            c.problem('full_description_unavailable')
+            return None
+        # JSON-LD has a native identifier distinct from the listing URL. Never
+        # create a second appearance or let related jobs rebind this employer.
+        return {**listing, **detail, 'external_id': listing['external_id'],
+            'title': listing['title'], 'canonical_url': target_url,
+            'apply_url': listing['apply_url'], 'company_name': listing['company_name'],
+            'raw': {'listing': listing.get('raw'), 'detail': detail.get('raw'),
+                    'detail_external_id': detail.get('external_id'), 'detail_url': target_url},
+            'evidence': list(listing.get('evidence') or []) + list(detail.get('evidence') or [])}
+    missing = [item for item in c.jobs.values() if not item.get('description')]
+    await rotating_details(c, missing, enrich)
+    c.description_complete = all(bool(c.jobs[item['external_id']].get('description')) for item in targets)
     c.finish(listing_complete)
 
 

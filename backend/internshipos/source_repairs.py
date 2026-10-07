@@ -113,8 +113,8 @@ def retire_replaced_sources(db, replacement_id):
     if retired:
         from .service import reconcile_availability
         db.flush()
-        affected = db.scalars(select(Opportunity).join(JobSource).where(
-            JobSource.company_source_id.in_(retired)).distinct()).all()
+        affected = db.scalars(select(Opportunity).where(Opportunity.id.in_(
+            select(JobSource.opportunity_id).where(JobSource.company_source_id.in_(retired))))).all()
         for opportunity in affected:
             reconcile_availability(db,opportunity)
         db.add(Activity(kind='registry.superseded', title='Obsolete sources replaced after a live check',

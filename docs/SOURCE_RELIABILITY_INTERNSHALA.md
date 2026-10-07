@@ -39,3 +39,13 @@ All six new Internshala regression tests passed. The worker persistence-error ca
 Pagination and cursor continuation retain discovery scope. A stale cursor is reset for a subsequent fresh zero-offset pass; the reset itself is not accepted as a complete inventory.
 
 Reference pages: [computer-science internships](https://internshala.com/internships/computer-science-internship/), [software-development internships in Chennai](https://internshala.com/internships/software-development-internship-in-chennai/).
+
+## Full-description verification
+
+One actual target Chennai listing was fetched at 8:09 PM India time on 6 October: [Full Stack Development at Voicedots Infotech](https://internshala.com/internship/detail/full-stack-development-internship-in-chennai-at-voicedots-infotech1790388263). The public response was HTTP 200, 180,286 bytes, with one JSON-LD JobPosting and a 2,158-character extracted job description. It stated employer identity, Chennai location, technical skills, dates and monthly compensation. This verifies that the public detail endpoint supplies factual enrichment beyond listing titles.
+
+The detail JSON-LD has no `url`, so the requested detail URL supplies its canonical address. Its native identifier differs from the listing URL used as the existing external ID. Enrichment must retain that listing identity, match the exact canonical/final URL and employer, and never create a new source identity from the detail identifier alone. Redirects to another role and employer mismatches are rejected.
+
+Original full responses remain private in `internshala-chennai-detail-response.html` and `internshala-detail-evidence.json`. The committed `internshala_detail_v2.html` fixture uses the observed schema with a shortened synthetic description. `test_internshala_details.py` covers missing JSON-LD URL, immutable listing identity, wrong employer, wrong canonical address, another-role redirect and bounded rotation of target descriptions.
+
+Deliberate listing-only collection (`max_details=0`) is exposed as `description_scope=listing_only` and `description_complete=false`. Production description checks target relevant candidates with a bounded budget; unfinished descriptions remain explicit rather than pretending that listing enumeration supplied full eligibility evidence.

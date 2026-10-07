@@ -128,6 +128,9 @@ async def collect_source(source, *, client=None, max_pages=25, max_jobs=5000,
             "next_retained_detail_cursor":getattr(context,"next_retained_detail_cursor",None),
             "inventory_complete":bool(context.inventory_complete),
             "inventory_observed_count":context.inventory_observed_count,
+            "description_scope":getattr(context,"description_scope",None),
+            "description_complete":getattr(context,"description_complete",None),
+            "description_target_count":getattr(context,"description_target_count",None),
             "description_count": sum(bool(x["description"]) for x in jobs), "errors": context.errors, "warnings": context.warnings})
 
 

@@ -27,11 +27,14 @@ Declared public search feeds support GET and POST requests, literal JSON or URL-
 
 Internshala's current card title markup is supported, hiring badges are excluded from employer names, its existing work-from-home India context is normalized, and observed same-origin next-page links are followed within the listing budget. Continuations retain discovery scope. A stale cursor resets for a new zero-offset verification pass rather than declaring the continued segment complete.
 
+Internshala also fetches a rotating bounded batch of target descriptions after enumerating listings. The final HTTP response URL, parsed detail URL and employer must match the original listing. The original URL-based appearance ID remains unchanged even when JobPosting JSON-LD has a different native identifier. Full descriptions, skills, compensation and dates can then improve the existing appearance without adding a duplicate role. Explicit listing-only runs (`max_details=0`) remain supported and disclose `description_scope=listing_only` and incomplete candidate descriptions; successful enumeration alone is not proof of job-description coverage.
+
 ## Validation
 
-- Focused regression run: **86 passed** on 6 October 2026. This includes 45 existing ingestion tests, 35 new coverage cases and six separately authored Internshala layout cases.
+- Final focused regression run: **92 passed** on 6 October 2026. This includes 45 existing ingestion tests, 35 new coverage cases, six separately authored Internshala layout cases and six detail-binding/rotation cases.
 - The coverage tests verify listing-before-details behavior, bounded requests, detail rotation, independent retained-history progress, target preference, multi-page enumeration, shrink handling, changing/malformed totals, page continuation, repeated/cross-origin next links, the Greenhouse size fallback, configured JSON/form pagination, empty-array schema validation, rejected GraphQL writes and non-executing field paths.
 - Independently fetched, saved Internshala HTML previously returned zero parsed jobs. The repaired parser recovers **52 of 52 cards** on the computer-science page and **11 of 11 cards** on the Chennai software-development page. Existing policy retains 14 and seven candidate roles respectively; parsing every card does not make every card relevant.
+- Enrichment verified against the saved actual Voicedots Infotech public detail response: **2,158 characters** of full job description, native JSON-LD identifier `20263302639` retained as evidence, and the original URL-based listing appearance preserved. The controlled saved-response check made one listing request and one detail request; the seven target candidates remain subject to the configured production description budget.
 - Raw live HTML and probe metadata are stored privately under `data/private/source-reliability/`; the minimal markup fixture contains no credentials. Broader live endpoint outcomes, database changes and cloud execution are handled by the parent task and must be assessed separately from these mock tests.
 
 ## Remaining limits
@@ -42,7 +45,7 @@ Numeric cursors distribute bounded work; they are not stable inventory snapshots
 
 - `backend/internshipos/ingestion/adapters.py`
 - `backend/tests/test_coverage_reliability.py`
-- One existing Workday-budget regression in `backend/tests/test_ingestion.py`, updated with parent authorization to assert the stronger list-first inventory contract.
+- Two existing regressions in `backend/tests/test_ingestion.py`, updated with parent authorization: Workday asserts the stronger list-first inventory contract; the old Internshala card-only fixture explicitly selects listing-only mode and asserts incomplete description coverage.
 - This document.
 
 The parent task owns collector metadata serialization, checkpoint persistence, health labels, scheduling, deployed configuration and live verification. No provider credentials, model choices or automatic-application behavior were changed by this subtask.

@@ -54,6 +54,8 @@ def board_observation(source):
         'full_inventory': bool(snapshot.get('full_inventory', source.status == 'complete')),
         'inventory_complete': snapshot.get('inventory_complete'),
         'description_complete': snapshot.get('description_complete'),
+        'description_scope': snapshot.get('description_scope'),
+        'description_target_count': snapshot.get('description_target_count'),
         'snapshot_available': bool(snapshot),
     }
 
@@ -118,7 +120,7 @@ def classify_issue(error):
         return 'address_changed', 'Verify the current board address against the employer’s official careers page.'
     if any(x in issue for x in ('timeout', 'timed out', 'connection', 'dns', 'name or service', 'temporary failure')) or re.search(r'http\s*5\d\d\b', issue):
         return 'temporary_failure', 'Retry after backoff; a failed request cannot establish that roles closed.'
-    if any(x in issue for x in ('inventory loss', 'quarantin', 'reported inventory exceeds', 'storage filter omitted', 'external id changed employer', 'lacks employer identity')):
+    if any(x in issue for x in ('inventory loss', 'inventory_changed_during_scan', 'quarantin', 'reported inventory exceeds', 'storage filter omitted', 'external id changed employer', 'lacks employer identity')):
         return 'inventory_review', 'Compare the observed inventory with previous complete scans before accepting closures.'
     if 'response_size_limit_exceeded' in issue:
         return 'response_limit', 'Find the public structured feed or reduce its query scope while keeping the response-size safeguard.'
@@ -144,8 +146,10 @@ def health(source, now=None):
         label = 'Blocked'
     elif issue and not budget_only(issue):
         label = 'Broken'
-    elif budget_only(issue) or status == 'partial':
+    elif budget_only(issue) or status == 'partial' or observation['description_complete'] is False:
         label = 'Partial'
+        if not code:
+            code,action='descriptions_pending','Listings were checked. Fetch the remaining target descriptions before relying on requirements or eligibility.'
     elif not observation['checked_at']:
         label = 'Not checked' if source.verified else 'Unverified'
     elif status == 'scoped_complete':
@@ -166,6 +170,8 @@ def health(source, now=None):
         'full_inventory': observation['full_inventory'],
         'inventory_complete': observation['inventory_complete'],
         'description_complete': observation['description_complete'],
+        'description_scope': observation['description_scope'],
+        'description_target_count': observation['description_target_count'],
         'coverage_scope': observation['coverage_scope'],
         'board_snapshot_available': observation['snapshot_available'],
     }

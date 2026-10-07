@@ -19,8 +19,9 @@ FIXTURES = Path(__file__).parents[1] / "internshipos/ingestion/fixtures"
 def test_internshala_cards_preserve_employer_and_internship_context():
     from internshipos.search_policy import retain_new_candidate
     html='''<div class="individual_internship"><a class="job-title" href="/internship/detail/software-development-internship-in-chennai-at-acme123">Software Development</a><p class="company-name">Acme</p></div><div class="individual_internship"><a class="job-title" href="/internship/detail/data-science-work-from-home-internship-at-beta456">Data Science</a><p class="company-name">Beta</p></div>'''
-    result=collect('internshala',lambda r:httpx.Response(200,text=html),url='https://internshala.com/internships/software-development-internship-in-chennai/')
+    result=collect('internshala',lambda r:httpx.Response(200,text=html),url='https://internshala.com/internships/software-development-internship-in-chennai/',max_details=0)
     assert result.complete and result.coverage_scope=='discovery'
+    assert result.metadata['description_scope']=='listing_only' and not result.metadata['description_complete']
     assert [j['company_name'] for j in result.jobs]==['Acme','Beta']
     assert all(j['description']=='' and retain_new_candidate(j) for j in result.jobs)
     empty=collect('internshala',lambda r:httpx.Response(200,text='<h1>Access unavailable</h1>'))
