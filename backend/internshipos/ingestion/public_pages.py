@@ -11,6 +11,85 @@ from .parsing import date_value, job, parse_jsonld
 from .types import SchemaError, SourceError
 
 
+async def gem(c):
+    """Documented unauthenticated Gem Job Board API; content is inline HTML.
+
+    https://api.gem.com/job_board/v0/reference -- GET job_posts has no paging.
+    Application submission endpoints are intentionally never used.
+    """
+    from .adapters import inventory_finished
+    board = urlsplit(c.source.url)
+    if board.query or not re.fullmatch(r'/[A-Za-z0-9_-]+/?', board.path):
+        raise SchemaError('gem_unfiltered_board_required')
+    slug = board.path.strip('/')
+    rows = await c.http.json('GET', f'https://api.gem.com/job_board/v0/{slug}/job_posts/')
+    if not isinstance(rows, list):
+        raise SchemaError('gem_job_posts_array_missing')
+    c.scope = 'full'
+    c.reported_total = len(rows)
+    for x in rows:
+        if not isinstance(x, dict) or not x.get('id') or not x.get('title'):
+            raise SchemaError('gem_listing_identity_missing')
+        native = urlsplit(str(x.get('absolute_url') or ''))
+        if native.scheme != 'https' or native.hostname != 'jobs.gem.com' or native.path.rstrip('/') != f'/{slug}/{x["id"]}' or native.username:
+            raise SchemaError('gem_listing_board_identity_mismatch')
+        item = job(c.source, x['id'], x['title'], url=x['absolute_url'],
+                   description=x.get('content') or x.get('content_plain') or '',
+                   location=x.get('location'), requisition_id=x.get('requisition_id'),
+                   employment_type=x.get('employment_type'),
+                   work_mode={'remote': 'remote', 'hybrid': 'hybrid', 'in_office': 'onsite'}.get(x.get('location_type'), 'unknown'),
+                   posted_at=date_value(x.get('first_published_at')), raw=x)
+        if not c.add(item):
+            c.problem('gem_duplicate_listing')
+        if not item['description']:
+            c.problem('full_description_unavailable')
+    inventory_finished(c, len(c.jobs) == len(rows))
+    c.next_detail_cursor = 0
+    c.finish(not c.errors)
+
+
+async def trakstar(c):
+    """Native SSR Trakstar cards and bounded JDs; page discovery cannot close jobs."""
+    from .adapters import inventory_finished, rotating_details
+    c.scope = 'discovery'
+    soup = BeautifulSoup(await c.http.text(c.source.url), 'html.parser')
+    container = soup.select_one('.js-openings-list')
+    if container is None:
+        raise SchemaError('trakstar_native_openings_missing')
+    records = []
+    for card in container.select('.js-careers-page-job-list-item'):
+        path = card.get('data-href') or ''
+        title = card.select_one('.js-job-list-opening-name')
+        loc = card.select_one('.js-job-list-opening-loc')
+        if not re.fullmatch(r'/jobs/fk[0-9a-z]+/?', path) or title is None:
+            raise SchemaError('trakstar_listing_identity_missing')
+        records.append({'external_id': path.strip('/').split('/')[-1],
+                        'title': title.get('title') or title.get_text(' ', strip=True),
+                        'location': loc.get('title') or loc.get_text(' ', strip=True) if loc else '',
+                        'url': urljoin(c.source.origin, path)})
+    def parse(x, description=''):
+        return job(c.source, x['external_id'], x['title'], url=x['url'],
+                   location=x['location'], description=description, raw=x)
+    for x in records:
+        if not c.add(parse(x)):
+            c.problem('trakstar_duplicate_listing')
+    c.reported_total = len(records)
+    # Covers the evidenced SSR list only, not an assertion about undisclosed pages.
+    inventory_finished(c, not c.errors)
+    c.warnings.append('native_page_discovery_only; no_whole_board_closure')
+    async def enrich(x):
+        html = await c.detail_text(x['url'])
+        detail = BeautifulSoup(html or '', 'html.parser')
+        title = detail.select_one('.js-job-title')
+        if title is None or title.get_text(' ', strip=True).casefold() != x['title'].casefold():
+            c.problem('trakstar_detail_identity_mismatch')
+            return parse(x)
+        node = detail.select_one('.jobdesciption')  # Native site's spelling.
+        return parse(x, str(node) if node else '')
+    await rotating_details(c, records, enrich)
+    c.finish(not c.errors)
+
+
 def assigned_json(html, variable, *, json_parse=False):
     """Read only a named literal JSON assignment, not general script expressions."""
     if not re.fullmatch(r"(?:window\.)?[A-Za-z_$][A-Za-z0-9_$]*", variable):

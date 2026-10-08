@@ -104,9 +104,45 @@ def save_settings(db, payload):
     return get_settings(db)
 
 
-def _evaluate_and_store(db, opportunity, profile=None, *, evaluations=None):
+def evaluation_facts(db, profile=None):
+    """Join reviewed projects into matching without rewriting profile versions."""
     profile = profile or _latest_profile(db)
-    facts = profile.data if profile else {}
+    facts = dict(profile.data if profile else {})
+    projects = [p for p in facts.get('projects', []) if not isinstance(p, dict) or p.get('approved') is not False]
+    for project in db.scalars(select(m.Project).where(m.Project.approved.is_(True)).order_by(m.Project.id)):
+        # Never include raw GitHub README claims or Project.data in scoring.
+        projects.append({'id': project.id, 'name': project.name, 'url': project.github_url,
+                         'technologies': project.technologies, 'bullets': project.approved_bullets,
+                         'description': project.description})
+    facts['projects'] = projects
+    return facts
+
+
+def refresh_project_matching(db):
+    """Refresh visible current candidates; future observations use the same facts."""
+    from .shortlist import exclusions, visibility_sql
+    from .search_policy import target_sql
+    stmt = select(m.Opportunity).where(m.Opportunity.status != 'confirmed_closed',
+                                      visibility_sql(m.Opportunity, exclusions(db)))
+    if get_settings(db).get('personal_location_policy'):
+        stmt = stmt.where(target_sql(m.Opportunity))
+    profile = _latest_profile(db)
+    facts = evaluation_facts(db, profile)
+    ops = db.scalars(stmt).all()
+    ids = [op.id for op in ops]
+    latest = {}
+    if ids:
+        ranked = select(m.Evaluation.id,func.row_number().over(partition_by=m.Evaluation.opportunity_id,
+            order_by=(m.Evaluation.created_at.desc(),m.Evaluation.id.desc())).label('rn')).where(m.Evaluation.opportunity_id.in_(ids)).subquery()
+        latest = {e.opportunity_id:e for e in db.scalars(select(m.Evaluation).join(ranked,m.Evaluation.id==ranked.c.id).where(ranked.c.rn==1))}
+    for op in ops:
+        _evaluate_and_store(db, op, profile, facts=facts,evaluations=[latest[op.id]] if op.id in latest else [])
+    return len(ops)
+
+
+def _evaluate_and_store(db, opportunity, profile=None, *, evaluations=None, facts=None):
+    profile = profile or _latest_profile(db)
+    facts = evaluation_facts(db, profile) if facts is None else facts
     inputs = {"title": opportunity.title, "role_family": opportunity.role_family, "description": opportunity.description, "skills": opportunity.skills,
               "requirements": opportunity.requirements, "location": opportunity.location,
               "compensation": opportunity.compensation, "risk_reasons": opportunity.risk_reasons,
@@ -141,8 +177,9 @@ def save_profile(db, payload):
     db.add(version)
     db.flush()
     _audit(db, "profile.updated", "Profile facts updated", "profile", version.id, before=before, after=data)
+    facts = evaluation_facts(db, version)
     for opportunity in db.scalars(select(m.Opportunity).where(m.Opportunity.status != "confirmed_closed")).yield_per(100):
-        _evaluate_and_store(db, opportunity, version)
+        _evaluate_and_store(db, opportunity, version, facts=facts)
     db.commit()
     return get_profile(db)
 
@@ -558,7 +595,7 @@ def _normalize_job(job, now):
 
 
 def reconcile_availability(db, opportunity):
-    appearances = db.scalars(select(m.JobSource).where(m.JobSource.opportunity_id == opportunity.id)).all()
+    appearances = db.scalars(select(m.JobSource).where(m.JobSource.opportunity_id == opportunity.id, m.JobSource.status != 'historical_alias')).all()
     current = [x for x in appearances if (x.company_source.config or {}).get('replacement_state') != 'superseded']
     authoritative = [x for x in current if x.company_source.verified]
     states = [x.status for x in authoritative or current]
@@ -591,6 +628,7 @@ def ingest_batch(db, company_source_id, jobs, *, complete, error=None, coverage_
     seen, touched, issues = set(), set(), []
     stats = {"created": 0, "updated": 0, "unchanged": 0, "reopened": 0, "invalid": 0, "possibly_closed": 0, "closed": 0}
     profile = _latest_profile(db)
+    facts = evaluation_facts(db, profile)
     for raw_job in jobs:
         try:
             if not isinstance(raw_job, dict):
@@ -724,7 +762,7 @@ def ingest_batch(db, company_source_id, jobs, *, complete, error=None, coverage_
                 appearance.latest_hash = digest
                 if values["description"]:
                     appearance.last_detail_checked = now
-                _evaluate_and_store(db, opportunity, profile)
+                _evaluate_and_store(db, opportunity, profile, facts=facts)
                 if not created:
                     stats["updated"] += 1
                 _audit(db, "opportunity.discovered" if created else "opportunity.changed",
@@ -772,7 +810,7 @@ def ingest_batch(db, company_source_id, jobs, *, complete, error=None, coverage_
     if effective_complete:
         grace = float(get_settings(db).get("closure_grace_hours", 48))
         for external_id, appearance in existing.items():
-            if external_id in seen:
+            if external_id in seen or appearance.status == 'historical_alias':
                 continue
             appearance.missed_complete_runs = (appearance.missed_complete_runs or 0) + 1
             if appearance.first_missing_at is None:
@@ -1033,6 +1071,55 @@ def _personal_scope(op):
     return location_decision(op.location,op.country,op.work_mode)=='allowed' and not re.search(PHD_ONLY,op.title,re.I) and op.eligibility!='probably ineligible'
 
 
+def repair_workday_identity(db, appearance_id, *, apply=False):
+    """Correct a legacy ID only from its own primary native snapshot; keep clocks."""
+    from urllib.parse import urlsplit
+    from .ingestion.adapters import workday_listing_identifiers
+    appearance = _require(db, m.JobSource, appearance_id)
+    source, op = appearance.company_source, appearance.opportunity
+    result = {'appearance_id': appearance.id, 'opportunity_id': op.id, 'applied': False}
+    if source.provider.lower() != 'workday' or source.company_id != op.company_id:
+        return {**result, 'reason': 'Matching Workday employer association required.'}
+    snap = db.scalar(select(m.Snapshot).where(m.Snapshot.job_source_id == appearance.id).order_by(m.Snapshot.created_at.desc(), m.Snapshot.id.desc()).limit(1))
+    raw = (snap.raw or {}) if snap else {}
+    raw = raw.get('source_payload', raw)
+    detail = raw.get('detail') or {}
+    detail = detail.get('jobPostingInfo', detail)
+    listing = raw.get('listing') or {}
+    native = urlsplit(str(detail.get('externalUrl') or ''))
+    recorded = urlsplit(str(appearance.url or ''))
+    board = urlsplit(source.url)
+    if not re.search(r'\.myworkday(?:jobs|site)\.com$', board.hostname or ''):
+        return {**result, 'reason': 'Native Workday host required.'}
+    path = listing.get('externalPath') or ('/job/' + native.path.split('/job/', 1)[1] if '/job/' in native.path else '')
+    req = str(detail.get('jobReqId') or '')
+    posting = str(detail.get('jobPostingId') or '')
+    if (not snap or not req or not posting or not path or native.hostname != board.hostname
+        or recorded.hostname != board.hostname or native.path.casefold() != recorded.path.casefold()
+        or path.rsplit('/',1)[-1] != posting or str(detail.get('title') or '').strip().casefold() != op.title.strip().casefold()
+        or (listing.get('title') and str(listing['title']).strip().casefold() != op.title.strip().casefold())
+        or (appearance.requisition_id and appearance.requisition_id != req)):
+        return {**result, 'reason': 'Primary native title, path, explicit requisition or employer does not agree.'}
+    expected, expected_req = workday_listing_identifiers({'externalPath':path,'bulletFields':[req]})
+    if not expected_req:
+        return {**result, 'reason':'Explicit requisition does not agree with the posting path.'}
+    collision = db.scalar(select(m.JobSource).where(m.JobSource.company_source_id == source.id, m.JobSource.external_id == expected, m.JobSource.id != appearance.id))
+    if collision and (collision.opportunity_id != op.id or canonicalize_url(collision.url) != canonicalize_url(appearance.url)):
+        return {**result,'reason':'Native identity belongs to a different appearance; manual review required.'}
+    before = {'external_id':appearance.external_id,'requisition_id':appearance.requisition_id,'status':appearance.status}
+    evidence = {'snapshot_id':snap.id,'native_path':path,'jobReqId':req,'jobPostingId':posting,'native_url':detail['externalUrl'],
+                'before':before,'historical_evidence_only':True,'clocks_unchanged':True,'source_verification_unchanged':True,'canonical_appearance_id':collision.id if collision else appearance.id}
+    if apply:
+        if collision:
+            appearance.status = 'historical_alias'
+        else:
+            appearance.external_id, appearance.requisition_id = expected, req
+        db.add(m.IdentityDecision(opportunity_id=op.id,job_source_id=appearance.id,
+                                 decision='source_identity_alias' if collision else 'source_identity_repaired',evidence=evidence))
+        db.flush()
+    return {**result,'applied':apply,'expected_id':expected,'requisition_id':req,'alias':bool(collision),'evidence':evidence}
+
+
 def reconcile_shortlist_quality(db, *, apply=False, opportunity_ids=None, limit=None, offset=0):
     """Dry-run first. Never deletes rows, moves foreign keys or resets clocks.
 
@@ -1079,6 +1166,7 @@ def reconcile_shortlist_quality(db, *, apply=False, opportunity_ids=None, limit=
         data = dict(op.data or {})
         historical = []
         for src in op.sources:
+            if src.status == 'historical_alias': continue
             if src.company_source.provider.lower() != "workday": continue
             from .ingestion.adapters import workday_listing_identifiers
             snap = snapshots.get(src.id)

@@ -1,12 +1,21 @@
 # Hosted Google connection
 
-Hosted app: https://internshipos.vercel.app . Enable Gmail API and Google Calendar API in Google Cloud. Configure the OAuth consent screen as described below and add your Google account as a test user. Create a Web application OAuth client with this exact redirect URI:
+Hosted app: https://internshipos.vercel.app . Google Cloud project **InternshipOS (`internshipos-511015`)** and the **External / Testing** OAuth app configuration were created on 8 October with the owner's explicit approval. Billing was not enabled. The OAuth client, API enablement, test user, scopes and account consent are still unfinished. Continue in this project; do not create another one.
+
+Complete these account steps together:
+
+1. Enable Gmail API and Google Calendar API in the existing project's API Library.
+2. Under Google Auth Platform → Audience, add your Google account as a test user.
+3. Under Data Access, add `gmail.readonly` and `calendar.app.created` using the full scope URLs below.
+4. Under Clients, create a **Web application** OAuth client with this exact redirect URI:
 
 `https://internshipos.vercel.app/api/integrations/google/callback`
 
 Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in the internshipos Vercel project production environment. Set GOOGLE_REDIRECT_URI to the hosted callback above. Add the same client ID and secret as GitHub repository secrets in varadharajanv0310/InternshipOS so the scheduled collector can refresh Google credentials. The collection workflow already uses that hosted callback. Preserve the existing TOKEN_ENCRYPTION_KEY. Redeploy Vercel, then use Settings / Integrations / Connect Google in the hosted app. Never paste the client secret in chat.
 
-The hosted collector runs every six hours; Google polling follows that schedule rather than the local 45-minute setting. The app has no Google credentials yet.
+The scheduled collector has triggers at minutes **17 and 47 of every hour**. Source cadence, Google sync interval, retry backoff and delayed workflow starts affect actual checks; the trigger schedule is not a promise of continuous execution. The app has no Google credentials or tokens yet.
+
+Google Cloud browser access was denied by the permission system after OAuth app configuration succeeded. Client creation was not completed and no alternate access method was used. The project and configuration are preserved for the remaining account steps.
 
 ## Original local setup (local development only)
 

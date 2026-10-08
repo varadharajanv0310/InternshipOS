@@ -77,6 +77,28 @@ def test_failed_github_sync_preserves_connection_and_projects(db,monkeypatch):
     assert error.value.status_code==503
     assert db.scalar(select(m.Integration)).data['username']=='existing'
 
+
+def test_approved_project_facts_improve_matching_and_revocation_removes_evidence(client,db):
+    service.save_profile(db,{'preferred_roles':['SWE'],'preferred_locations':['Bengaluru']})
+    application(db)
+    op=db.scalar(select(m.Opportunity))
+    original=service.get_profile(db)
+    project=m.Project(name='Supported API project',technologies=['Python','SQL'],approved=False,
+                      description='API project',approved_bullets=['Uses Python and SQL'],
+                      data={'readme':'Unreviewed CUDA and Kubernetes claims'})
+    db.add(project);db.commit()
+    before=op.fit_score
+    assert project.name not in json.dumps(service.evaluation_facts(db))
+    assert client.patch('/api/projects/'+project.id,json={'approved':True}).status_code==200
+    db.refresh(op)
+    assert op.fit_score>before
+    facts=service.evaluation_facts(db)
+    assert project.name in json.dumps(facts) and 'CUDA' not in json.dumps(facts)
+    assert service.get_profile(db)==original
+    assert client.patch('/api/projects/'+project.id,json={'approved':False}).status_code==200
+    db.refresh(op)
+    assert op.fit_score==before and project.name not in json.dumps(service.evaluation_facts(db))
+
 @pytest.fixture
 def db(tmp_path,monkeypatch):
     monkeypatch.setenv('APP_DATA_DIR',str(tmp_path));monkeypatch.setenv('PDF_ENGINE','reportlab')

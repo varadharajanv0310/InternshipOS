@@ -409,6 +409,26 @@
         "listed_jobs": 162,
         "note": "Directly verified first-party public Oracle CandidateExperience site on Dell's own domain, with native Oracle site assets and a working public job inventory. Existing Oracle adapter enumerated all 162 native intern-search results in two requests; none qualified for strict personal target details at this observation. No unobserved careers-page hyperlink is claimed. Old Workday HTTP422 is retained until the replacement's live inventory is persisted."
       }
+    },
+    {
+      "company": "MoEngage",
+      "from_provider": "generic",
+      "from_url": "https://www.moengage.com/careers/",
+      "provider": "generic",
+      "url": "https://moengage.hire.trakstar.com/",
+      "config": {
+        "detail_target_only": true,
+        "reader": "trakstar_native"
+      },
+      "evidence": {
+        "kind": "official_site_ats_link",
+        "linked_from": "https://www.moengage.com/careers/",
+        "target": "https://moengage.hire.trakstar.com/",
+        "observed_at": "2026-10-08",
+        "checked_status": 200,
+        "listed_jobs": 25,
+        "note": "Official View Current Openings and department links target this Trakstar board. Native SSR card/detail contracts tested; page discovery cannot close other jobs."
+      }
     }
   ],
   "existing_canonical_bindings": [

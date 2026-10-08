@@ -42,7 +42,7 @@ def freshness(op, appearances, *, now=None):
     now = aware(now) or utcnow()
     # A disabled monitor does not erase an actual recent observation. Its clock
     # still ages normally; superseded routes cannot establish current liveness.
-    current = [x for x in appearances if (x.company_source.config or {}).get("replacement_state") != "superseded"]
+    current = [x for x in appearances if x.status != 'historical_alias' and (x.company_source.config or {}).get("replacement_state") != "superseded"]
     official = [x for x in current if x.company_source.verified]
     observations = official or current
     live = [x for x in observations if x.status == "active"]

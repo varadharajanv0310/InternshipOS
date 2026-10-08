@@ -234,9 +234,13 @@ def project_create(payload:dict,db:Session=Depends(get_db)):
 @router.patch('/projects/{id}')
 def project_save(id:str,payload:dict,db:Session=Depends(get_db)):
     project=must(db.get(Project,id))
+    before={k:getattr(project,k) for k in ('name','description','technologies','approved','approved_bullets','role_tags')}
     for k in ('name','description','technologies','approved','approved_bullets','role_tags'):
         if k in payload:setattr(project,k,payload[k])
-    db.add(Activity(kind='project_review',title='Project facts reviewed',entity_type='project',entity_id=id,data={'approved':project.approved}));db.commit();return row_dict(project)
+    db.flush()
+    after={k:getattr(project,k) for k in before}
+    refreshed=service.refresh_project_matching(db) if before!=after and (before['approved'] or project.approved) else 0
+    db.add(Activity(kind='project_review',title='Project facts reviewed',entity_type='project',entity_id=id,before=before,after=after,data={'approved':project.approved,'matching_refreshed':refreshed}));db.commit();return row_dict(project)
 @router.post('/ai/{action}')
 def ai_action(action:str,payload:dict,db:Session=Depends(get_db)):
     if action not in ('analyze','tailor','answer','cover-letter'):raise HTTPException(404,'Unknown intelligence action.')

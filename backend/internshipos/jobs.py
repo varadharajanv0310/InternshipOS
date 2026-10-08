@@ -266,6 +266,7 @@ async def refresh_opportunity(opportunity_id):
             .order_by(JobSource.last_detail_checked.asc().nullsfirst(),JobSource.id)).all()
         candidates=[]
         for appearance in appearances:
+            if appearance.status == 'historical_alias':continue
             source=appearance.company_source
             if timing(source)['backoff']:continue
             url=canonicalize_url(appearance.url or op.canonical_url)

@@ -759,6 +759,12 @@ async def bamboohr(c):
 async def generic(c):
     """JSON-LD details + bounded linked detail discovery; no false full scan."""
     c.scope = "discovery"
+    if urlsplit(c.source.url).hostname == 'jobs.gem.com':
+        from .public_pages import gem
+        await gem(c); return
+    if (urlsplit(c.source.url).hostname or '').endswith('.hire.trakstar.com'):
+        from .public_pages import trakstar
+        await trakstar(c); return
     if c.source.config.get('api_url'):
         await configured_public_api(c);return
     if c.source.config.get('source') == 'reactrouter' and urlsplit(c.source.url).hostname == 'jobs.apple.com':
