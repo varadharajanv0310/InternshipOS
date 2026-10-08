@@ -1,6 +1,6 @@
 # Shortlist quality — 8 October 2026
 
-This repair keeps source history and application records intact. No live database changes, model changes, or automatic submissions are part of this work.
+This repair keeps source history and application records intact. Guarded hosted reconciliation was applied after a saved dry-run and before-image: 273 historical description dates recovered, seven proven URL aliases added and seven Workday identity discrepancies flagged. No model changes or automatic submissions were performed.
 
 ## Implementation checklist
 
@@ -36,7 +36,7 @@ Reconciliation creates reversible visibility aliases using `duplicate_of` and `m
 
 ## Backfill and reversal interface
 
-No schema migration is required. Existing JSON fields, evidence rows and identity-decision history are used. The deployment owner performs production changes; this implementation task did not write to the hosted database.
+No shortlist schema migration is required. Existing JSON fields, evidence rows and identity-decision history are used. Hosted reconciliation examined 494 target candidates and retained all opportunity, source and application references. Private before-images and per-record outcomes allow review and reversal.
 
 ```python
 from internshipos import service

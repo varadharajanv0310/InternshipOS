@@ -100,7 +100,7 @@ Bounded read-only checks covered all 66 backlog entries: 9 successful reads, 6 p
 - [x] Record each failed integration honestly; do not disable it to improve a health count.
 - [x] Add regressions for JSON-only decoding, native identity binding, UTF-8 references, confidential/internal exclusion, pagination and closed records.
 - [x] Focused validation: 155 tests passed across affected ingestion and repair tests.
-- [ ] Root integration: apply guarded declarations, deploy, run durable production checks and update the final source backlog.
+- [x] Root integration: apply guarded declarations, deploy, run durable production checks and save the source backlog in `IMPROVEMENTS_1_3_PROGRESS.md` and `SOURCE_RELIABILITY_REMAINING.md`.
 - [ ] Remaining custom providers: inspect declared feeds for Gem, TurboHire, Mokahr, RippleHire, Talentnet, Phenom and employer-built apps. Public marketing pages without a job inventory remain unsupported.
 - [ ] Review foreign/subsidiary-only career pages separately from missing India coverage; do not mark their parent’s global coverage complete.
 - [ ] Keep access challenges, HTTP500/503, malformed/missing native identities and unproved inventory visible until an actual repair is verified.

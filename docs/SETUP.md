@@ -62,7 +62,7 @@ Restore refuses to overwrite existing records, checks resume hashes, preserves h
 
 ## Free hosting path
 
-The repository includes a Vercel frontend/Python API entry, PostgreSQL-compatible schema/bootstrap and hourly GitHub Actions collection. These configurations have not been deployed to an external account.
+This project is already deployed at [internshipos.vercel.app](https://internshipos.vercel.app) with Neon PostgreSQL and its existing connected GitHub repository. GitHub collection is enabled, with scheduled trigger opportunities at minutes 17 and 47 each hour. Per-source cadence, backoff and actual completion times govern freshness. The steps below describe a new installation; the existing owner workspace does not need another Vercel import.
 
 1. Put this project in your own GitHub repository.
 2. Create your own PostgreSQL database and set `DATABASE_URL` with TLS for the hosted database. SQLite is the local fallback only.
@@ -86,4 +86,4 @@ npm ci
 npm test
 ```
 
-Tests use isolated fixtures and do not access personal accounts, spend AI money or submit applications. PostgreSQL DDL/CI configuration exists; the local run used SQLite because Docker's engine was unavailable. Live hosted PostgreSQL, Google OAuth/token refresh and real employer auto-apply remain account-dependent validation.
+Automated tests use isolated fixtures and do not spend AI money or submit applications. On 8 October, cloud CI passed 368 backend tests including isolated PostgreSQL checks, 14 frontend tests, 16 extension tests and the frontend production build. Hosted PostgreSQL/API, owner authentication, reversible shortlist exclusions and an actual exact-role refresh were separately verified. Google OAuth/token refresh and real employer submission remain untested. See `VERIFICATION.md` for the current evidence and limits.
