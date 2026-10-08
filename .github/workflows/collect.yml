@@ -4,6 +4,7 @@ on:
     # Extra off-minute trigger opportunities mitigate delayed/dropped scheduled
     # events. Per-source due times and backoff still control actual requests.
     - cron: '17 * * * *'
+    - cron: '47 * * * *'
   workflow_dispatch:
 concurrency:
   group: internshipos-collection
@@ -16,8 +17,11 @@ jobs:
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       SCHEDULER_ENABLED: 'false'
-      COLLECTION_BATCH_SIZE: '96'
+      # Fast feeds can use spare run time; the worker stops new waves before
+      # its budget and persists unfinished source IDs for queued continuations.
+      COLLECTION_BATCH_SIZE: '384'
       COLLECTION_CONCURRENCY: '6'
+      COLLECTION_RUN_BUDGET_SECONDS: '1560'
       COLLECTION_MAX_DETAILS: '40'
       COLLECTION_MAX_PAGES: '10'
       COLLECTION_SOURCE_TIMEOUT: '90'

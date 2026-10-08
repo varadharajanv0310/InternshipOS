@@ -213,6 +213,7 @@ def preparation_pack(db,application_id):
     application=service.list_applications(db)['items'];app=next((a for a in application if a['id']==application_id),None)
     if not app:raise HTTPException(404,'Application not found.')
     op=app['opportunity'];profile=service.get_profile(db);required=op.get('requirements',[]);inventory=resume_inventory(db)
+    readiness=op.get('shortlist') or {'preparation_allowed':False,'review_reasons':['Refresh and review the original posting.']}
     recommended=[]
     for p in inventory['projects']:
         if p['approved']:
@@ -226,4 +227,4 @@ def preparation_pack(db,application_id):
         version=next((v for r in variants for v in r['versions'] if v['status']=='approved'),versions[0] if versions else None)
     profile={**profile,**{k:v for k,v in (profile.get('education') or {}).items() if k not in profile}}
     fields={k:profile.get(k) for k in ('name','display_name','email','phone','github_url','linkedin_url','university','branch','graduation_year') if profile.get(k)}
-    return {'application':app,'opportunity':op,'profile':profile,'fields':fields,'resume_version':version,'resume_download_url':'/api/resume-versions/'+version['id']+'/download' if version else None,'recommended_projects':recommended[:4],'requirements_checklist':required,'checklist':required,'unknowns':op.get('evaluation',{}).get('unknowns',[]),'facts':facts_inventory(db),'answers':{'education':profile.get('education') or profile.get('degree'),'skills':', '.join(profile.get('skills',[])),'github':profile.get('github_url')},'sensitive_answers_local':True,'queue_approval':(app.get('data') or {}).get('auto_apply',{}),'requires_submission_lease':True,'submission_status':app['stage'],'auto_apply':service.get_settings(db).get('auto_apply',{'enabled':False,'providers':[]})}
+    return {'application':app,'opportunity':op,'profile':profile,'fields':fields,'resume_version':version,'resume_download_url':'/api/resume-versions/'+version['id']+'/download' if version else None,'recommended_projects':recommended[:4],'requirements_checklist':required,'checklist':required,'unknowns':op.get('evaluation',{}).get('unknowns',[]),'readiness':readiness,'ready_to_prepare':readiness.get('preparation_allowed',False),'facts':facts_inventory(db),'answers':{'education':profile.get('education') or profile.get('degree'),'skills':', '.join(profile.get('skills',[])),'github':profile.get('github_url')},'sensitive_answers_local':True,'queue_approval':(app.get('data') or {}).get('auto_apply',{}),'requires_submission_lease':True,'submission_status':app['stage'],'auto_apply':service.get_settings(db).get('auto_apply',{'enabled':False,'providers':[]})}

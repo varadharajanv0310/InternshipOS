@@ -73,6 +73,12 @@ test('eligibility states normalize API casing without treating an unknown as a p
  assert.equal(ui.eligibilityLabel('eligible'),'Eligible');assert.equal(ui.eligibilityTone('Ineligible'),'red');
  assert.equal(ui.eligibilityLabel(undefined),'Unclear');assert.equal(ui.eligibilityTone('unknown'),'amber');
 });
+test('conservative backend eligibility states retain their distinction and evidence',()=>{
+ assert.equal(ui.eligibilityLabel('probably eligible'),'Likely eligible');assert.equal(ui.eligibilityTone('probably eligible'),'green');
+ assert.equal(ui.eligibilityLabel('probably ineligible'),'Likely ineligible');assert.equal(ui.eligibilityTone('probably ineligible'),'red');
+ const html=ui.renderCard({id:'evidence-only',title:'Research intern',company:{name:'Example'},eligibility:'unclear',eligibility_reasons:['Confirm graduation year.'],shortlist:{state:'review'}});
+ assert.ok(html.includes('Confirm graduation year.'));assert.ok(html.includes('Posting needs recheck'));
+});
 test('advanced filters retain exact API names and the default technical scope',()=>{
  const params=ui.opportunityQuery({q:'a&source=untrusted',role:'',kind:'internship',location:'India',work_mode:'remote',eligibility:'eligible',source:'lever',risk:'verified',fresh_days:'7',application_stage:'none',pay:'known',min_worth:'70'},2);
  assert.equal(params.get('technical'),'true');assert.equal(params.get('q'),'a&source=untrusted');assert.equal(params.get('source'),'lever');assert.equal(params.get('min_worth'),'70');assert.equal(params.get('page'),'2');assert.equal(params.get('application_stage'),'none');

@@ -6,7 +6,7 @@ from datetime import timedelta
 import json
 import re
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, tuple_
 
 from sqlalchemy.orm import joinedload, selectinload
 from . import models as m
@@ -104,23 +104,26 @@ def save_settings(db, payload):
     return get_settings(db)
 
 
-def _evaluate_and_store(db, opportunity, profile=None):
+def _evaluate_and_store(db, opportunity, profile=None, *, evaluations=None):
     profile = profile or _latest_profile(db)
     facts = profile.data if profile else {}
     inputs = {"title": opportunity.title, "role_family": opportunity.role_family, "description": opportunity.description, "skills": opportunity.skills,
               "requirements": opportunity.requirements, "location": opportunity.location,
               "compensation": opportunity.compensation, "risk_reasons": opportunity.risk_reasons,
-              "profile": facts, "version": "deterministic-v1"}
+              "profile": facts, "version": "deterministic-v2"}
     digest = stable_hash(inputs)
-    existing = db.scalar(select(m.Evaluation).where(m.Evaluation.opportunity_id == opportunity.id, m.Evaluation.input_hash == digest).order_by(m.Evaluation.created_at.desc()).limit(1))
+    existing = next((e for e in evaluations if e.input_hash == digest), None) if evaluations is not None else db.scalar(select(m.Evaluation).where(m.Evaluation.opportunity_id == opportunity.id, m.Evaluation.input_hash == digest).order_by(m.Evaluation.created_at.desc()).limit(1))
     result = existing.data if existing else evaluate(opportunity, facts)
-    latest = db.scalar(select(m.Evaluation).where(m.Evaluation.opportunity_id == opportunity.id).order_by(m.Evaluation.created_at.desc()).limit(1))
+    latest = evaluations[0] if evaluations else None if evaluations is not None else db.scalar(select(m.Evaluation).where(m.Evaluation.opportunity_id == opportunity.id).order_by(m.Evaluation.created_at.desc()).limit(1))
     if not latest or latest.input_hash != digest or latest.profile_version_id != (profile.id if profile else None):
-        db.add(m.Evaluation(opportunity_id=opportunity.id, profile_version_id=profile.id if profile else None, input_hash=digest, data=result))
+        db.add(m.Evaluation(opportunity_id=opportunity.id, profile_version_id=profile.id if profile else None, input_hash=digest, version="deterministic-v2", data=result))
     opportunity.fit_score = result["fit_score"]
     opportunity.fit_confidence = result["fit_confidence"]
     opportunity.worth_score = result["worth_score"]
     opportunity.eligibility = result["eligibility"]
+    opportunity.data = {**(opportunity.data or {}), "eligibility_summary": {
+        "checks": result.get("eligibility_checks", []), "reasons": result.get("eligibility_reasons", []),
+        "profile_version_id": profile.id if profile else None}}
     return result
 
 
@@ -145,10 +148,14 @@ def save_profile(db, payload):
 
 
 def list_opportunities(db, **filters):
+    from .shortlist import exclusions, visibility_sql
     settings=get_settings(db)
     page = max(1, int(filters.get("page") or 1))
     page_size = min(200, max(1, int(filters.get("page_size") or 40)))
     stmt = select(m.Opportunity).join(m.Company)
+    rules = exclusions(db)
+    visible = visibility_sql(m.Opportunity, rules)
+    stmt = stmt.where((m.Opportunity.id.in_(rules["opportunity_ids"]) | m.Opportunity.company_id.in_(rules["company_ids"])) & m.Opportunity.data["duplicate_of"].as_string().is_(None) if filters.get("excluded") else visible)
     if settings.get("personal_location_policy"):
         from .search_policy import target_sql,PHD_ONLY,sql_pattern
         stmt=stmt.where(target_sql(m.Opportunity),~func.lower(m.Opportunity.title).regexp_match(sql_pattern(PHD_ONLY)),m.Opportunity.eligibility!="probably ineligible")
@@ -159,7 +166,9 @@ def list_opportunities(db, **filters):
             from .search_policy import TITLE_EXCLUSIONS,sql_pattern
             stmt=stmt.where(~func.lower(m.Opportunity.title).regexp_match(sql_pattern(TITLE_EXCLUSIONS)))
     for field in ("work_mode", "eligibility"):
-        if filters.get(field):stmt = stmt.where(getattr(m.Opportunity,field)==filters[field])
+        if filters.get(field):
+            value = {"eligible": "probably eligible", "ineligible": "probably ineligible"}.get(filters[field], filters[field]) if field == "eligibility" else filters[field]
+            stmt = stmt.where(getattr(m.Opportunity,field)==value)
     if filters.get("source"):
         stmt = stmt.where(m.Opportunity.id.in_(select(m.JobSource.opportunity_id).join(m.CompanySource).where(m.CompanySource.provider==filters["source"])))
     if filters.get("fresh_days") is not None:
@@ -224,7 +233,7 @@ def list_opportunities(db, **filters):
     for key in ["role_family", "opportunity_type", "location", "status"]:
         column = base.c[key]
         facets[key] = [{"name": name or "unknown", "count": count} for name, count in db.execute(select(column, func.count()).group_by(column).order_by(func.count().desc()).limit(40))]
-    return {"items": [opportunity_dict(db, obj, detail=False) for obj in objects], "total": total, "page": page, "page_size": page_size, "facets": facets}
+    return {"items": [opportunity_dict(db, obj, detail=False, rules=rules) for obj in objects], "total": total, "page": page, "page_size": page_size, "facets": facets}
 
 
 def get_opportunity(db, id):
@@ -244,6 +253,32 @@ def save_opportunity(db, id, payload):
     _audit(db, "opportunity.updated", f"Updated {obj.title}", "opportunity", obj.id, before=before, after=values)
     db.commit()
     return opportunity_dict(db, obj)
+
+
+def get_shortlist_exclusions(db):
+    from .shortlist import exclusions
+    rules = exclusions(db)
+    return {**rules, "opportunities": [{"id": o.id, "title": o.title, "company": o.company.name} for o in db.scalars(select(m.Opportunity).where(m.Opportunity.id.in_(rules["opportunity_ids"])))],
+            "companies": [{"id": c.id, "name": c.name} for c in db.scalars(select(m.Company).where(m.Company.id.in_(rules["company_ids"])))]}
+
+
+def set_shortlist_exclusion(db, payload):
+    from .shortlist import EXCLUSIONS_KEY, exclusions
+    kind, id = payload.get("kind"), str(payload.get("id") or "")
+    if kind not in {"opportunity", "company"} or not isinstance(payload.get("excluded"), bool):
+        raise ValueError("Specify a role or company and whether it is excluded.")
+    obj = _require(db, m.Opportunity if kind == "opportunity" else m.Company, id)
+    before = exclusions(db)
+    values = {k: list(v) for k, v in before.items()}
+    key = "opportunity_ids" if kind == "opportunity" else "company_ids"
+    values[key] = list(dict.fromkeys([*values[key], id])) if payload["excluded"] else [x for x in values[key] if x != id]
+    row = db.get(m.Setting, EXCLUSIONS_KEY)
+    if row: row.value = values
+    else: db.add(m.Setting(key=EXCLUSIONS_KEY, value=values))
+    _audit(db, "shortlist.exclusion", ("Excluded " if payload["excluded"] else "Restored ") + (obj.title if kind == "opportunity" else obj.name), kind, id,
+           data={"excluded": payload["excluded"], "previous_rules": before, "rules": values})
+    db.commit()
+    return get_shortlist_exclusions(db)
 
 
 def list_companies(db, q=""):
@@ -278,6 +313,11 @@ def create_application(db, payload):
     existing = db.scalar(select(m.Application).where(m.Application.opportunity_id == opportunity.id, m.Application.attempt == attempt))
     if existing:
         return application_dict(db, existing)
+    if payload.get("stage", "ready") == "ready":
+        from .shortlist import assessment, exclusions
+        check = assessment(opportunity, opportunity.sources, exclusions(db))
+        if not check["preparation_allowed"]:
+            raise ValueError("Review this role before preparing: " + " ".join(check["review_reasons"]))
     resume_id = payload.get("resume_version_id") or None
     if resume_id:
         _require(db, m.ResumeVersion, resume_id)
@@ -512,6 +552,7 @@ def _normalize_job(job, now):
             "requisition_id": str(job["requisition_id"])[:300] if job.get("requisition_id") else None,
             "posted_at": parse_date(job.get("posted_at"), observed_at=now), "deadline": parse_date(job.get("deadline")),
             "data": {"employment_type": job.get("employment_type"), "posted_raw": json_value(job.get("posted_at")),
+                     "observed_employer": job.get("company_name"),
                      "deadline_raw": json_value(job.get("deadline")), "deadline_precision": "date" if len(str(job.get("deadline") or "")) == 10 else "timestamp" if parse_date(job.get("deadline")) else "unknown",
                      "source_evidence": json_value(job.get("evidence") or []), "preferred_skills": job.get("preferred_skills") or []}}
 
@@ -575,8 +616,22 @@ def ingest_batch(db, company_source_id, jobs, *, complete, error=None, coverage_
                     if candidate.requisition_id and values["requisition_id"] and candidate.requisition_id != values["requisition_id"]:
                         continue
                     # Identical landing/application endpoints with conflicting titles are not identity.
-                    if candidate.title.casefold().strip() == values["title"].casefold().strip():
+                    from .shortlist import employer_identity
+                    if (candidate.title.casefold().strip() == values["title"].casefold().strip()
+                        and employer_identity({"data": candidate.data}, employer.name) == employer_identity(values, employer.name)):
                         opportunity, associated = candidate, True
+                        break
+            association_reason = "exact_url" if associated else None
+            if opportunity is None and values["requisition_id"] and source.verified:
+                from .shortlist import employer_identity, proven_mirror, trusted_requisition, explicit_requisition
+                for candidate in db.scalars(select(m.Opportunity).where(m.Opportunity.company_id == employer.id, m.Opportunity.requisition_id == values["requisition_id"], m.Opportunity.data["duplicate_of"].as_string().is_(None))).all():
+                    if any(x.company_source_id == source.id for x in candidate.sources):
+                        continue  # Distinct postings within one board stay distinct.
+                    proof = proven_mirror(row_dict(candidate), values, employer_a=employer_identity({"data": candidate.data}, employer.name),
+                                          employer_b=employer_identity(values, employer.name),
+                                          trusted_a=trusted_requisition(db, candidate), trusted_b=explicit_requisition(raw_job.get("raw") or raw_job, values["requisition_id"]))
+                    if proof:
+                        opportunity, associated, association_reason = candidate, True, proof
                         break
             created = opportunity is None
             if created:
@@ -600,7 +655,7 @@ def ingest_batch(db, company_source_id, jobs, *, complete, error=None, coverage_
                 db.flush()
                 existing[external_id] = appearance
                 if associated:
-                    db.add(m.IdentityDecision(opportunity_id=opportunity.id, job_source_id=appearance.id, decision="exact_url",
+                    db.add(m.IdentityDecision(opportunity_id=opportunity.id, job_source_id=appearance.id, decision=association_reason or "exact_url",
                                               evidence={"canonical_url": values["canonical_url"], "reversible_source_link": True,
                                                         "company_id": employer.id, "requisition_id": values["requisition_id"]}))
             if not values['description'] and opportunity.description:
@@ -620,6 +675,8 @@ def ingest_batch(db, company_source_id, jobs, *, complete, error=None, coverage_
             if values["description"]:
                 # Checking an unchanged description still refreshes its liveness.
                 appearance.last_detail_checked = now
+                if values["description"] == opportunity.description and (source.verified or not any(x.company_source.verified for x in opportunity.sources)):
+                    opportunity.data = {**(opportunity.data or {}), "description_checked_at": iso(now), "description_source_id": source.id}
             appearance.url = values["canonical_url"] or appearance.url
             appearance.requisition_id = values["requisition_id"] or appearance.requisition_id
             opportunity.last_verified = now
@@ -646,6 +703,10 @@ def ingest_batch(db, company_source_id, jobs, *, complete, error=None, coverage_
                             continue
                         if key == "trust_state" and value == "unassessed" and source.verified:
                             value = "official_source"
+                        if key == "data":
+                            value = {**(opportunity.data or {}), **{k:v for k,v in value.items() if v is not None}}
+                        if key == "description" and value:
+                            opportunity.data = {**(opportunity.data or {}), "description_checked_at": iso(now), "description_source_id": source.id}
                         setattr(opportunity, key, value)
                         promoted_fields.add(key)
                 snapshot = m.Snapshot(job_source_id=appearance.id, fetch_run_id=run.id, content_hash=digest,
@@ -846,22 +907,26 @@ def analytics(db, days=30, scope='all'):
     # Canonical objects are counted once; source relationships are separate measures.
     opportunities = db.scalars(select(m.Opportunity).options(joinedload(m.Opportunity.company),selectinload(m.Opportunity.sources).joinedload(m.JobSource.company_source))).all()
     raw_count = len(opportunities)
+    from .shortlist import exclusions, hidden
+    rules = exclusions(db)
+    opportunities = [o for o in opportunities if not hidden(o, rules)]
     if scope == 'india':
         from .search_policy import TITLE_EXCLUSIONS
         opportunities = [o for o in opportunities if (not settings.get('personal_location_policy') or _personal_scope(o)) and _in_primary_market(o) and o.role_family in (settings.get('roles') or ['SWE','Data','AI_ML','Adjacent']) and o.opportunity_type in {'internship','possible_internship'} and (not settings.get('personal_target_filter') or not re.search(TITLE_EXCLUSIONS,o.title,re.I))]
     scoped_ids = {o.id for o in opportunities}
+    mirror_to_canonical = {id: o.id for o in opportunities for id in (o.data or {}).get("mirror_ids", [])}
     recent = [o for o in opportunities if aware(o.first_seen) >= since]
     applications = db.scalars(select(m.Application)).all()
     recent_apps = [a for a in applications if a.submitted_at and aware(a.submitted_at) >= since]
     runs = db.scalars(select(m.FetchRun).where(m.FetchRun.created_at >= since)).all()
     sources = db.scalars(select(m.CompanySource).options(joinedload(m.CompanySource.company))).all()
-    relationships = [r for r in db.scalars(select(m.JobSource)).all() if r.opportunity_id in scoped_ids]
+    relationships = [r for r in db.scalars(select(m.JobSource)).all() if r.opportunity_id in scoped_ids or r.opportunity_id in mirror_to_canonical]
     per_source = {}
     for appearance in relationships:
-        per_source.setdefault(appearance.company_source_id, set()).add(appearance.opportunity_id)
+        per_source.setdefault(appearance.company_source_id, set()).add(mirror_to_canonical.get(appearance.opportunity_id, appearance.opportunity_id))
     membership = {}
     for appearance in relationships:
-        membership.setdefault(appearance.opportunity_id, set()).add(appearance.company_source_id)
+        membership.setdefault(mirror_to_canonical.get(appearance.opportunity_id, appearance.opportunity_id), set()).add(appearance.company_source_id)
     discovered = Counter(aware(o.first_seen).date().isoformat() for o in recent)
     daily = [{"date": (now.date() - timedelta(days=i)).isoformat(), "count": discovered[(now.date() - timedelta(days=i)).isoformat()]} for i in range(days - 1, -1, -1)]
     weeks = Counter((aware(a.submitted_at).date() - timedelta(days=aware(a.submitted_at).weekday())).isoformat() for a in recent_apps)
@@ -919,7 +984,7 @@ def analytics(db, days=30, scope='all'):
                        "success_rate": sum(r.complete for r in runs) / len(runs) if runs else None,
                        "healthy_sources": sum(s.status == "complete" for s in sources), "sources": len(sources)},
             "ai_usage": {"spent": spent, "reserved": reserved, "budget": budget, "remaining": max(0, round(budget - spent - reserved, 6))},
-            "definitions": {"scope": "India technical internships and possible internships; profile eligibility is not implied." if scope == 'india' else "All global collected job records, including full-time and nontechnical roles.", "collection_health": "Worker and source health cover all monitored sources regardless of the selected opportunity scope.", "period": f"Last {days} days", "discovery": "First observation of a canonical opportunity; not the employer posting date.",
+            "definitions": {"scope": "Visible India technical internships and possible internships; profile eligibility is not implied." if scope == 'india' else "Visible global canonical roles, including full-time and nontechnical roles. Raw collected records also include retained excluded roles and mirrors.", "exclusions": "Owner-excluded roles and companies are omitted from opportunity metrics. Proven mirrors count once while their source appearances remain visible. Historical application metrics are retained.", "collection_health": "Worker and source health cover all monitored sources regardless of the selected opportunity scope.", "period": f"Last {days} days", "discovery": "First observation of a canonical opportunity; not the employer posting date.",
                             "funnel": "Current application stage counts, not cohort conversion rates.",
                             "source_unique": "Distinct canonical opportunities seen by each monitored source; source counts can overlap.",
                             "exclusivity": "Observed only in one monitored source appearance; no claim of global exclusivity.",
@@ -934,8 +999,11 @@ def dashboard(db):
     from .search_policy import TITLE_EXCLUSIONS
     opportunities = db.scalars(select(m.Opportunity).options(joinedload(m.Opportunity.company),selectinload(m.Opportunity.sources).joinedload(m.JobSource.company_source))).all()
     applications = db.scalars(select(m.Application)).all()
+    from .shortlist import assessment, exclusions, hidden, appearances_for
+    rules = exclusions(db)
+    opportunities = [o for o in opportunities if not hidden(o, rules)]
     sources = db.scalars(select(m.CompanySource).options(joinedload(m.CompanySource.company))).all()
-    relevant = [o for o in opportunities if (not settings.get('personal_location_policy') or _personal_scope(o)) and _is_relevant(o) and _in_primary_market(o) and o.status == "active" and o.role_family in (settings.get('roles') or ['SWE','Data','AI_ML','Adjacent']) and (not settings.get('personal_target_filter') or not re.search(TITLE_EXCLUSIONS,o.title,re.I))]
+    relevant = [o for o in opportunities if (not settings.get('personal_location_policy') or _personal_scope(o)) and _is_relevant(o) and _in_primary_market(o) and o.status == "active" and o.role_family in (settings.get('roles') or ['SWE','Data','AI_ML','Adjacent']) and (not settings.get('personal_target_filter') or not re.search(TITLE_EXCLUSIONS,o.title,re.I)) and assessment(o, appearances_for(db, o) if (o.data or {}).get("mirror_ids") else o.sources, rules, now=now)["recommended"]]
     from .company_priority import priority
     relevant.sort(key=lambda o: (priority(o.company)["score"], o.fit_score if o.fit_score is not None else -1, aware(o.first_seen)), reverse=True)
     deadline_rows = [task_dict(t) for t in db.scalars(select(m.Task).where(m.Task.completed.is_(False), m.Task.due_at.is_not(None)).order_by(m.Task.due_at).limit(10)).all()]
@@ -952,7 +1020,7 @@ def dashboard(db):
                       "interviews": sum(a.stage == "interview" for a in applications),
                       "companies": db.scalar(select(func.count()).select_from(m.Company).where(m.Company.metadata_json["source_holder"].as_boolean().is_not(True))) or 0,
                       "sources_healthy": sum(s.status == "complete" for s in sources)},
-            "top_opportunities": [opportunity_dict(db, o, detail=False) for o in relevant[:8]], "deadlines": deadline_rows[:10],
+            "top_opportunities": [opportunity_dict(db, o, detail=False, rules=rules) for o in relevant[:8]], "deadlines": deadline_rows[:10],
             "recent_activity": [activity_dict(x) for x in db.scalars(select(m.Activity).order_by(m.Activity.created_at.desc()).limit(15)).all()],
             "funnel": [{"stage": stage, "count": sum(a.stage == stage for a in applications)} for stage in ["ready", "applied", "oa", "interview", "offer", "rejected"]],
             "source_health": [source_dict(s) for s in sorted(sources, key=lambda s: (s.status == "complete", s.company.name))[:12]],
@@ -963,3 +1031,130 @@ def dashboard(db):
 def _personal_scope(op):
     from .search_policy import location_decision,PHD_ONLY
     return location_decision(op.location,op.country,op.work_mode)=='allowed' and not re.search(PHD_ONLY,op.title,re.I) and op.eligibility!='probably ineligible'
+
+
+def reconcile_shortlist_quality(db, *, apply=False, opportunity_ids=None, limit=None, offset=0):
+    """Dry-run first. Never deletes rows, moves foreign keys or resets clocks.
+
+    Mirrors become reversible visibility aliases. Existing application/resume
+    references remain on their original opportunity; provenance is presented on
+    the canonical role. Only exact employer/URL or trusted requisition matches
+    qualify; ambiguous historical Workday IDs are reported for review.
+    """
+    from .shortlist import employer_identity, proven_mirror, trusted_requisition
+    options = (joinedload(m.Opportunity.company), selectinload(m.Opportunity.sources).joinedload(m.JobSource.company_source))
+    target_stmt = select(m.Opportunity).options(*options).order_by(m.Opportunity.first_seen, m.Opportunity.id)
+    if opportunity_ids is not None: target_stmt = target_stmt.where(m.Opportunity.id.in_(list(opportunity_ids)))
+    if limit is not None: target_stmt = target_stmt.offset(max(0, int(offset))).limit(max(1, min(1000, int(limit))))
+    targets = db.scalars(target_stmt).all()
+    target_ids = {op.id for op in targets}
+    if opportunity_ids is not None or limit is not None:
+        # Include the entire same-employer/title candidate group when evaluating
+        # a bounded page, so a canonical role outside that page is not missed.
+        keys = {(op.company_id, op.title.strip().lower()) for op in targets}
+        ops = db.scalars(select(m.Opportunity).where(tuple_(m.Opportunity.company_id, func.lower(func.trim(m.Opportunity.title))).in_(list(keys))).options(*options).order_by(m.Opportunity.first_seen, m.Opportunity.id)).all() if keys else []
+    else: ops = targets
+    op_ids = [op.id for op in ops]
+    appearance_ids = [src.id for op in ops for src in op.sources]
+    ranked = select(m.Snapshot.id, func.row_number().over(partition_by=m.Snapshot.job_source_id, order_by=(m.Snapshot.created_at.desc(), m.Snapshot.id.desc())).label("rn")).where(m.Snapshot.job_source_id.in_(appearance_ids)).subquery()
+    snapshots = {snap.job_source_id:snap for snap in db.scalars(select(m.Snapshot).join(ranked, m.Snapshot.id == ranked.c.id).where(ranked.c.rn == 1))}
+    evidence_by_field = {}
+    for evidence in db.scalars(select(m.Evidence).where(m.Evidence.opportunity_id.in_(op_ids), m.Evidence.field.in_(["description", "requirements"])).order_by(m.Evidence.created_at.desc(), m.Evidence.id.desc())):
+        if (evidence.data or {}).get("promoted"):
+            evidence_by_field.setdefault((evidence.opportunity_id, evidence.field), evidence)
+    evidence_snapshots = {snap.id:snap for snap in snapshots.values()}
+    extra_ids = {e.snapshot_id for e in evidence_by_field.values() if e.snapshot_id} - set(evidence_snapshots)
+    if extra_ids:
+        evidence_snapshots.update({snap.id:snap for snap in db.scalars(select(m.Snapshot).where(m.Snapshot.id.in_(list(extra_ids))))})
+    appearances = {src.id:src for op in ops for src in op.sources}
+    profile = _latest_profile(db)
+    evaluation_cache = {id:[] for id in target_ids}
+    if apply:
+        for evaluation in db.scalars(select(m.Evaluation).where(m.Evaluation.opportunity_id.in_(list(target_ids))).order_by(m.Evaluation.created_at.desc(), m.Evaluation.id.desc())):
+            evaluation_cache[evaluation.opportunity_id].append(evaluation)
+    report = {"dry_run": not apply, "target_count": len(targets), "related_candidates": len(ops)-len(targets), "evaluation_candidates": len(targets), "evaluated": 0, "description_clocks_recovered": 0, "identity_review": [], "mirror_groups": [], "aliases_added": 0}
+    buckets, group_requisitions = {}, {}
+    reviewed_pairs = {frozenset((d.opportunity_id, d.candidate_id)) for d in db.scalars(select(m.IdentityDecision).where(m.IdentityDecision.decision == "confirmed_mirror", m.IdentityDecision.reversed_at.is_not(None))) if d.candidate_id}
+    for op in ops:
+        data = dict(op.data or {})
+        historical = []
+        for src in op.sources:
+            if src.company_source.provider.lower() != "workday": continue
+            from .ingestion.adapters import workday_listing_identifiers
+            snap = snapshots.get(src.id)
+            raw = (snap.raw or {}) if snap else {}
+            if isinstance(raw, dict) and raw.get("externalPath"):
+                expected_id, expected_req = workday_listing_identifiers(raw)
+                if src.external_id != expected_id or (src.requisition_id and src.requisition_id != expected_req):
+                    historical.append({"source_id": src.company_source_id, "appearance_id": src.id, "external_id": src.external_id,
+                                       "observed_path": raw.get("externalPath"), "expected_id": expected_id, "reason": "Historic Workday ID does not match the observed posting path."})
+        if historical:
+            report["identity_review"].append({"opportunity_id": op.id, "observations": historical})
+            if apply and op.id in target_ids: data["identity_review"] = {"reason": "Historic Workday source identity needs review", "observations": historical}
+        if op.description and not data.get("description_checked_at"):
+            evidence = evidence_by_field.get((op.id, "description"))
+            if evidence and evidence.value == op.description and (evidence.data or {}).get("promoted") and evidence.snapshot_id:
+                snapshot = evidence_snapshots.get(evidence.snapshot_id)
+                appearance = appearances.get(snapshot.job_source_id) if snapshot else None
+                if snapshot and appearance:
+                    report["description_clocks_recovered"] += int(op.id in target_ids)
+                    if apply and op.id in target_ids:
+                        # Recover the actual historical observation, never now.
+                        data.update(description_checked_at=iso(snapshot.created_at), description_source_id=appearance.company_source_id)
+        if apply and op.id in target_ids:
+            op.data = data
+            latest_requirements = evidence_by_field.get((op.id, "requirements"))
+            if op.description and (not latest_requirements or latest_requirements.method == "derived_rules"):
+                op.requirements = classify(op.description, op.title)["requirements"]
+            _evaluate_and_store(db, op, profile, evaluations=evaluation_cache[op.id])
+            report["evaluated"] += 1
+        if historical or data.get("duplicate_of"): continue
+        values = row_dict(op)
+        name = employer_identity(values, op.company.name)
+        trusted = trusted_requisition(db, op, snapshots)
+        keys = []
+        if op.canonical_url: keys.append((op.company_id, name, "url", canonicalize_url(op.canonical_url)))
+        if op.requisition_id and trusted: keys.append((op.company_id, name, "req", op.requisition_id.casefold()))
+        candidates = {c.id: c for k in keys for c in buckets.get(k, [])}
+        for candidate in candidates.values():
+            if candidate.id not in target_ids and op.id not in target_ids: continue
+            if frozenset((candidate.id, op.id)) in reviewed_pairs: continue
+            if (candidate.data or {}).get("identity_review"): continue
+            candidate_trusted = trusted_requisition(db, candidate, snapshots)
+            reason = proven_mirror(row_dict(candidate), values, employer_a=employer_identity({"data": candidate.data}, candidate.company.name), employer_b=name,
+                                   trusted_a=candidate_trusted, trusted_b=trusted)
+            if reason == "exact_requisition" and {x.company_source_id for x in candidate.sources} & {x.company_source_id for x in op.sources}:
+                continue
+            if not reason: continue
+            reqs = group_requisitions.get(candidate.id, {str(candidate.requisition_id).casefold()} if candidate.requisition_id else set())
+            if op.requisition_id and reqs and op.requisition_id.casefold() not in reqs: continue
+            if op.requisition_id: group_requisitions[candidate.id] = reqs | {op.requisition_id.casefold()}
+            report["mirror_groups"].append({"canonical_id": candidate.id, "mirror_id": op.id, "reason": reason,
+                                            "company_id": op.company_id, "requisition_id": op.requisition_id, "canonical_url": op.canonical_url})
+            if apply:
+                candidate.data = {**(candidate.data or {}), "mirror_ids": list(dict.fromkeys([*(candidate.data or {}).get("mirror_ids", []), op.id]))}
+                op.data = {**(op.data or {}), "duplicate_of": candidate.id}
+                db.add(m.IdentityDecision(opportunity_id=candidate.id, candidate_id=op.id, decision="confirmed_mirror", evidence={"reason": reason, "reversible_visibility_alias": True, "history_retained": True}))
+            report["aliases_added"] += 1
+            break
+        else:
+            for key in keys: buckets.setdefault(key, []).append(op)
+    if apply:
+        _audit(db, "shortlist.reconciled", "Shortlist quality reconciled", data={k: v for k, v in report.items() if k not in {"identity_review", "mirror_groups"}})
+        db.flush()
+    return report
+
+
+def reverse_shortlist_alias(db, mirror_id):
+    """Restore a reviewed mirror without deleting its decision or history."""
+    mirror = _require(db, m.Opportunity, mirror_id)
+    canonical_id = (mirror.data or {}).get("duplicate_of")
+    if not canonical_id: return {"restored": False, "opportunity_id": mirror_id}
+    canonical = _require(db, m.Opportunity, canonical_id)
+    mirror.data = {k:v for k,v in (mirror.data or {}).items() if k != "duplicate_of"}
+    canonical.data = {**(canonical.data or {}), "mirror_ids": [x for x in (canonical.data or {}).get("mirror_ids", []) if x != mirror_id]}
+    for decision in db.scalars(select(m.IdentityDecision).where(m.IdentityDecision.opportunity_id == canonical_id, m.IdentityDecision.candidate_id == mirror_id, m.IdentityDecision.decision == "confirmed_mirror", m.IdentityDecision.reversed_at.is_(None))):
+        decision.reversed_at = utcnow()
+    _audit(db, "shortlist.alias_reversed", "Restored a reviewed related listing", "opportunity", mirror_id, data={"canonical_id": canonical_id, "history_retained": True})
+    db.flush()
+    return {"restored": True, "opportunity_id": mirror_id, "canonical_id": canonical_id}

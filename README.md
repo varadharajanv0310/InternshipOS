@@ -1,6 +1,6 @@
 # InternshipOS
 
-A personal internship workspace with broad public-source collection, evidence-aware matching, application tracking and preparation. The app is implemented and runs locally at **http://127.0.0.1:5173**.
+A personal internship workspace with broad public-source collection, evidence-aware matching, application tracking and preparation. The app is hosted at [internshipos.vercel.app](https://internshipos.vercel.app) with Neon PostgreSQL. It also runs locally at **http://127.0.0.1:5173**.
 
 ## Start
 
@@ -29,7 +29,7 @@ Start by adding actual profile facts in Settings, reviewing GitHub projects, and
 
 See [setup instructions](docs/SETUP.md) for Google, AI, extension, backups, hosting and test commands. See [current build status](docs/BUILD_STATUS.md) and [verification results](docs/VERIFICATION.md).
 
-The local app is running with real public-source results. Google account connection, paid AI quality, live employer submission and hosted PostgreSQL/deployment have not been exercised with the owner's accounts. They require the owner's credentials or external environment. Free hosting configurations are included but no external service was purchased or deployed.
+The hosted app uses real public-source results and preserves approved resume uploads and the connected GitHub account. Google and AI credentials remain unconfigured; automatic submission is off and real employer forms have not been submission-tested. Public-source coverage is bounded and cannot guarantee that every useful internship is found. See [current improvements](docs/IMPROVEMENTS_1_3_PROGRESS.md) for source coverage, collection freshness and shortlist validation.
 
 ## Project
 

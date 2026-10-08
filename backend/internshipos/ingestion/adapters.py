@@ -318,7 +318,12 @@ async def workday(c):
     early_career = c.source.config.get("early_career", False)
     if country_name or early_career:
         c.scope = "query"
-        initial = await c.http.json("POST", f"{api}/jobs", json={"limit": 20, "offset": 0, "searchText": query, "appliedFacets": facets})
+        # Workday scopes facet values to the current keyword result. Looking up
+        # India under "intern" can hide India entirely even when internships
+        # are classified by a type facet or called placement/student roles.
+        # Discover facets without the keyword, then collect only the final
+        # configured regional/type query; this preliminary page is not ingested.
+        initial = await c.http.json("POST", f"{api}/jobs", json={"limit": 20, "offset": 0, "searchText": "", "appliedFacets": facets})
         def walk(nodes):
             for node in nodes:
                 if isinstance(node, dict):
@@ -756,6 +761,18 @@ async def generic(c):
     c.scope = "discovery"
     if c.source.config.get('api_url'):
         await configured_public_api(c);return
+    if c.source.config.get('source') == 'reactrouter' and urlsplit(c.source.url).hostname == 'jobs.apple.com':
+        from .public_pages import apple
+        await apple(c); return
+    if urlsplit(c.source.url).hostname == 'recruiterflow.com' and re.fullmatch(r'/[A-Za-z0-9_.-]+/jobs/?', urlsplit(c.source.url).path):
+        from .public_pages import recruiterflow
+        await recruiterflow(c); return
+    if urlsplit(c.source.url).hostname == 'careers.kula.ai':
+        from .public_pages import kula
+        await kula(c); return
+    if urlsplit(c.source.url).hostname == 'www.google.com' and urlsplit(c.source.url).path.rstrip('/') == '/about/careers/applications/jobs/results':
+        from .public_pages import google_careers
+        await google_careers(c); return
     html = await c.http.text(c.source.url)
     direct = parse_jsonld(c.source, html, c.source.url)
     for item in direct:
@@ -772,11 +789,18 @@ async def generic(c):
                 if isinstance(target, str):
                     links.append(urljoin(c.source.url, target))
     soup = BeautifulSoup(html, "html.parser")
+    # Google declares /about/careers/applications/ as its document base.
+    # Resolving its relative jobs/results/<id> links against the current
+    # /jobs/results/ path creates duplicated paths and spurious HTTP404s.
+    base = soup.find("base", href=True)
+    link_base = urljoin(c.source.url, base["href"]) if base else c.source.url
+    if urlsplit(link_base).netloc != urlsplit(c.source.url).netloc:
+        link_base = c.source.url
     for anchor in soup.find_all("a", href=True):
-        target = urljoin(c.source.url, anchor["href"])
+        target = urljoin(link_base, anchor["href"])
         path=urlsplit(target).path
         if (urlsplit(target).hostname or '').endswith('google.com') and '/jobs/results/' in path and not re.search(r'/jobs/results/\d+',path):continue
-        if urlsplit(target).netloc == urlsplit(c.source.url).netloc and re.search(r"/(?:job|jobs|careers|internship)/(?:detail/)?[^/?]+", path):
+        if urlsplit(target).netloc == urlsplit(c.source.url).netloc and re.search(r"/(?:JobDetail/[^/?]+|(?:job|jobs|careers|internship)/(?:detail/)?[^/?]+)", path, re.I):
             links.append(target)
     links = list(dict.fromkeys(links))
     offset=int(c.source.config.get("detail_cursor",0)) % max(1,len(links))
@@ -986,10 +1010,16 @@ async def configured_public_api(c):
             if c.reported_total is not None and total != c.reported_total:
                 c.problem("inventory_changed_during_scan")
             c.reported_total = total
-        new = 0
+        new = eligible_records = 0
         for record in records:
             if not isinstance(record, dict):
                 raise SchemaError("configured_feed_expected_record")
+            record_filter = config.get("record_filter") or {}
+            if not isinstance(record_filter, dict) or any(isinstance(v, (dict, list)) for v in record_filter.values()):
+                raise SchemaError("configured_feed_invalid_record_filter")
+            if any(feed_field(record, key) != expected for key, expected in record_filter.items()):
+                continue
+            eligible_records += 1
             values = {name: feed_field(record, specification) for name, specification in mapping.items()}
             ident = values.get("metadata.ats_job_id") or values.get("id") or record.get("id")
             title = values.get("title")
@@ -1016,7 +1046,7 @@ async def configured_public_api(c):
                 location=values.get("locations") or values.get("location") or "", employment_type=values.get("employment_type"),
                 posted_at=date_value(values.get("date_posted")), raw=record))
         c.next_listing_cursor = page + 1
-        if records and not new:
+        if eligible_records and not new:
             c.problem("pagination_repeated_page_or_unrecognized_records")
             break
         if total is not None and page_start == 0 and len(c.jobs) >= total:

@@ -117,6 +117,19 @@ def test_resumed_head_uses_final_facets_instead_of_discovery_or_cached_count():
     assert "inventory_changed_during_scan" not in result.error
 
 
+def test_country_and_type_facets_are_discovered_without_keyword_hiding_regional_roles():
+    def pages(body, number):
+        if number == 1:
+            assert body['searchText'] == '' and body['offset'] == 0
+            return {'total': 1000, 'jobPostings': [], 'facets': [
+                {'facetParameter': 'locationCountry', 'values': [{'id': 'IN', 'descriptor': 'India'}]},
+                {'facetParameter': 'workerSubType', 'values': [{'id': 'INTERNS', 'descriptor': 'Intern'}]}]}
+        assert body['appliedFacets'] == {'locationCountry': ['IN'], 'workerSubType': ['INTERNS']}
+        return {'total': 1, 'jobPostings': listings(0, 1)}
+    result, calls = run(pages, config={'country_name': 'India', 'early_career': True, 'search_text': 'intern'})
+    assert result.complete and result.coverage_scope == 'query' and len(result.jobs) == 1
+
+
 @pytest.mark.parametrize("invalid", [None, True, -1, "30"])
 def test_invalid_later_total_is_not_treated_as_zero_sentinel(invalid):
     result, _ = run(lambda body, _: {

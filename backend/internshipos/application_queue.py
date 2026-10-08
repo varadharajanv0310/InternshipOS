@@ -15,10 +15,11 @@ def fingerprint(db,app):
 
 def blockers(db,app,eligibility_reviewed=False):
     op=app.opportunity;reasons=[]
+    from .shortlist import assessment, exclusions, appearances_for
+    reasons.extend(assessment(op, appearances_for(db, op), exclusions(db))["review_reasons"])
     if app.stage!='ready':reasons.append('Application is not in Ready.')
     if op.status!='active':reasons.append('Job is not confirmed active.')
     if op.deadline and aware(op.deadline)<utcnow():reasons.append('Application deadline has passed.')
-    if not op.last_verified or utcnow()-aware(op.last_verified)>timedelta(hours=48):reasons.append('Refresh the original job; verification is older than 48 hours.')
     if location_decision(op.location,op.country,op.work_mode)!='allowed':reasons.append('Location does not meet your policy.')
     if re.search(PHD_ONLY,op.title,re.I) or op.eligibility=='probably ineligible':reasons.append('Known eligibility conflict.')
     elif op.eligibility!='probably eligible' and not eligibility_reviewed:reasons.append('Review eligibility explicitly before approval.')
@@ -33,13 +34,14 @@ def blockers(db,app,eligibility_reviewed=False):
     for other in db.scalars(select(m.Application).where(m.Application.id!=app.id)).all():
         if (other.opportunity_id==op.id or canonicalize_url(other.opportunity.apply_url or other.opportunity.canonical_url or '')==url) and (other.stage!='ready' or other.data.get('auto_apply',{}).get('state') in {'approved','in_progress','uncertain','submitted'}):
             reasons.append('A matching application is already submitted or queued.');break
-    return reasons
+    return list(dict.fromkeys(reasons))
 
 def listing(db):
     rows=[]
     for app in db.scalars(select(m.Application).order_by(m.Application.created_at)).all():
         approval=(app.data or {}).get('auto_apply',{})
-        rows.append({'id':app.id,'company':app.opportunity.company.name,'title':app.opportunity.title,'url':app.opportunity.apply_url or app.opportunity.canonical_url,'state':approval.get('state','needs_review'),'stage':app.stage,'blockers':blockers(db,app,approval.get('eligibility_reviewed',False)),'approval_current':approval.get('fingerprint')==fingerprint(db,app)})
+        current_blockers=blockers(db,app,approval.get('eligibility_reviewed',False))
+        rows.append({'id':app.id,'company':app.opportunity.company.name,'title':app.opportunity.title,'url':app.opportunity.apply_url or app.opportunity.canonical_url,'state':approval.get('state','needs_review'),'stage':app.stage,'blockers':current_blockers,'approval_current':approval.get('fingerprint')==fingerprint(db,app) and not current_blockers})
     return {'items':rows,'total':len(rows),'execution':'User browser extension; no hosted browser worker.'}
 
 def approve(db,id,eligibility_reviewed=False):

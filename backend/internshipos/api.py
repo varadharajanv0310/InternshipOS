@@ -41,12 +41,24 @@ def safe_url(value):
 @router.get('/dashboard')
 def dashboard(db:Session=Depends(get_db)):return service.dashboard(db)
 @router.get('/opportunities')
-def opportunities(q:str='',role:str='',location:str='',kind:str='internship',saved:bool|None=None,min_fit:int|None=None,min_worth:int|None=None,technical:bool=True,work_mode:str='',eligibility:str='',source:str='',risk:str='',fresh_days:int|None=None,application_stage:str='',pay:str='',sort:str='company_priority',page:int=1,page_size:int=40,db:Session=Depends(get_db)):
-    return service.list_opportunities(db,q=q,role=role,location=location,kind=kind,saved=saved,min_fit=min_fit,min_worth=min_worth,technical=technical,work_mode=work_mode,eligibility=eligibility,source=source,risk=risk,fresh_days=fresh_days,application_stage=application_stage,pay=pay,sort=sort,page=max(1,page),page_size=max(1,min(page_size,100)))
+def opportunities(q:str='',role:str='',location:str='',kind:str='internship',saved:bool|None=None,min_fit:int|None=None,min_worth:int|None=None,technical:bool=True,work_mode:str='',eligibility:str='',source:str='',risk:str='',fresh_days:int|None=None,application_stage:str='',pay:str='',excluded:bool=False,sort:str='company_priority',page:int=1,page_size:int=40,db:Session=Depends(get_db)):
+    return service.list_opportunities(db,q=q,role=role,location=location,kind=kind,saved=saved,min_fit=min_fit,min_worth=min_worth,technical=technical,work_mode=work_mode,eligibility=eligibility,source=source,risk=risk,fresh_days=fresh_days,application_stage=application_stage,pay=pay,excluded=excluded,sort=sort,page=max(1,page),page_size=max(1,min(page_size,100)))
+@router.get('/shortlist/exclusions')
+def shortlist_exclusions(db:Session=Depends(get_db)):return service.get_shortlist_exclusions(db)
+@router.patch('/shortlist/exclusions')
+def shortlist_exclude(payload:dict,db:Session=Depends(get_db)):return service.set_shortlist_exclusion(db,payload)
 @router.get('/opportunities/{id}')
 def opportunity(id:str,db:Session=Depends(get_db)):return must(service.get_opportunity(db,id))
 @router.patch('/opportunities/{id}')
 def save_opportunity(id:str,payload:dict,db:Session=Depends(get_db)):return service.save_opportunity(db,id,payload)
+@router.post('/opportunities/{id}/refresh',status_code=202)
+def refresh_opportunity(id:str,db:Session=Depends(get_db)):
+    must(service.get_opportunity(db,id))
+    return enqueue(db,'refresh_opportunity',{'opportunity_id':id})
+@router.get('/jobs/{id}')
+def job_status(id:str,db:Session=Depends(get_db)):
+    job=must(db.get(BackgroundJob,id))
+    return {'job_id':job.id,'kind':job.kind,'status':job.status,'error':job.error,'result':(job.payload or {}).get('result')}
 @router.get('/applications')
 def applications(db:Session=Depends(get_db)):return service.list_applications(db)
 @router.post('/applications',status_code=201)

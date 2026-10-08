@@ -48,7 +48,7 @@ def task_dict(obj):
     return row_dict(obj)
 
 
-def opportunity_dict(db, obj, detail=True):
+def opportunity_dict(db, obj, detail=True, *, rules=None):
     if obj is None:
         return None
     result = row_dict(obj)
@@ -61,6 +61,17 @@ def opportunity_dict(db, obj, detail=True):
     result["compensation"] = {"kind": "unknown", "label": "Not stated", "min": None, "max": None,
                               "currency": None, "period": None, **(obj.compensation or {})}
     appearances = db.scalars(select(m.JobSource).where(m.JobSource.opportunity_id == obj.id)).all() if detail else obj.sources
+    mirror_ids = list((obj.data or {}).get("mirror_ids") or [])
+    if mirror_ids:
+        appearances = [*appearances, *db.scalars(select(m.JobSource).where(m.JobSource.opportunity_id.in_(mirror_ids))).all()]
+    from .shortlist import assessment, exclusions
+    rules = rules if rules is not None else exclusions(db)
+    result["shortlist"] = json_value(assessment(obj, appearances, rules))
+    result["excluded"] = obj.id in rules["opportunity_ids"] or obj.company_id in rules["company_ids"]
+    result["duplicate_of"] = (obj.data or {}).get("duplicate_of")
+    summary = (obj.data or {}).get("eligibility_summary") or {}
+    result["eligibility_reasons"] = summary.get("reasons") or ["Employer requirements or confirmed profile facts need review."]
+    result["eligibility_checks"] = summary.get("checks") or []
     if obj.trust_state=='high_risk' or any('requests cryptocurrency payment' in str(r).lower() for r in (obj.risk_reasons or [])):
         result['trust_state']='high_risk'
     elif obj.risk_reasons or not obj.company.verified:
@@ -72,7 +83,7 @@ def opportunity_dict(db, obj, detail=True):
                            "company_source_id": src.company_source_id, "external_id": src.external_id,
                            "requisition_id": src.requisition_id, "url": src.url,
                            "verified": src.company_source.verified, "status": src.status,
-                           "first_seen": iso(src.first_seen), "last_seen": iso(src.last_seen)} for src in appearances]
+                           "first_seen": iso(src.first_seen), "last_seen": iso(src.last_seen), "last_detail_checked": iso(src.last_detail_checked)} for src in appearances]
     if not detail:
         for key in ('description','description_html','data'):result.pop(key,None)
         return result

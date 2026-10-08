@@ -5,6 +5,7 @@
 .env.*.local
 data/*
 !data/.gitkeep
+/backend/data/
 backend/.venv/
 backend/.jobspy-venv/
 frontend/.test-build/

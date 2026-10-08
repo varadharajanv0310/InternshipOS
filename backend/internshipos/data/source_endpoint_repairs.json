@@ -9,7 +9,9 @@
       "from_url": "https://job-boards.greenhouse.io/amplitude",
       "provider": "ashby",
       "url": "https://jobs.ashbyhq.com/amplitude",
-      "config": {"token": "amplitude"},
+      "config": {
+        "token": "amplitude"
+      },
       "evidence": {
         "kind": "official_site_ats_link",
         "linked_from": "https://amplitude.com/careers",
@@ -27,7 +29,9 @@
       "from_url": "https://www.observe.ai/careers",
       "provider": "greenhouse",
       "url": "https://job-boards.greenhouse.io/observeai",
-      "config": {"token": "observeai"},
+      "config": {
+        "token": "observeai"
+      },
       "evidence": {
         "kind": "official_site_ats_embed",
         "linked_from": "https://www.observe.ai/careers",
@@ -45,7 +49,11 @@
       "from_url": "https://www.icertis.com/company/careers/",
       "provider": "oracle_hcm",
       "url": "https://iaaviz.fa.ocs.oraclecloud.com/hcmUI/CandidateExperience/en/sites/Jobs-at-Icertis/",
-      "config": {"host": "iaaviz.fa.ocs.oraclecloud.com", "site": "Jobs-at-Icertis", "keyword": "intern"},
+      "config": {
+        "host": "iaaviz.fa.ocs.oraclecloud.com",
+        "site": "Jobs-at-Icertis",
+        "keyword": "intern"
+      },
       "evidence": {
         "kind": "official_site_ats_link",
         "linked_from": "https://www.icertis.com/company/careers/",
@@ -60,10 +68,15 @@
       "company": "PhonePe",
       "from_provider": "greenhouse",
       "from_url": "https://job-boards.greenhouse.io/phonepe",
-      "from_urls": ["https://job-boards.greenhouse.io/phonepe", "https://boards.greenhouse.io/phonepe"],
+      "from_urls": [
+        "https://job-boards.greenhouse.io/phonepe",
+        "https://boards.greenhouse.io/phonepe"
+      ],
       "provider": "smartrecruiters",
       "url": "https://careers.smartrecruiters.com/PHONEPELIMITED",
-      "config": {"token": "PHONEPELIMITED"},
+      "config": {
+        "token": "PHONEPELIMITED"
+      },
       "evidence": {
         "kind": "official_careers_feed_ats_links",
         "linked_from": "https://www.phonepe.com/careers/job-openings/",
@@ -83,7 +96,9 @@
       "from_url": "https://www.alpha-grep.com/careers",
       "provider": "greenhouse",
       "url": "https://job-boards.greenhouse.io/alphagrepsecurities",
-      "config": {"token": "alphagrepsecurities"},
+      "config": {
+        "token": "alphagrepsecurities"
+      },
       "evidence": {
         "kind": "official_careers_feed_ats_links",
         "linked_from": "https://www.alpha-grep.com/career/",
@@ -103,7 +118,9 @@
       "from_url": "https://job-boards.greenhouse.io/clickhouse",
       "provider": "ashby",
       "url": "https://jobs.ashbyhq.com/clickhouse",
-      "config": {"token": "clickhouse"},
+      "config": {
+        "token": "clickhouse"
+      },
       "evidence": {
         "kind": "official_careers_script_public_api",
         "linked_from": "https://clickhouse.com/company/careers",
@@ -122,7 +139,9 @@
       "from_url": "https://job-boards.greenhouse.io/cerebrassystems",
       "provider": "ashby",
       "url": "https://jobs.ashbyhq.com/cerebras",
-      "config": {"token": "cerebras"},
+      "config": {
+        "token": "cerebras"
+      },
       "evidence": {
         "kind": "official_site_ats_link",
         "linked_from": "https://www.cerebras.ai/open-positions",
@@ -144,9 +163,20 @@
       "config": {
         "api_url": "https://careers.zohocorp.com/recruit/v2/public/Job_Openings",
         "method": "GET",
-        "params": {"pagename": "Careers", "source": "CareerSite", "extra_fields": "[\"Remote_Job\",\"Job_Description\"]"},
+        "params": {
+          "pagename": "Careers",
+          "source": "CareerSite",
+          "extra_fields": "[\"Remote_Job\",\"Job_Description\"]"
+        },
         "json_path": "data",
-        "fields": {"id": "id", "title": "Job_Opening_Name||Posting_Title", "url": "$url", "location": "City||Country1", "description": "Job_Description", "employment_type": "Job_Type"},
+        "fields": {
+          "id": "id",
+          "title": "Job_Opening_Name||Posting_Title",
+          "url": "$url",
+          "location": "City||Country1",
+          "description": "Job_Description",
+          "employment_type": "Job_Type"
+        },
         "description_scope": "summary",
         "inventory_scope": "discovery",
         "description_is_partial": true,
@@ -162,6 +192,223 @@
         "listed_jobs": 2,
         "note": "Official careers script declares this public India careers API. It provides summary descriptions and no total-count/pagination proof, so this is discovery coverage, not a full internship inventory."
       }
+    },
+    {
+      "company": "Fractal",
+      "from_provider": "generic",
+      "from_url": "https://fractal.ai/careers/",
+      "provider": "workday",
+      "url": "https://fractal.wd1.myworkdayjobs.com/Careers",
+      "config": {
+        "country_name": "India",
+        "early_career": true,
+        "search_text": "intern",
+        "detail_target_only": true
+      },
+      "evidence": {
+        "kind": "official_site_public_careers_binding",
+        "linked_from": "https://fractal.ai/careers/",
+        "target": "https://fractal.wd1.myworkdayjobs.com/Careers",
+        "observed_at": "2026-10-08",
+        "checked_status": 200,
+        "note": "Official careers URL directly redirects to this Workday site. The separate SmartRecruiters source remains; no identity or history merge is assumed."
+      }
+    },
+    {
+      "company": "Sprinklr",
+      "from_provider": "generic",
+      "from_url": "https://www.sprinklr.com/careers/",
+      "provider": "workday",
+      "url": "https://sprinklr.wd1.myworkdayjobs.com/careers",
+      "config": {
+        "country_name": "India",
+        "early_career": true,
+        "search_text": "intern",
+        "detail_target_only": true
+      },
+      "evidence": {
+        "kind": "official_site_public_careers_binding",
+        "linked_from": "https://www.sprinklr.com/careers/",
+        "target": "https://sprinklr.wd1.myworkdayjobs.com/careers",
+        "observed_at": "2026-10-08",
+        "checked_status": 200,
+        "note": "Official careers page contains explicit Workday job-family and application links. Tracking parameters are omitted from canonical board URL."
+      }
+    },
+    {
+      "company": "HP",
+      "from_provider": "generic",
+      "from_url": "https://apply.hp.com/careers",
+      "provider": "eightfold",
+      "url": "https://apply.hp.com/careers",
+      "config": {
+        "domain": "hp.com",
+        "query": "intern",
+        "detail_target_only": true
+      },
+      "evidence": {
+        "kind": "official_site_public_careers_binding",
+        "linked_from": "https://apply.hp.com/careers",
+        "target": "https://apply.hp.com/careers",
+        "observed_at": "2026-10-08",
+        "checked_status": 200,
+        "note": "The official public career application page embeds Eightfold PCSx metadata; exact native PCSx query returned typed positions and count. This internship query supplements the existing HP Workday source; it is not a full-board absence proof.",
+        "checked_api": "https://apply.hp.com/api/pcsx/search?domain=hp.com&query=intern&start=0"
+      }
+    },
+    {
+      "company": "Nokia",
+      "from_provider": "generic",
+      "from_url": "https://jobs.nokia.com/en/sites/CX_1/jobs",
+      "provider": "oracle_hcm",
+      "url": "https://fa-evmr-saasfaprod1.fa.ocs.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1",
+      "config": {
+        "site": "CX_1",
+        "keyword": "intern",
+        "detail_target_only": true
+      },
+      "evidence": {
+        "kind": "official_site_public_careers_binding",
+        "linked_from": "https://jobs.nokia.com/en/sites/CX_1/jobs",
+        "target": "https://fa-evmr-saasfaprod1.fa.ocs.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1",
+        "observed_at": "2026-10-08",
+        "checked_status": 200,
+        "note": "Official custom-domain Oracle Candidate Experience HTML declares this exact first-party tenant origin and site-specific public static assets. Bounded internship finder is query scope."
+      }
+    },
+    {
+      "company": "Texas Instruments",
+      "from_provider": "generic",
+      "from_url": "https://careers.ti.com/en/sites/CX/jobs",
+      "provider": "oracle_hcm",
+      "url": "https://edbz.fa.us2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX",
+      "config": {
+        "site": "CX",
+        "keyword": "intern",
+        "detail_target_only": true
+      },
+      "evidence": {
+        "kind": "official_site_public_careers_binding",
+        "linked_from": "https://careers.ti.com/en/sites/CX/jobs",
+        "target": "https://edbz.fa.us2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX",
+        "observed_at": "2026-10-08",
+        "checked_status": 200,
+        "note": "Official custom-domain Oracle Candidate Experience HTML declares this exact first-party tenant origin and site-specific public static assets. Bounded internship finder is query scope."
+      }
+    },
+    {
+      "company": "Unity Technologies",
+      "from_provider": "greenhouse",
+      "from_url": "https://boards-api.greenhouse.io/v1/boards/unity3d/jobs",
+      "provider": "workday",
+      "url": "https://unitytech.wd1.myworkdayjobs.com/Unity",
+      "config": {
+        "country_name": "India",
+        "early_career": true,
+        "search_text": "intern",
+        "detail_target_only": true
+      },
+      "evidence": {
+        "kind": "official_site_public_careers_binding",
+        "linked_from": "https://unity.com/careers/positions",
+        "target": "https://unitytech.wd1.myworkdayjobs.com/Unity",
+        "observed_at": "2026-10-08",
+        "checked_status": 200,
+        "note": "Official current positions page links this new Workday board; old Unity3d Greenhouse endpoint returns404."
+      }
+    },
+    {
+      "company": "PTC",
+      "from_provider": "eightfold",
+      "from_url": "https://ptc.eightfold.ai/careers",
+      "provider": "workday",
+      "url": "https://ptc.wd1.myworkdayjobs.com/ptc",
+      "config": {},
+      "evidence": {
+        "kind": "official_site_public_careers_binding",
+        "linked_from": "https://www.ptc.com/en/careers",
+        "target": "https://ptc.wd1.myworkdayjobs.com/PTC",
+        "observed_at": "2026-10-08",
+        "checked_status": 200,
+        "note": "Official page links current Workday board. Reuse the existing lowercase canonical source whose native query already succeeded; preserve its existing configuration."
+      }
+    },
+    {
+      "company": "BNY",
+      "from_provider": "generic",
+      "from_url": "https://us.bny.talentnet.community/",
+      "provider": "oracle_hcm",
+      "url": "https://eofe.fa.us2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/BNY-Careers",
+      "config": {
+        "site": "BNY-Careers",
+        "keyword": "intern",
+        "detail_target_only": true
+      },
+      "evidence": {
+        "kind": "official_site_public_careers_binding",
+        "linked_from": "https://www.bny.com/corporate/global/en/about-us/careers/work-with-us.html",
+        "target": "https://eofe.fa.us2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/BNY-Careers/jobs",
+        "observed_at": "2026-10-08",
+        "checked_status": 200,
+        "note": "Official BNY careers page links this exact current site; existing CX_1 source is kept distinct until equivalence is established."
+      }
+    },
+    {
+      "company": "Zeta",
+      "from_provider": "generic",
+      "from_url": "https://www.zeta.tech/careers/",
+      "provider": "lever",
+      "url": "https://jobs.lever.co/zeta",
+      "config": {
+        "token": "zeta"
+      },
+      "evidence": {
+        "kind": "official_site_public_careers_binding",
+        "linked_from": "https://www.zeta.tech/in/careers/work-with-us",
+        "target": "https://jobs.lever.co/zeta",
+        "observed_at": "2026-10-08",
+        "checked_status": 200,
+        "note": "Official careers page declares work-with-us.js, which explicitly reads Lever v0/postings/zeta?group=team&mode=json.",
+        "checked_api": "https://api.lever.co/v0/postings/zeta?mode=json"
+      }
+    },
+    {
+      "company": "CleverTap",
+      "from_provider": "generic",
+      "from_url": "https://clevertap.com/careers/",
+      "provider": "generic",
+      "url": "https://careers.kula.ai/clevertap",
+      "config": {},
+      "evidence": {
+        "kind": "official_site_public_careers_binding",
+        "linked_from": "https://clevertap.com/careers/",
+        "target": "https://careers.kula.ai/clevertap",
+        "observed_at": "2026-10-08",
+        "checked_status": 200,
+        "note": "Official Explore Careers links identify Kula. Public SSR native job array and exact rendered job URLs yielded13full descriptions in one read without storing or replaying the website bearer token.",
+        "listed_jobs": 13
+      }
+    },
+    {
+      "company": "Dell Technologies",
+      "from_provider": "workday",
+      "from_url": "https://dell.wd1.myworkdayjobs.com/External",
+      "provider": "oracle_hcm",
+      "url": "https://enterpriseplatform.dell.com/hcmUI/CandidateExperience/en/sites/careers/jobs",
+      "config": {
+        "site": "careers",
+        "keyword": "intern",
+        "detail_target_only": true
+      },
+      "evidence": {
+        "kind": "official_site_public_careers_binding",
+        "linked_from": "https://enterpriseplatform.dell.com/hcmUI/CandidateExperience/en/sites/careers/jobs",
+        "target": "https://enterpriseplatform.dell.com/hcmUI/CandidateExperience/en/sites/careers/jobs?source=pagebuilder_landingpage",
+        "observed_at": "2026-10-08",
+        "checked_status": 200,
+        "listed_jobs": 162,
+        "note": "Directly verified first-party public Oracle CandidateExperience site on Dell's own domain, with native Oracle site assets and a working public job inventory. Existing Oracle adapter enumerated all 162 native intern-search results in two requests; none qualified for strict personal target details at this observation. No unobserved careers-page hyperlink is claimed. Old Workday HTTP422 is retained until the replacement's live inventory is persisted."
+      }
     }
   ],
   "existing_canonical_bindings": [
@@ -170,21 +417,141 @@
       "generic_url": "https://www.freshworks.com/company/careers/",
       "provider": "smartrecruiters",
       "url": "https://careers.smartrecruiters.com/Freshworks",
-      "evidence": {"kind": "official_site_ats_link", "linked_from": "https://www.freshworks.com/company/careers/", "target": "https://careers.smartrecruiters.com/Freshworks", "observed_at": "2026-10-06", "checked_status": 200, "listed_jobs": 123}
+      "evidence": {
+        "kind": "official_site_ats_link",
+        "linked_from": "https://www.freshworks.com/company/careers/",
+        "target": "https://careers.smartrecruiters.com/Freshworks",
+        "observed_at": "2026-10-06",
+        "checked_status": 200,
+        "listed_jobs": 123
+      }
     },
     {
       "company": "Mastercard",
       "generic_url": "https://careers.mastercard.com/",
       "provider": "workday",
       "url": "https://mastercard.wd1.myworkdayjobs.com/CorporateCareers",
-      "evidence": {"kind": "official_site_ats_link", "linked_from": "https://careers.mastercard.com/us/en/", "target": "https://mastercard.wd1.myworkdayjobs.com/CorporateCareers", "observed_at": "2026-10-07", "checked_status": 200, "note": "The current official careers page explicitly links this exact existing Workday board. The generic route currently has no recognized JobPosting inventory. This binding preserves source identity and owner settings; alias retirement still requires a fresh successful canonical inventory result."}
+      "evidence": {
+        "kind": "official_site_ats_link",
+        "linked_from": "https://careers.mastercard.com/us/en/",
+        "target": "https://mastercard.wd1.myworkdayjobs.com/CorporateCareers",
+        "observed_at": "2026-10-07",
+        "checked_status": 200,
+        "note": "The current official careers page explicitly links this exact existing Workday board. The generic route currently has no recognized JobPosting inventory. This binding preserves source identity and owner settings; alias retirement still requires a fresh successful canonical inventory result."
+      }
     },
     {
       "company": "BrowserStack",
       "generic_url": "https://www.browserstack.com/careers",
       "provider": "workday",
       "url": "https://browserstack.wd3.myworkdayjobs.com/External",
-      "evidence": {"kind": "official_site_ats_link", "linked_from": "https://www.browserstack.com/careers", "target": "https://browserstack.wd3.myworkdayjobs.com/External", "observed_at": "2026-10-06", "checked_status": 200, "note": "Canonical Workday source already exists. Marketing page failure does not mean missing Workday inventory."}
+      "evidence": {
+        "kind": "official_site_ats_link",
+        "linked_from": "https://www.browserstack.com/careers",
+        "target": "https://browserstack.wd3.myworkdayjobs.com/External",
+        "observed_at": "2026-10-06",
+        "checked_status": 200,
+        "note": "Canonical Workday source already exists. Marketing page failure does not mean missing Workday inventory."
+      }
+    },
+    {
+      "company": "Accenture",
+      "generic_url": "https://www.accenture.com/br-pt/careers/jobsearch",
+      "provider": "workday",
+      "url": "https://accenture.wd103.myworkdayjobs.com/accenturecareers",
+      "evidence": {
+        "kind": "official_site_public_careers_binding",
+        "linked_from": "https://www.accenture.com/br-pt/careers/jobsearch",
+        "target": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/userHome",
+        "observed_at": "2026-10-08",
+        "checked_status": 200,
+        "note": "Official regional pages link the global Workday tenant. Reuse the existing source whose configured site is AccentureCareers; existing India early-career query stays unchanged."
+      }
+    },
+    {
+      "company": "Accenture",
+      "generic_url": "https://www.accenture.com/au-en/careers/jobsearch",
+      "provider": "workday",
+      "url": "https://accenture.wd103.myworkdayjobs.com/accenturecareers",
+      "evidence": {
+        "kind": "official_site_public_careers_binding",
+        "linked_from": "https://www.accenture.com/au-en/careers/jobsearch",
+        "target": "https://accenture.wd103.myworkdayjobs.com/AccentureCareers/userHome",
+        "observed_at": "2026-10-08",
+        "checked_status": 200,
+        "note": "Official regional pages link the global Workday tenant. Reuse the existing source whose configured site is AccentureCareers; existing India early-career query stays unchanged."
+      }
+    },
+    {
+      "company": "FIS",
+      "generic_url": "https://careers.fisglobal.com/",
+      "provider": "workday",
+      "url": "https://fis.wd5.myworkdayjobs.com/searchjobs",
+      "evidence": {
+        "kind": "official_site_public_careers_binding",
+        "linked_from": "https://careers.fisglobal.com/",
+        "target": "https://fis.wd5.myworkdayjobs.com/en-US/SearchJobs/login",
+        "observed_at": "2026-10-08",
+        "checked_status": 200,
+        "note": "Exact official ATS links confirm the existing canonical board. Case-insensitive existing site spelling already passed a public query; preserve its source identity, India scope, cadence and owner settings."
+      }
+    },
+    {
+      "company": "State Street",
+      "generic_url": "https://careers.statestreet.com/",
+      "provider": "workday",
+      "url": "https://statestreet.wd1.myworkdayjobs.com/global",
+      "evidence": {
+        "kind": "official_site_public_careers_binding",
+        "linked_from": "https://careers.statestreet.com/",
+        "target": "https://statestreet.wd1.myworkdayjobs.com/en-US/Global/introduceYourself",
+        "observed_at": "2026-10-08",
+        "checked_status": 200,
+        "note": "Exact official ATS links confirm the existing canonical board. Case-insensitive existing site spelling already passed a public query; preserve its source identity, India scope, cadence and owner settings."
+      }
+    },
+    {
+      "company": "State Street",
+      "generic_url": "https://careers.statestreet.com/global/en/search-results/",
+      "provider": "workday",
+      "url": "https://statestreet.wd1.myworkdayjobs.com/global",
+      "evidence": {
+        "kind": "official_site_public_careers_binding",
+        "linked_from": "https://careers.statestreet.com/global/en/search-results/",
+        "target": "https://statestreet.wd1.myworkdayjobs.com/Global/job/Chennai-India/Core-Operations--Officer_R-798053-1/apply",
+        "observed_at": "2026-10-08",
+        "checked_status": 200,
+        "note": "Exact official ATS links confirm the existing canonical board. Case-insensitive existing site spelling already passed a public query; preserve its source identity, India scope, cadence and owner settings."
+      }
+    },
+    {
+      "company": "Northern Trust",
+      "generic_url": "https://northern-trust.talentnet.community/jobs/search",
+      "provider": "workday",
+      "url": "https://ntrs.wd1.myworkdayjobs.com/northerntrust",
+      "evidence": {
+        "kind": "official_site_public_careers_binding",
+        "linked_from": "https://www.northerntrust.com/asia-pac/about-us/careers",
+        "target": "https://ntrs.wd1.myworkdayjobs.com/northerntrust",
+        "observed_at": "2026-10-08",
+        "checked_status": 200,
+        "note": "Exact official ATS links confirm the existing canonical board. Case-insensitive existing site spelling already passed a public query; preserve its source identity, India scope, cadence and owner settings."
+      }
+    },
+    {
+      "company": "Graviton",
+      "generic_url": "https://www.gravitontrading.com/careers.html",
+      "provider": "greenhouse",
+      "url": "https://boards.greenhouse.io/gravitonresearchcapital",
+      "evidence": {
+        "kind": "official_site_public_careers_binding",
+        "linked_from": "https://www.gravitontrading.com/data/greenhouse_jobs.json",
+        "target": "https://boards.greenhouse.io/embed/job_board?for=gravitonresearchcapital",
+        "observed_at": "2026-10-08",
+        "checked_status": 200,
+        "note": "Careers page embeds first-party greenhouse-embed-local.html, whose declared script reads this JSON asset. source.board_url and native jobs explicitly identify the existing live board. Current offices are outside the owner city policy; this is a verified source, not an assertion of useful internships.",
+        "listed_jobs": 21
+      }
     }
   ],
   "config_repairs": [
@@ -194,12 +561,52 @@
       "url": "https://www.atlassian.com/company/careers/all-jobs",
       "expected_config": {
         "api_url": "https://www.atlassian.com/endpoint/careers/listings",
-        "fields": {"title": "title", "locations": "locations", "description": ["overview", "responsibilities", "qualifications"], "metadata.team": "category"}
+        "fields": {
+          "title": "title",
+          "locations": "locations",
+          "description": [
+            "overview",
+            "responsibilities",
+            "qualifications"
+          ],
+          "metadata.team": "category"
+        }
       },
       "config": {
-        "fields": {"id": "id", "title": "title", "locations": "locations", "description": {"concat": ["overview", "responsibilities", "qualifications"], "separator": "\n\n"}, "employment_type": "type", "metadata.team": "category"}
+        "fields": {
+          "id": "id",
+          "title": "title",
+          "locations": "locations",
+          "description": {
+            "concat": [
+              "overview",
+              "responsibilities",
+              "qualifications"
+            ],
+            "separator": "\n\n"
+          },
+          "employment_type": "type",
+          "metadata.team": "category"
+        }
       },
-      "evidence": {"kind": "verified_public_feed_schema", "checked_api": "https://www.atlassian.com/endpoint/careers/listings", "checked_status": 200, "observed_at": "2026-10-07", "listed_jobs": 348, "public_fields": ["id", "title", "type", "locations", "overview", "responsibilities", "qualifications", "portalJobPost.portalUrl"], "note": "The public response is an array. Description parts are HTML strings; the old array field specification fails the safe path grammar. A declared concat preserves the full supplied sections without executing expressions."}
+      "evidence": {
+        "kind": "verified_public_feed_schema",
+        "checked_api": "https://www.atlassian.com/endpoint/careers/listings",
+        "checked_status": 200,
+        "observed_at": "2026-10-07",
+        "listed_jobs": 348,
+        "public_fields": [
+          "id",
+          "title",
+          "type",
+          "locations",
+          "overview",
+          "responsibilities",
+          "qualifications",
+          "portalJobPost.portalUrl"
+        ],
+        "note": "The public response is an array. Description parts are HTML strings; the old array field specification fails the safe path grammar. A declared concat preserves the full supplied sections without executing expressions."
+      }
     },
     {
       "company": "Publicis Groupe",
@@ -212,9 +619,41 @@
         "fields": null
       },
       "config": {
-        "fields": {"id": "data.req_id", "title": "data.title", "description": {"concat": ["data.description", "data.qualifications", "data.responsibilities"], "separator": "\n\n"}, "locations": "data.full_location||data.location_name", "employment_type": "data.employment_type", "date_posted": "data.posted_date"}
+        "fields": {
+          "id": "data.req_id",
+          "title": "data.title",
+          "description": {
+            "concat": [
+              "data.description",
+              "data.qualifications",
+              "data.responsibilities"
+            ],
+            "separator": "\n\n"
+          },
+          "locations": "data.full_location||data.location_name",
+          "employment_type": "data.employment_type",
+          "date_posted": "data.posted_date"
+        }
       },
-      "evidence": {"kind": "verified_public_feed_schema", "checked_api": "https://careers.publicisgroupe.com/api/jobs?page=1&limit=2", "checked_status": 200, "observed_at": "2026-10-07", "reported_total": 3047, "public_fields": ["jobs[].data.req_id", "jobs[].data.title", "jobs[].data.description", "jobs[].data.qualifications", "jobs[].data.responsibilities", "jobs[].data.full_location", "jobs[].data.employment_type", "jobs[].data.posted_date", "jobs[].data.meta_data.canonical_url"], "note": "The configured array contains a nested data object, but no fields were declared, producing missing_title_or_url. The existing canonical URL path is verified. full_location retains multiple cities (observed Melbourne, Australia; Sydney, Australia), unlike the street-address location_name. The total is a response count, not a claim that the bounded collector has already read all pages."}
+      "evidence": {
+        "kind": "verified_public_feed_schema",
+        "checked_api": "https://careers.publicisgroupe.com/api/jobs?page=1&limit=2",
+        "checked_status": 200,
+        "observed_at": "2026-10-07",
+        "reported_total": 3047,
+        "public_fields": [
+          "jobs[].data.req_id",
+          "jobs[].data.title",
+          "jobs[].data.description",
+          "jobs[].data.qualifications",
+          "jobs[].data.responsibilities",
+          "jobs[].data.full_location",
+          "jobs[].data.employment_type",
+          "jobs[].data.posted_date",
+          "jobs[].data.meta_data.canonical_url"
+        ],
+        "note": "The configured array contains a nested data object, but no fields were declared, producing missing_title_or_url. The existing canonical URL path is verified. full_location retains multiple cities (observed Melbourne, Australia; Sydney, Australia), unlike the street-address location_name. The total is a response count, not a claim that the bounded collector has already read all pages."
+      }
     },
     {
       "company": "Persistent Systems",
@@ -222,12 +661,35 @@
       "url": "https://careers.persistent.com/",
       "expected_config": {
         "api_url": "https://apipersistent.zwayam.com/jobs/search",
-        "pagination": {"param_name": "paginationStartNo", "style": "offset", "start_value": 0, "increment": 9, "location": "body"}
+        "pagination": {
+          "param_name": "paginationStartNo",
+          "style": "offset",
+          "start_value": 0,
+          "increment": 9,
+          "location": "body"
+        }
       },
       "config": {
-        "pagination": {"param_name": "filterCri.paginationStartNo", "style": "offset", "start_value": 0, "increment": 9, "location": "body", "page_size": 9}
+        "pagination": {
+          "param_name": "filterCri.paginationStartNo",
+          "style": "offset",
+          "start_value": 0,
+          "increment": 9,
+          "location": "body",
+          "page_size": 9
+        }
       },
-      "evidence": {"kind": "configured_public_form_pagination_schema", "checked_api": "https://apipersistent.zwayam.com/jobs/search", "checked_status": 503, "observed_at": "2026-10-07", "public_fields": ["filterCri.paginationStartNo", "filterCri.numberOfRecordsPerPage"], "note": "The existing declared public form stores paginationStartNo inside the JSON-encoded filterCri form value. Updating a top-level paginationStartNo cannot advance that declared search. This corrects the request grammar only. The current upstream response is HTTP503, so it remains failed until a fresh successful inventory check; no response-field or health claim is inferred."}
+      "evidence": {
+        "kind": "configured_public_form_pagination_schema",
+        "checked_api": "https://apipersistent.zwayam.com/jobs/search",
+        "checked_status": 503,
+        "observed_at": "2026-10-07",
+        "public_fields": [
+          "filterCri.paginationStartNo",
+          "filterCri.numberOfRecordsPerPage"
+        ],
+        "note": "The existing declared public form stores paginationStartNo inside the JSON-encoded filterCri form value. Updating a top-level paginationStartNo cannot advance that declared search. This corrects the request grammar only. The current upstream response is HTTP503, so it remains failed until a fresh successful inventory check; no response-field or health claim is inferred."
+      }
     },
     {
       "company": "GitHub",
@@ -235,17 +697,179 @@
       "url": "https://www.github.careers/careers-home/jobs",
       "expected_config": {
         "api_url": "https://www.github.careers/api/jobs?page=1&sortBy=relevance&descending=false&internal=false",
-        "fields": {"title": "title", "description": "description", "locations": "location_name", "employment_type": "employment_type", "date_posted": "posted_date", "qualifications": "qualifications", "responsibilities": "responsibilities"},
-        "pagination": {"param_name": "page", "style": "page", "start_value": 1, "increment": 1, "location": "query", "browser": true}
+        "fields": {
+          "title": "title",
+          "description": "description",
+          "locations": "location_name",
+          "employment_type": "employment_type",
+          "date_posted": "posted_date",
+          "qualifications": "qualifications",
+          "responsibilities": "responsibilities"
+        },
+        "pagination": {
+          "param_name": "page",
+          "style": "page",
+          "start_value": 1,
+          "increment": 1,
+          "location": "query",
+          "browser": true
+        }
       },
       "config": {
-        "fields": {"id": "req_id", "title": "title", "description": "description", "locations": "location_name", "employment_type": "employment_type", "date_posted": "posted_date", "qualifications": "qualifications", "responsibilities": "responsibilities"},
-        "pagination": {"param_name": "page", "style": "page", "start_value": 1, "increment": 1, "location": "query", "browser": true, "page_size": 10}
+        "fields": {
+          "id": "req_id",
+          "title": "title",
+          "description": "description",
+          "locations": "location_name",
+          "employment_type": "employment_type",
+          "date_posted": "posted_date",
+          "qualifications": "qualifications",
+          "responsibilities": "responsibilities"
+        },
+        "pagination": {
+          "param_name": "page",
+          "style": "page",
+          "start_value": 1,
+          "increment": 1,
+          "location": "query",
+          "browser": true,
+          "page_size": 10
+        }
       },
-      "evidence": {"kind": "verified_public_feed_schema_and_pagination", "checked_api": "https://www.github.careers/api/jobs?page=2", "checked_status": 200, "observed_at": "2026-10-07", "reported_total": 71, "public_fields": ["jobs[].data.req_id", "jobs[].data.slug", "jobs[].data.language", "jobs[].data.title"], "verified_pages": [{"page": 1, "limit": 2, "ids": ["5822", "5580"]}, {"page": 2, "limit": 2, "ids": ["5816", "5638"]}, {"page": 2, "default_limit": 10, "first_ids": ["5773", "5774", "5770", "5584", "5769"]}], "note": "The public API advances pages and supplies a role-specific req_id plus native slug. The old mapping omitted id, and the adapter overwrote native slug with an empty derived value when slug_fields was absent, collapsing role URLs. This config repair relies on the accompanying adapter correction that preserves native slug. The observed default page size is ten; the response total does not itself prove a completed scan."}
+      "evidence": {
+        "kind": "verified_public_feed_schema_and_pagination",
+        "checked_api": "https://www.github.careers/api/jobs?page=2",
+        "checked_status": 200,
+        "observed_at": "2026-10-07",
+        "reported_total": 71,
+        "public_fields": [
+          "jobs[].data.req_id",
+          "jobs[].data.slug",
+          "jobs[].data.language",
+          "jobs[].data.title"
+        ],
+        "verified_pages": [
+          {
+            "page": 1,
+            "limit": 2,
+            "ids": [
+              "5822",
+              "5580"
+            ]
+          },
+          {
+            "page": 2,
+            "limit": 2,
+            "ids": [
+              "5816",
+              "5638"
+            ]
+          },
+          {
+            "page": 2,
+            "default_limit": 10,
+            "first_ids": [
+              "5773",
+              "5774",
+              "5770",
+              "5584",
+              "5769"
+            ]
+          }
+        ],
+        "note": "The public API advances pages and supplies a role-specific req_id plus native slug. The old mapping omitted id, and the adapter overwrote native slug with an empty derived value when slug_fields was absent, collapsing role URLs. This config repair relies on the accompanying adapter correction that preserves native slug. The observed default page size is ten; the response total does not itself prove a completed scan."
+      }
+    },
+    {
+      "company": "Juspay",
+      "provider": "generic",
+      "url": "https://juspay.io/careers",
+      "expected_config": {
+        "api_url": null
+      },
+      "config": {
+        "api_url": "https://joinus.juspay.in/api/careerJobOpening",
+        "params": {
+          "limit": 1000,
+          "isGlobal": "true"
+        },
+        "json_path": "allJobs",
+        "record_filter": {
+          "is_global": true,
+          "opening_status": true
+        },
+        "fields": {
+          "id": "job_id",
+          "title": "job_title",
+          "description": "job_description_career",
+          "location": "job_location",
+          "employment_type": "job_type"
+        },
+        "url_template": "https://juspay.io/careers/{job_id}",
+        "inventory_unproven": true
+      },
+      "evidence": {
+        "kind": "official_site_public_careers_binding",
+        "linked_from": "https://juspay.io/_astro/JobListings.Bl1w-SP0.js",
+        "target": "https://joinus.juspay.in/api/careerJobOpening?limit=1000&isGlobal=true",
+        "observed_at": "2026-10-08",
+        "checked_status": 200,
+        "note": "Official public job component declares this read feed and /careers/{job_id} route. Filter closed opening_status=false rows exactly. Full descriptions are public; the frontend1000window has no independent total or paging proof, so remain partial discovery. Six records observed, five open; Bangalore backend Intern DEV-BE02 is included.",
+        "listed_jobs": 6
+      }
+    },
+    {
+      "company": "Apple",
+      "provider": "generic",
+      "url": "https://jobs.apple.com/en-us/search?page=1",
+      "expected_config": {
+        "source": "reactrouter",
+        "params": null
+      },
+      "config": {
+        "params": {
+          "location": "india-INDC"
+        },
+        "detail_target_only": true
+      },
+      "evidence": {
+        "kind": "official_site_public_careers_binding",
+        "linked_from": "https://jobs.apple.com/en-us/search?location=india-INDC",
+        "target": "https://jobs.apple.com/en-us/search?location=india-INDC",
+        "observed_at": "2026-10-08",
+        "checked_status": 200,
+        "note": "Native ReactRouter loader supplied168Indian listings across9pages, exactIDs and total. Only two current internship titles are PhD roles, excluded by personal targeting; do not claim168useful internships.",
+        "listed_jobs": 168
+      }
+    },
+    {
+      "company": "Google",
+      "provider": "generic",
+      "url": "https://www.google.com/about/careers/applications/jobs/results/",
+      "expected_config": {
+        "params": null
+      },
+      "config": {
+        "params": {
+          "q": "intern",
+          "location": "India"
+        },
+        "detail_target_only": true
+      },
+      "evidence": {
+        "kind": "official_site_public_careers_binding",
+        "linked_from": "https://www.google.com/about/careers/applications/jobs/results/",
+        "target": "https://www.google.com/about/careers/applications/jobs/results/?q=intern&location=India",
+        "observed_at": "2026-10-08",
+        "checked_status": 200,
+        "note": "Use official native internship/location search with data-id-bound full detail pane. Respect document base and do not include suggested role descriptions. Bengaluru sample yielded2listings2fullJDs3requests. Query scope never proves full employer absence."
+      }
     }
   ],
   "unresolved_candidates": [
-    {"company": "Postman", "reason": "Old Greenhouse board returns 404; guessed Ashby and postmanlabs boards also return 404. Current official page uses a custom integration requiring further endpoint inspection."}
+    {
+      "company": "Postman",
+      "reason": "Old Greenhouse board returns 404; guessed Ashby and postmanlabs boards also return 404. Current official page uses a custom integration requiring further endpoint inspection."
+    }
   ]
 }

@@ -1,7 +1,7 @@
 import type { Row } from './api';
 
-export const eligibilityLabel=(value?:string)=>({eligible:'Eligible',ineligible:'Ineligible',unclear:'Unclear'}[String(value||'').toLowerCase()]||'Unclear');
-export const eligibilityTone=(value?:string)=>value?.toLowerCase()==='eligible'?'green':value?.toLowerCase()==='ineligible'?'red':'amber';
+export const eligibilityLabel=(value?:string)=>({eligible:'Eligible',ineligible:'Ineligible','probably eligible':'Likely eligible','probably ineligible':'Likely ineligible',unclear:'Unclear'}[String(value||'').toLowerCase()]||'Unclear');
+export const eligibilityTone=(value?:string)=>['eligible','probably eligible'].includes(String(value||'').toLowerCase())?'green':['ineligible','probably ineligible'].includes(String(value||'').toLowerCase())?'red':'amber';
 export function activityTitle(activity:Row){return activity.title||activity.summary||String(activity.kind||activity.action||activity.event_type||'Workspace updated').replaceAll('_',' ').replaceAll('.',' ');}
 export function activityDetail(activity:Row){if(activity.body||activity.description||activity.reason)return activity.body||activity.description||activity.reason;const d=activity.data||{};if(d.accepted_unique!=null)return `${d.accepted_unique} observations · ${d.created??0} new · ${d.updated??0} updated${d.can_infer_absence===false?' · Closure inference withheld':''}`;if(d.boards!=null)return `${d.boards} company boards checked`;return activity.entity_type||'';}
 export function compensationVisibility(rows:Row[],total:number){if(!total)return [];const stated=rows.filter(r=>r.min!=null||r.max!=null).length;return [{name:'Numeric pay disclosed',count:stated},{name:'Numeric pay not available',count:Math.max(0,total-stated)}];}

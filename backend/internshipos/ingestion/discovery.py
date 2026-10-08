@@ -120,6 +120,10 @@ async def jobspy(c):
         site = "linkedin"
     if site not in {"linkedin", "indeed", "naukri", "google", "glassdoor", "zip_recruiter"}:
         raise SourceError("unsupported_jobspy_site")
+    if site == "linkedin":
+        from .linkedin_public import collect
+        await collect(c)
+        return
     args = {"site": site, "search_term": c.source.config.get("search_term", "software intern"),
             "location": c.source.config.get("location", "India"),
             "results_wanted": min(int(c.source.config.get("results_wanted", 30)), 100)}

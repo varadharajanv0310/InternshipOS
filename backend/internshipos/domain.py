@@ -114,7 +114,8 @@ def extract_skills(text: str) -> list[str]:
 
 def extract_requirements(text: str) -> list[dict]:
     requirements = []
-    for raw in re.split(r"[\n.!?]+", text):
+    # A period inside B.Tech/Ph.D is not a sentence boundary.
+    for raw in re.split(r"\n+|[!?]+|\.(?=\s+[A-Z]|$)", text):
         sentence = raw.strip()
         if not sentence:
             continue
@@ -122,16 +123,39 @@ def extract_requirements(text: str) -> list[dict]:
         if re.search(r"graduat|batch\s+of|class\s+of|passing\s+out", sentence, re.I):
             years = [int(x) for x in re.findall(r"\b20[2-4]\d\b", sentence)]
             if years:
-                requirements.append({"type": "graduation_year", "min": min(years), "max": max(years), "evidence": sentence, "requiredness": requiredness})
+                requirements.append({"type": "graduation_year", "min": min(years), "max": max(years),
+                                     "allowed_years": None if re.search(r"20\d\d\s*(?:[-–—]|to|through)\s*20\d\d|\bbetween\b", sentence, re.I) else sorted(set(years)),
+                                     "evidence": sentence, "requiredness": requiredness})
         cgpa = re.search(r"(?:minimum\s+|at\s+least\s+)?(?:cgpa|gpa)\s*(?:of\s*|[:>=]\s*)?(\d(?:\.\d+)?)\s*(?:/\s*(\d+))?", sentence, re.I)
         if cgpa:
             requirements.append({"type": "cgpa", "min": float(cgpa[1]), "scale": float(cgpa[2]) if cgpa[2] else None, "evidence": sentence, "requiredness": requiredness})
-        if re.search(r"\b(bachelor|b[ .]?tech|b[ .]?e\.|master|m[ .]?tech|ph\.?d)\b", sentence, re.I):
+        if re.search(r"\b(bachelor|b[ .]?tech|b[ .]?e\.|master|m[ .]?tech|ph\.?\s?d)\b", sentence, re.I):
             levels = []
-            for label, pattern in [("bachelor", r"bachelor|b[ .]?tech|b[ .]?e\."), ("master", r"master|m[ .]?tech"), ("phd", r"ph\.?d")]:
+            for label, pattern in [("bachelor", r"bachelor|b[ .]?tech|b[ .]?e\."), ("master", r"master|m[ .]?tech"), ("phd", r"ph\.?\s?d")]:
                 if re.search(pattern, sentence, re.I):
                     levels.append(label)
             requirements.append({"type": "degree", "alternatives": levels, "evidence": sentence, "requiredness": requiredness})
+            if re.search(r"\b(?:currently enrolled|currently pursuing|pursuing a|enrolled in)\b", sentence, re.I):
+                requirements.append({"type": "enrollment_status", "allowed": ["enrolled", "pursuing", "current student"], "evidence": sentence, "requiredness": requiredness})
+            elif re.search(r"\b(?:completed|earned|graduated with)\b", sentence, re.I):
+                requirements.append({"type": "enrollment_status", "allowed": ["completed", "graduated"], "evidence": sentence, "requiredness": requiredness})
+        # Explicit mandatory/optional skill clauses, not every skill mention.
+        skills = extract_skills(sentence)
+        if skills and re.search(r"\b(?:must|require[ds]?|proficien(?:t|cy)|knowledge of|experience (?:with|in)|skills? in|preferred|nice.to.have)\b", sentence, re.I):
+            requirements.append({"type": "required_skills", "skills": skills,
+                                 "match": "any" if re.search(r"\bor\b", sentence, re.I) else "all",
+                                 "evidence": sentence, "requiredness": requiredness})
+        duration = re.search(r"(?:available|availability|commit|duration|internship).{0,35}?(\d{1,2})\s*(months?|weeks?)\b", sentence, re.I)
+        if duration:
+            requirements.append({"type": "availability_duration", "min_months": float(duration[1]) if duration[2].lower().startswith("month") else None,
+                                 "min_weeks": float(duration[1]) if duration[2].lower().startswith("week") else None,
+                                 "evidence": sentence, "requiredness": requiredness})
+        start = re.search(r"(?:start|commence|join)(?:ing)?\s+(?:on|by|before)\s+(20\d\d-\d\d-\d\d)", sentence, re.I)
+        if start:
+            requirements.append({"type": "availability_start", "latest_start": start[1], "evidence": sentence, "requiredness": requiredness})
+        branch = re.search(r"(?:degree|bachelor|b[ .]?tech|major).{0,35}\bin\s+(computer science|information technology|electrical engineering|electronics|engineering)", sentence, re.I)
+        if branch and not re.search(r"\b(?:related|equivalent|or)\b", sentence, re.I):
+            requirements.append({"type": "degree_field", "alternatives": [branch[1].lower()], "evidence": sentence, "requiredness": requiredness})
     return requirements
 
 
@@ -196,6 +220,14 @@ def _strings(values) -> list[str]:
     return [str(x.get("name", x.get("skill", "")) if isinstance(x, dict) else x).lower() for x in (values or [])]
 
 
+def _skill_names(values):
+    result = set()
+    for value in _strings(values):
+        recognized = extract_skills(value)
+        result.add(recognized[0] if len(recognized) == 1 else value)
+    return result
+
+
 def evaluate(opportunity, profile) -> dict:
     profile = profile or {}
     if "data" in profile and isinstance(profile["data"], dict):
@@ -206,9 +238,8 @@ def evaluate(opportunity, profile) -> dict:
     if not isinstance(education, dict):
         education = {"degree": str(education)}
     reqs = _get(opportunity, "requirements", []) or []
-    req_skills = _strings(_get(opportunity, "skills", []))
-    user_skills = set(_strings(profile.get("skills")))
-    user_skills.update(extract_skills(" ".join(user_skills)))
+    req_skills = list(_skill_names(_get(opportunity, "skills", [])))
+    user_skills = _skill_names(profile.get("skills"))
     preferences = profile.get("preferences") or {}
     roles = _strings(profile.get("preferred_roles") or preferences.get("roles"))
     locations = _strings(profile.get("preferred_locations") or preferences.get("locations"))
@@ -225,7 +256,9 @@ def evaluate(opportunity, profile) -> dict:
                 year = year[0] if year else None
             try:
                 if year:
-                    result = "met" if req.get("min", int(year)) <= int(year) <= req.get("max", int(year)) else "not_met"
+                    allowed = req.get("allowed_years")
+                    matches = int(year) in allowed if allowed else req.get("min", int(year)) <= int(year) <= req.get("max", int(year))
+                    result = "met" if matches else "not_met"
             except (TypeError, ValueError):
                 pass
         elif kind == "cgpa":
@@ -242,8 +275,45 @@ def evaluate(opportunity, profile) -> dict:
             if degree:
                 level = next((label for label, pattern in [("bachelor", r"bachelor|b\.?\s?tech|b\.?\s?e\b|bsc|bca"), ("master", r"master|m\.?\s?tech|msc|mca"), ("phd", r"ph\.?d")] if re.search(pattern, degree)), None)
                 if level:
-                    result = "met" if level in req.get("alternatives", []) else "unknown"
-        checks.append({**req, "result": result})
+                    allowed = req.get("alternatives", [])
+                    if re.search(r"\bor higher\b", str(req.get("evidence", "")), re.I):
+                        ranks = {"bachelor": 1, "master": 2, "phd": 3}
+                        result = "met" if any(ranks.get(level, 0) >= ranks.get(x, 99) for x in allowed) else "not_met"
+                    elif allowed:
+                        result = "met" if level in allowed else "not_met"
+        elif kind == "degree_field":
+            branch = str(profile.get("branch") or education.get("branch") or "").lower().strip()
+            aliases = {"cse": "computer science", "cs": "computer science", "it": "information technology", "ece": "electronics and communication engineering"}
+            branch = aliases.get(branch, branch)
+            if branch and req.get("alternatives"):
+                result = "met" if any(str(x).lower() in branch or (str(x).lower() == "engineering" and "engineering" in branch) for x in req["alternatives"]) else "not_met"
+        elif kind == "enrollment_status":
+            status = str(education.get("status") or profile.get("education_status") or "").strip().lower()
+            if status in {"enrolled", "pursuing", "current student", "completed", "graduated"}:
+                result = "met" if status in req.get("allowed", []) else "not_met"
+        elif kind == "required_skills":
+            required = _skill_names(req.get("skills"))
+            if required and user_skills:
+                matched = bool(required & user_skills) if req.get("match") == "any" else required <= user_skills if req.get("match", "all") == "all" else False
+                # Absence from the profile does not prove inability.
+                result = "met" if matched else "unknown"
+        elif kind == "availability_duration":
+            availability = profile.get("availability") or {}
+            unit = "weeks" if req.get("min_weeks") is not None else "months"
+            value = availability.get(unit)
+            if value is not None:
+                try: result = "met" if float(value) >= float(req.get("min_" + unit)) else "not_met"
+                except (TypeError, ValueError): pass
+        elif kind == "availability_start":
+            date = parse_date((profile.get("availability") or {}).get("start_date"))
+            latest = parse_date(req.get("latest_start"))
+            if date and latest: result = "met" if date.date() <= latest.date() else "not_met"
+        labels = {"degree": "degree level", "degree_field": "degree subject", "enrollment_status": "enrollment/completion status", "graduation_year": "graduation year", "cgpa": "CGPA on the stated scale", "required_skills": "explicit required skills", "availability_duration": "available duration", "availability_start": "available start date"}
+        label = labels.get(kind, str(kind or "requirement"))
+        reason = f"Your confirmed {label} matches the published requirement." if result == "met" else f"Your confirmed {label} does not match the published requirement." if result == "not_met" else f"Confirm your {label} or clarify the employer's requirement."
+        if kind == "required_skills" and result == "unknown":
+            reason = "Some explicitly required skills are not confirmed in your profile; missing mentions do not prove you lack them."
+        checks.append({**req, "result": result, "reason": reason})
         if result == "unknown":
             unknowns.append(f"Eligibility: {kind} needs a confirmed profile fact or clearer requirement.")
     hard = [c for c in checks if c.get("requiredness") != "preferred"]
@@ -329,11 +399,12 @@ def evaluate(opportunity, profile) -> dict:
         d["known"] = d["score"] is not None
         d["reason"] = "Based on observed/user-confirmed facts; descriptive signal, not a promised outcome." if d["known"] else "Insufficient evidence for this dimension."
     risks = _get(opportunity, "risk_reasons", []) or []
-    return {"version": "deterministic-v1", "fit_score": score, "fit_confidence": confidence,
+    eligibility_reasons = [c["reason"] for c in hard if c["result"] != "met"] or (["All extracted mandatory checks match your confirmed facts; verify any unparsed employer restrictions."] if hard else ["The employer's mandatory eligibility requirements have not been established."])
+    return {"version": "deterministic-v2", "fit_score": score, "fit_confidence": confidence,
             "fit_lower": round(lower, 1), "fit_upper": round(upper, 1), "evidence_coverage": coverage,
             "worth_score": worth_score, "worth_lower": round(worth_lower, 1), "worth_upper": round(worth_upper, 1),
             "worth_evidence_coverage": worth_coverage, "eligibility": eligibility, "fit_dimensions": dimensions,
-            "worth_dimensions": worth_dimensions, "eligibility_checks": checks, "unknowns": list(dict.fromkeys(unknowns)),
+            "worth_dimensions": worth_dimensions, "eligibility_checks": checks, "eligibility_reasons": list(dict.fromkeys(eligibility_reasons)), "unknowns": list(dict.fromkeys(unknowns)),
             "evidence": [c.get("evidence") for c in checks if c.get("evidence")],
             "action": "review" if risks or eligibility == "probably ineligible" else "review details",
             "explanation": "Scores describe supported alignment, not hiring probability. Unmeasured dimensions remain unknown."}

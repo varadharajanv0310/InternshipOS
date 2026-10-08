@@ -174,3 +174,38 @@ def test_listing_only_success_cannot_claim_full_description_coverage():
 def test_inventory_that_changes_during_scan_requires_review():
     state=health(source(status='error',last_error='inventory_changed_during_scan; inventory_incomplete'),NOW)
     assert state['label']=='Needs review' and state['full_inventory'] is False
+
+
+def test_budget_cut_is_unfinished_and_exposes_actual_capacity_and_lag():
+    engine=create_engine('sqlite://');Base.metadata.create_all(engine)
+    with Session(engine) as db:
+        company=Company(name='Fixture');db.add(company);db.flush()
+        db.add(CompanySource(company_id=company.id,provider='fixture',url='https://example.test/jobs',
+            enabled=True,cadence_hours=6,status='complete',last_checked=NOW-timedelta(hours=30)))
+        db.add(Setting(key='worker_heartbeat',value={'at':NOW.isoformat(),'result':{
+            'boards':0,'elapsed_seconds':30,'run_budget_exhausted':True,'deferred_boards':1,
+            'limits':{'source_limit':384,'concurrency':6,'run_budget_seconds':1560}}}));db.commit()
+        result=collection_health(db,NOW)
+        assert result['status']=='behind' and result['last_run_boards_per_minute']==0
+        assert result['selection_limit_per_run']==384 and result['last_run_deferred_sources']==1
+        assert result['due_successful_sources']==1 and result['oldest_overdue_hours']==24
+        assert result['checks_requested_per_hour']==0.17 and result['worker_active'] is False
+    engine.dispose()
+
+
+def test_role_recheck_heartbeat_cannot_conceal_late_collection_or_erase_throughput():
+    engine=create_engine('sqlite://');Base.metadata.create_all(engine)
+    with Session(engine) as db:
+        company=Company(name='Fixture');db.add(company);db.flush()
+        db.add(CompanySource(company_id=company.id,provider='fixture',url='https://example.test/jobs',
+            enabled=True,cadence_hours=6,status='complete',last_checked=NOW-timedelta(hours=30)))
+        db.add_all([
+            Setting(key='worker_heartbeat',value={'at':NOW.isoformat(),'kind':'refresh_opportunity','result':{'sources':1,'worker_errors':0}}),
+            Setting(key='collection_last_run',value={'at':(NOW-timedelta(hours=5)).isoformat(),'result':{
+                'boards':120,'elapsed_seconds':600,'limits':{'source_limit':384,'concurrency':6,'run_budget_seconds':1560}}}),
+        ]);db.commit()
+        result=collection_health(db,NOW)
+        assert result['status']=='late' and result['collection_late'] is True
+        assert result['hours_since_finish']==0 and result['last_result_boards']==120
+        assert result['last_run_boards_per_minute']==12 and result['stale_successful_sources']==1
+    engine.dispose()
