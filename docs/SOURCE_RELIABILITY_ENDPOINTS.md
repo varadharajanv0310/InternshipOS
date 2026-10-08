@@ -71,3 +71,41 @@ All four `config_repairs` require the exact existing employer, provider, URL, AP
 The largest remaining failure groups are 71 generic pages without public JobPosting data, 20 HTTP404 responses, 16 HTTP403 responses and eight JobSpy timeouts. These require additional supported employer integrations, verified endpoint replacements or honest access-restriction handling. They must not be counted as successful merely by hiding or disabling failures.
 
 Private evidence: `resumed-2026-10-07-sources.json`, `resumed-2026-10-07-summary.json` and `resumed-2026-10-07-public-mapping-probes.json` under `data/private/source-reliability/`. The read-only audit also confirms unauthorized source access returns HTTP401 and automatic application submission remains off.
+
+## Canonical-route and subsidiary scope review — 7 October 2026
+
+- [Mastercard's official careers page](https://careers.mastercard.com/) explicitly links `https://mastercard.wd1.myworkdayjobs.com/CorporateCareers`, matching an existing successful target-scope Workday source. This is a concrete canonical-binding candidate for the failing generic route; retire an alias only through the established evidence and live-result checks.
+- [State Street's official careers page](https://careers.statestreet.com/) links `https://statestreet.wd1.myworkdayjobs.com/en-US/Global/introduceYourself`. This verifies the tenant/site but is a talent-network link, so it is weaker proof that the generic job-search route and existing Workday inventory are interchangeable.
+- BrowserStack, Freshworks, Icertis and Observe.AI already have stronger official bindings recorded above. Shared company identity alone does not establish route equivalence.
+- Intelerad is a valid GE HealthCare subsidiary: GE HealthCare [completed the acquisition on 18 March 2026](https://www.gehealthcare.com/en-us/about/newsroom/press-releases/ge-healthcare-completes-intelerad-acquisition-accelerating-shift-to-cloud-first-enterprise-solutions-to-deliver-precision-care). Its successful SmartRecruiters inventory represents Intelerad's hiring scope and must not be presented as complete coverage of every GE HealthCare business or country.
+- Sensorfact is a valid ABB subsidiary: ABB's [Q1 2026 financial information](https://library.e.abb.com/public/92757491d9cc40af8425ef03a7f45f81/ABB-Q1-2026-financial-information.pdf), page 13, records acquisition of all shares on 3 February 2025. Its Ashby board is a distinct hiring scope from ABB's main Workday board and BrightLoop's careers route. Preserve actual hiring-employer labels and scope rather than quarantining valid subsidiaries or merging them into full-parent coverage.
+
+The remaining-source CSV and priorities report are generated from saved source-level snapshots. Counts of historical label corrections, fresh successful checks, new sources and disabled/superseded aliases remain separate. Public outputs exclude raw configurations, secrets, private profile data and unsanitized error strings.
+
+## Workday later-page total contract — 7 October 2026
+
+Bounded read-only requests to three official boards confirmed a paging-contract mismatch. With identical final query and facets, page zero supplies a positive authoritative count, later offsets supply `total: 0` while returning distinct job records, and a repeated page-zero request restores the same positive count:
+
+| Public board | Offset zero: total / rows | Offset twenty: total / rows | Repeated offset zero: total / rows |
+|---|---:|---:|---:|
+| HPE, `Jobsathpe` | 107 / 20 | 0 / 20 | 107 / 20 |
+| BrowserStack, `External` | 32 / 20 | 0 / 12 | 32 / 20 |
+| Epicor, `epicorjobs` | 74 / 20 | 0 / 20 | 74 / 20 |
+
+The previous adapter interpreted the later zero as a changing live inventory, overwrote its positive count, and stopped the scan early. This was a collector error for the observed contract, not evidence that those employers' inventories were unstable.
+
+The corrected Workday segment keeps its fresh zero-offset count. It accepts a later zero only at a nonzero offset when that head count is positive and the page contains entirely valid, distinct new jobs. Contradictory positive totals, early empty pages, repeated/missing records, malformed counts and records exceeding the head count remain incomplete. A resumed segment obtains a fresh head using its final query/facets; it still cannot establish full absence from a continuation segment. The 2,000-job partitioning guard and listing/detail request bounds remain enforced.
+
+Targeted verification: **102 tests passed**, comprising 18 new Workday contract cases and the existing ingestion/coverage suites. Live recovery requires a fresh collection after deployment; existing error labels are not rewritten merely because the code changed. The public counts above are listing counts, not personalized internship counts or full-description claims.
+
+The reproducible bounded probe and exact public request bodies, IDs, response fields and timings are saved privately as `probe_workday_total_contract.py` and `workday-total-contract-2026-10-07.json`. Request bodies are captured independently so later facet selection cannot alter the recorded discovery request.
+
+## Epicor Workday identity contract — 7 October 2026
+
+Four same-query public pages from Epicor's official Workday board returned **74 rows with 74 unique `externalPath` values**. The page sizes were 20, 20, 20 and 14. There were no duplicate paths. However, the old parser observed only 32 unique IDs because Epicor's `bulletFields` begins with a location, such as `["India, Bangalore", "JR105458"]`. Treating the first bullet as an ID merged different requisitions in the same city and incorrectly reported repeated pages.
+
+The corrected parser accepts a bullet as a requisition ID only when it matches the posting path's exact terminal ID. Otherwise the full public posting path supplies unique listing identity. A duplicate-post path such as `_JR1-1` retains its own path identity while the explicitly supplied `JR1` may remain its common requisition ID; it is not collapsed into the normal `_JR1` listing. Existing normal IDs remain unchanged. Unproven location or administrative bullets are never presented as requisition IDs.
+
+Target detail lookup now recognizes all bullet positions and path fallbacks, so a correctly identified role is still eligible for description refresh. **107 targeted tests passed**, including five additional identity cases alongside the 18 paging-contract cases. This is a code-level repair; a new hosted collection must confirm actual recovery.
+
+Historical location-valued source IDs are not trustworthy requisition identities. Preserve their appearances and audit history for review; do not destructively merge or rewrite old opportunities merely to align them with new IDs. The public response capture is saved privately in `epicor-four-page-contract-2026-10-07.json` with exact bodies and all observed identities.
