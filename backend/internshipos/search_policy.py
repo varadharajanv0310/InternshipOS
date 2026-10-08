@@ -10,7 +10,7 @@ SEARCH_TERMS = (
     'SDE intern', 'software engineering internship', 'research assistant',
     'software apprentice',
 )
-TITLE_EXCLUSIONS = r'\b(?:wordpress|manual testing|manual qa|it support|help ?desk|service desk|product manager|managed services|cloudops|cloud ops|ui/ux|ux design|ui design|graphic design|3d artist)\b'
+TITLE_EXCLUSIONS = r'\b(?:wordpress|manual testing|manual qa|it support|help ?desk|service desk|product manager|managed services|cloudops|cloud ops|ui/ux|ux design|ui design|graphic design|3d artist|financial analyst|investment analyst|gtm|go.to.market|business strategy)\b'
 PHD_ONLY = r'\b(?:ph\.?d\.?|doctoral)\b'
 PRIMARY_CITIES = r'\b(?:bengaluru|bangalore|chennai)\b'
 OTHER_CITIES = r'\b(?:hyderabad|mumbai|pune|delhi|noida|gurugram|gurgaon|kolkata|coimbatore|kochi|thiruvananthapuram|mysuru|mangaluru|trivandrum|chandigarh|jaipur|indore|ahmedabad|san francisco|new york|london|paris|singapore|seattle|austin|toronto)\b'

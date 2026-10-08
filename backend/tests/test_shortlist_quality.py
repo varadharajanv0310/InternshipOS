@@ -221,3 +221,18 @@ def test_old_queue_approval_is_rechecked_without_rewriting_history(db):
         application_queue.approve(db,application.id,eligibility_reviewed=True)
     assert application.data['auto_apply']==prior
     assert resumes.preparation_pack(db,application.id)['ready_to_prepare'] is False
+
+
+@pytest.mark.parametrize('title', ['Financial Analyst Intern, AMZL', 'GTM & Strategy, Model API'])
+def test_commercial_titles_do_not_inherit_employer_engineering_boilerplate(db, title):
+    from internshipos.domain import classify
+    from internshipos.search_policy import retain_new_candidate
+    body='Our AI and software engineering teams build machine learning APIs. This is an internship.'
+    assert classify(body,title)['role_family']=='excluded'
+    assert not retain_new_candidate({'title':title,'description':body,'location':'Bengaluru','country':'India'})
+    a=source(db);ingest(db,a,[job('commercial',title=title,description=body)])
+    op=only_op(db)
+    op.role_family='SWE'  # Legacy classification retained until a real source refresh.
+    db.add(m.Setting(key='personal_target_filter',value=True));db.commit()
+    assert service.list_opportunities(db,technical=True)['total']==0
+    assert not service.dashboard(db)['top_opportunities']

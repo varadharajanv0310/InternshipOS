@@ -191,7 +191,7 @@ def classify(text, title="") -> dict:
             break
     # A company's AI/software boilerplate is not the applicant's role.
     title_technical=any(re.search(pattern,title_low) for _,pattern in patterns)
-    if not title_technical and re.search(r'\b(?:ux design(?:er|ing)?|ui design(?:er|ing)?|(?:game|3d|2d|concept|visual) artist|video edit(?:or|ing)?|creative|communications|people team|talent acquisition|accounting|finance|copywrit(?:er|ing)?|recruiter|social media|customer success|customer support|fashion|legal|law|teacher|teaching)\b',title_low):
+    if not title_technical and re.search(r'\b(?:ux design(?:er|ing)?|ui design(?:er|ing)?|(?:game|3d|2d|concept|visual) artist|video edit(?:or|ing)?|creative|communications|people team|talent acquisition|accounting|finance|financial analyst|investment analyst|gtm|go.to.market|business strategy|copywrit(?:er|ing)?|recruiter|social media|customer success|customer support|fashion|legal|law|teacher|teaching)\b',title_low):
         excluded=True
     if excluded:
         role = "excluded"
