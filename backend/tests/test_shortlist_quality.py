@@ -178,9 +178,12 @@ def test_legacy_description_clock_recovers_observation_not_current_time(db):
     assert op.data["description_checked_at"]==old.isoformat().replace("+00:00","Z")
 
 
-def test_historical_workday_location_id_flagged_without_deletion(db):
+@pytest.mark.parametrize('wrapped', [False, True])
+def test_historical_workday_location_id_flagged_without_deletion(db, wrapped):
     a=source(db,provider="workday")
-    ingest(db,a,[job("Chennai, India",requisition_id="Chennai, India",raw={"externalPath":"/job/Chennai/Software-Intern_JR123","bulletFields":["Chennai, India","JR123"]})])
+    raw={"externalPath":"/job/Chennai/Software-Intern_JR123","bulletFields":["Chennai, India","JR123"]}
+    if wrapped: raw={"provider":"workday","source_payload":{"listing":raw,"detail":{"similarJobs":[{"externalPath":"/job/OTHER","bulletFields":["OTHER"]}]}}}
+    ingest(db,a,[job("Chennai, India",requisition_id="Chennai, India",raw=raw)])
     op=only_op(db);report=service.reconcile_shortlist_quality(db,apply=True)
     assert report["identity_review"] and op.data["identity_review"]
     assert db.scalar(select(m.JobSource)).external_id=="Chennai, India"

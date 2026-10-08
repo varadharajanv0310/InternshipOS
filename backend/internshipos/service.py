@@ -1083,6 +1083,11 @@ def reconcile_shortlist_quality(db, *, apply=False, opportunity_ids=None, limit=
             from .ingestion.adapters import workday_listing_identifiers
             snap = snapshots.get(src.id)
             raw = (snap.raw or {}) if snap else {}
+            # Collector snapshots wrap provider data and separate the primary
+            # listing from detail recommendations. Follow only these declared
+            # wrappers; do not search arbitrary nested similar-job records.
+            if isinstance(raw, dict): raw = raw.get("source_payload", raw)
+            if isinstance(raw, dict): raw = raw.get("listing", raw)
             if isinstance(raw, dict) and raw.get("externalPath"):
                 expected_id, expected_req = workday_listing_identifiers(raw)
                 if src.external_id != expected_id or (src.requisition_id and src.requisition_id != expected_req):
