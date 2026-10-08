@@ -144,6 +144,20 @@ def enqueue(db,kind='collect',payload=None):
     if existing:return {'job_id':existing.id,'status':existing.status,'already_queued':True}
     job=BackgroundJob(kind=kind,payload=payload or {});db.add(job);db.commit();return {'job_id':job.id,'status':'queued'}
 
+def _collection_waves(sources,concurrency):
+    """Give paced public searches room within each source's time allowance."""
+    pending=list(sources)
+    while pending:
+        wave=[];remaining=[];linkedin=0
+        for source in pending:
+            paced=source.get('provider')=='linkedin' or (source.get('provider')=='jobspy' and (source.get('config') or {}).get('site')=='linkedin')
+            if len(wave)<concurrency and (not paced or linkedin<2):
+                wave.append(source);linkedin+=int(paced)
+            else:remaining.append(source)
+        yield wave
+        pending=remaining
+
+
 async def collect_boards(source_ids=None,limit=None,force=False,lease_token=None):
     from .ingestion import collect_source
     from .service import ingest_batch
@@ -214,14 +228,14 @@ async def collect_boards(source_ids=None,limit=None,force=False,lease_token=None
     results=[];started_count=0;budget_exhausted=False;lease_lost=False
     # Waves avoid a queue of semaphore waiters starting after the run budget.
     # Observations in a started wave finish persistence before we stop.
-    for offset in range(0,len(sources),limits['concurrency']):
+    waves=list(_collection_waves(sources,limits['concurrency']))
+    for offset,wave in enumerate(waves):
         if deadline-time.monotonic()<limits['source_timeout_seconds']+limits['persistence_reserve_seconds']:
-            budget_exhausted=True;remaining_ids=[s['id'] for s in sources[offset:]]+remaining_ids;break
+            budget_exhausted=True;remaining_ids=[s['id'] for pending in waves[offset:] for s in pending]+remaining_ids;break
         if lease_token:
             with SessionLocal() as db:owned=_lease_owned(db,lease_token)
             if not owned:
-                lease_lost=True;remaining_ids=[s['id'] for s in sources[offset:]]+remaining_ids;break
-        wave=sources[offset:offset+limits['concurrency']]
+                lease_lost=True;remaining_ids=[s['id'] for pending in waves[offset:] for s in pending]+remaining_ids;break
         outcomes=await asyncio.gather(*(one(source) for source in wave),return_exceptions=True)
         started_count+=len(wave)
         results.extend({'source_id':wave[i]['id'],'status':'worker_error','error':str(outcome)[:600]}

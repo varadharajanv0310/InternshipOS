@@ -209,3 +209,21 @@ def test_role_recheck_heartbeat_cannot_conceal_late_collection_or_erase_throughp
         assert result['hours_since_finish']==0 and result['last_result_boards']==120
         assert result['last_run_boards_per_minute']==12 and result['stale_successful_sources']==1
     engine.dispose()
+def test_unfinished_cursor_continues_without_waiting_for_full_board_cadence():
+    from types import SimpleNamespace
+    from datetime import datetime,timezone,timedelta
+    from internshipos.source_health import timing
+    now=datetime(2026,10,8,8,tzinfo=timezone.utc)
+    source=SimpleNamespace(config={'listing_cursor':200},last_checked=now-timedelta(hours=1),
+        last_success=None,status='partial',last_error='page_limit_reached; inventory_incomplete',
+        consecutive_failures=0,cadence_hours=24,enabled=True)
+    state=timing(source,now)
+    assert state['due'] and state['continuation_pending']
+    assert state['cadence_hours']==24 and state['effective_interval_hours']==0.5
+    source.last_error='detail_fetch_failed: access_restricted_or_challenged: HTTP 429; page_limit_reached'
+    source.consecutive_failures=3
+    state=timing(source,now)
+    assert not state['due'] and not state['continuation_pending']
+    assert state['effective_interval_hours']==24
+    source.last_error='inventory_incomplete';source.consecutive_failures=0;source.config={}
+    assert not timing(source,now)['continuation_pending']

@@ -72,6 +72,16 @@ def test_due_plan_excludes_paused_and_backoff_without_mutating_preferences():
     assert 'paused' not in [row.id for row in jobs._ordered_due_sources(rows,NOW,force=True)]
 
 
+def test_paced_searches_share_waves_without_starving_unrelated_feeds():
+    sources=[{'id':'li'+str(i),'provider':'linkedin'} for i in range(6)]+[
+        {'id':'other'+str(i),'provider':'greenhouse'} for i in range(4)]
+    waves=list(jobs._collection_waves(sources,6))
+    assert len(waves[0])==6  # Spare slots service unrelated sources immediately.
+    assert all(sum(s['provider']=='linkedin' for s in wave)<=2 for wave in waves)
+    assert {s['id'] for wave in waves for s in wave}=={s['id'] for s in sources}
+    assert sum(map(len,waves))==len(sources)
+
+
 @pytest.fixture
 def factory(tmp_path,monkeypatch):
     engine=create_engine('sqlite:///'+str(tmp_path/'scheduler.db'),connect_args={'check_same_thread':False})

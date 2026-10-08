@@ -108,3 +108,13 @@ def test_detail_failure_preserves_listing_and_is_partial():
     result=collect(handler,max_details=1,config={'results_wanted':1})
     assert len(result.jobs)==1 and result.metadata['inventory_complete'] and not result.complete
     assert 'detail_fetch_failed' in result.error and result.jobs[0]['description']==''
+
+
+def test_anonymous_card_keeps_other_valid_results_without_inventing_employer():
+    anonymous=card('100').replace('Acme','')
+    def handler(request):
+        return httpx.Response(200,text=anonymous+card('101') if request.url.params.get('start')=='0' else '')
+    result=collect(handler,max_pages=2,max_details=0,config={'results_wanted':2})
+    assert [j['external_id'] for j in result.jobs]==['101']
+    assert not result.complete and not result.metadata['inventory_complete']
+    assert 'linkedin_card_identity_title_or_employer_missing' in result.error

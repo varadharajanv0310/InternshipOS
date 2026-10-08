@@ -78,7 +78,14 @@ coverage. Stale means over twice the source cadence, without a 24-hour floor.
     except (TypeError, ValueError):
         failures = 0
     retry = min(72, 2 ** min(failures, 6)) if failures else 0
-    interval = max(cadence, retry)
+    config = source.config or {}
+    # A saved, merely budget-limited scan segment should finish before the
+    # next full-board cadence. Failed/blocked reads keep normal backoff, and an
+    # unproved inventory with no continuation cannot create a fast retry loop.
+    continuation = bool(not failures and budget_only(observation['issue']) and any(
+        isinstance(config.get(key), (int, float)) and not isinstance(config.get(key), bool) and config[key] > 0
+        for key in ('listing_cursor', 'detail_cursor', 'retained_detail_cursor')))
+    interval = max(min(cadence, 0.5) if continuation else cadence, retry)
     clock_grace = min(1.0, max(0.25, cadence * 0.1))
     clock_issue = bool(checked and checked > now + timedelta(hours=clock_grace))
     next_due = checked + timedelta(hours=interval) if checked and not clock_issue else None
@@ -92,6 +99,7 @@ coverage. Stale means over twice the source cadence, without a 24-hour floor.
         'cadence_hours': cadence,
         'retry_hours': retry,
         'effective_interval_hours': interval,
+        'continuation_pending': continuation,
         'next_due_at': next_due,
         'cadence_due_at': expected,
         'due': bool(due),

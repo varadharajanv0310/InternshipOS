@@ -14,6 +14,8 @@
 - Add a database-backed expiring worker lease and token-checked completion/release, without resetting source cadence or owner preferences.
 - Register queue and worker-lease models explicitly in standalone database initialization, so clean scheduled bootstrap creates both tables before the worker starts.
 - Prefer verified working and India-scoped sources, with bounded preference and a reserved oldest-due lane so broken or long-tail sources are not silently starved.
+- Resume purely budget-limited scans with a saved cursor after 30 minutes (or the owner's shorter cadence). Keep the owner's full-board cadence and real error backoff unchanged; an unproved inventory without a cursor does not create a fast retry loop.
+- Limit public LinkedIn searches to two per collection wave while filling spare slots with unrelated feeds. The shared request pace otherwise caused two source timeouts in the first concurrent production check.
 - Expose overdue lag, measured completed-board throughput, pending work, capacity assumptions and lease state. An hourly trigger alone is never a claim of 24/7 reliability.
 - Add a second off-minute trigger at minute 47, alongside minute 17. This gives delayed scheduler events another chance without forcing requests on sources whose cadence or backoff is not due.
 - Show due and stale counts separately for successful, partial and failing sources. A failure retry backlog must not be presented as stale working coverage.

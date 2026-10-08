@@ -112,6 +112,7 @@ async def collect(c):
     wanted = max(1, min(int(c.source.config.get("results_wanted", 30)), 100))
     records = []
     terminal = False
+    listing_issues = False
     offset = 0
     for page in range(c.max_pages):
         response = await _request(c, SEARCH, params={
@@ -124,22 +125,28 @@ async def collect(c):
                 raise SchemaError("linkedin_listing_schema_missing")
             terminal = True
             break
-        added = 0
+        added = invalid = 0
         for card in cards:
-            listing = parse_card(c.source, card)
             if len(c.jobs) >= wanted:
                 break
+            try:
+                listing = parse_card(c.source, card)
+            except SchemaError as exc:
+                # Anonymous/malformed cards cannot acquire a fabricated employer
+                # or identity, but must not discard the remaining valid cards.
+                c.problem(str(exc)); invalid += 1; listing_issues = True
+                continue
             if c.add(listing):
                 records.append(listing)
                 added += 1
-        if not added:
+        if not added and invalid != len(cards):
             raise SourceError("linkedin_search_repeated_page")
         offset += len(cards)
         if len(c.jobs) >= wanted:
             terminal = True
             c.warnings.append("bounded_discovery_window; not_a_full_inventory")
             break
-    inventory_finished(c, terminal)
+    inventory_finished(c, terminal and not listing_issues)
     # Search windows always start fresh. Detail rotation is independent.
     c.next_listing_cursor = 0
     c.description_target_count = sum(detail_candidate(item) for item in records) if c.source.config.get("detail_target_only") else len(records)
