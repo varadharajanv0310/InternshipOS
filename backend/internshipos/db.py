@@ -62,7 +62,10 @@ def init_db():
     from . import models  # noqa: F401
     # Standalone bootstrap runs before API imports. Register durable worker
     # models explicitly so clean installs contain the queue and lease tables.
-    from . import jobs  # noqa: F401
+    # Import table definitions, not the executable jobs module: python -m
+    # internshipos.jobs runs it as __main__, so importing it again would define
+    # the same mapped tables twice.
+    from . import worker_models  # noqa: F401
     if engine.dialect.name == "sqlite":
         DATA_DIR.mkdir(parents=True, exist_ok=True)
         filename = engine.url.database

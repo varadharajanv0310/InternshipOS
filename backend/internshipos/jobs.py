@@ -3,10 +3,11 @@ import asyncio, copy, logging, os, threading, time
 from uuid import uuid4
 from datetime import timedelta
 from zoneinfo import ZoneInfo
-from sqlalchemy import String, JSON, DateTime, Integer, select, update
-from sqlalchemy.orm import Mapped, mapped_column, joinedload
+from sqlalchemy import select, update
+from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import DBAPIError, IntegrityError
-from .db import Base, SessionLocal, utcnow, aware
+from .db import SessionLocal, utcnow, aware
+from .worker_models import BackgroundJob, WorkerLease
 from .models import Company, CompanySource, Activity, Integration, Setting, Task, Notification
 
 log=logging.getLogger(__name__)
@@ -40,28 +41,6 @@ def _persist_transaction(db, operation, *, source_id, stage, max_attempts=3):
             log.warning('Retrying %s for source %s after PostgreSQL %s (%s/%s)',
                         stage, source_id, code, attempt + 1, max_attempts)
             time.sleep(0.1 * (attempt + 1))
-
-class BackgroundJob(Base):
-    __tablename__='background_jobs'
-    id:Mapped[str]=mapped_column(String(36),primary_key=True,default=lambda:__import__('uuid').uuid4().hex)
-    kind:Mapped[str]=mapped_column(String(80))
-    payload:Mapped[dict]=mapped_column(JSON,default=dict)
-    status:Mapped[str]=mapped_column(String(30),default='pending',index=True)
-    attempts:Mapped[int]=mapped_column(Integer,default=0)
-    created_at:Mapped[object]=mapped_column(DateTime(timezone=True),default=utcnow)
-    started_at:Mapped[object]=mapped_column(DateTime(timezone=True),nullable=True)
-    finished_at:Mapped[object]=mapped_column(DateTime(timezone=True),nullable=True)
-    error:Mapped[str]=mapped_column(String(1000),nullable=True)
-
-
-class WorkerLease(Base):
-    """Cross-process exclusion; tokens prevent an expired owner releasing a new lease."""
-    __tablename__='collection_worker_leases'
-    name:Mapped[str]=mapped_column(String(80),primary_key=True)
-    token:Mapped[str]=mapped_column(String(36))
-    started_at:Mapped[object]=mapped_column(DateTime(timezone=True))
-    expires_at:Mapped[object]=mapped_column(DateTime(timezone=True),index=True)
-
 
 def collection_limits():
     def number(key,default,low,high):

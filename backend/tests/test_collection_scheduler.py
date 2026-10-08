@@ -42,6 +42,26 @@ def test_clean_standalone_bootstrap_registers_queue_and_worker_lease(tmp_path):
     assert result.returncode==0,result.stderr
 
 
+def test_scheduled_module_entry_registers_models_once_and_finishes_empty_tick(tmp_path):
+    backend=Path(__file__).resolve().parents[1]
+    environment={**os.environ,'PYTHONPATH':str(backend),'SCHEDULER_ENABLED':'false',
+        'DATABASE_URL':'sqlite:///'+(tmp_path/'module-entry.db').as_posix(),
+        'INTERNSHIPOS_DATA_DIR':str(tmp_path/'runtime')}
+    script='\n'.join([
+        'import runpy, sys',
+        'from internshipos import seed',
+        # The actual CLI path runs against an empty fixture, never live sources.
+        'seed.seed_database = lambda db: None',
+        "sys.argv = ['internshipos.jobs', 'tick']",
+        "runpy.run_module('internshipos.jobs', run_name='__main__')",
+    ])
+    result=subprocess.run([sys.executable,'-c',script],cwd=tmp_path,env=environment,
+        capture_output=True,text=True,timeout=30)
+    assert result.returncode==0,result.stderr
+    assert "'worker_errors': 0" in result.stdout,result.stdout
+    assert "'boards': 0" in result.stdout,result.stdout
+
+
 def board(ident,**changes):
     data=dict(id=ident,config={},last_checked=NOW-timedelta(hours=2),last_success=None,
         last_error=None,consecutive_failures=0,cadence_hours=1,status='complete',
