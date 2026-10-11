@@ -1,0 +1,11 @@
+# DeepSeek connection — 11 October 2026
+
+The user selected DeepSeek Flash and supplied a key for InternshipOS. Local server configuration and the existing Vercel project's production environment now select the native `deepseek` provider with `deepseek-flash` for both tiers. Credentials remain in ignored local configuration and Vercel sensitive server environment variables, never source control or frontend variables.
+
+The connector uses DeepSeek's documented JSON-object format, explicitly enabled thinking with high effort, and an 8,192-token output ceiling including thinking. JSON keys and string-array types are checked locally; truncated results are rejected. Existing approved-fact checks, draft-review requirement, cached responses and serialized monthly budget reservations remain active. The provider's full output allowance is covered by its reservation; changing to DeepSeek does not bypass the ledger. Provider representations redact the key.
+
+The default monthly limit remains $2.50. Ledger charges are conservative estimates using peak, cache-miss rates ($0.30 input / $1.20 output per million tokens), rather than an exact DeepSeek invoice. Off-peak and cached-input discounts can make the actual provider bill smaller. Failed requests retain their conservative reservation. Official pricing retrieved 11 October 2026: https://api-docs.deepseek.com/quick_start/pricing/ . JSON and thinking formats: https://api-docs.deepseek.com/guides/json_mode/ and https://api-docs.deepseek.com/guides/thinking_mode/ . High effort does not reproduce published maximum-effort benchmark scores.
+
+Validation: 41 affected offline tests passed across native provider contracts, existing personal workflows, budget/grounding guards and benchmark orchestration. Python compilation passed. Four initial broader-test failures were missing local PDF dependencies; installing the already-declared dependencies resolved them. Exactly one live synthetic connection request was made, containing no real applicant facts: valid JSON and fact reference, 162 input tokens, 77 total completion tokens, 0.91 seconds, conservative estimated cost $0.000141. This is connection evidence, not a model-quality benchmark or latency guarantee. No paid benchmark batch was run.
+
+Hosted activation and final read-back will be recorded after deployment.

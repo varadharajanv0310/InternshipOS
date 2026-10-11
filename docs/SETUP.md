@@ -32,6 +32,8 @@ Polling defaults to 45 minutes. Exact identities and high-confidence recruiting 
 
 ## Optional AI
 
+The selected provider is now DeepSeek Flash. Set `AI_PROVIDER=deepseek`, `AI_API_KEY` privately, and `AI_CHEAP_MODEL=deepseek-flash` / `AI_STRONG_MODEL=deepseek-flash`; then enable AI in Settings. The native connector uses high-effort thinking and validated JSON drafts. Its ledger uses peak/cache-miss prices as conservative upper bounds, so actual DeepSeek billing can be lower. See [connection and validation notes](DEEPSEEK_CONNECTION_2026-10-11.md). The OpenAI and custom-provider instructions below remain available alternatives.
+
 Set `OPENAI_API_KEY` and enable AI in Settings only when wanted. The default hard ledger ceiling is $2.50/month; the maximum permitted setting is $3. Zero budget pauses optional inference. Failed/lost responses conservatively consume their reservation. Collection, rules, resumes and tracking continue without AI.
 
 `AI_PROVIDER=openai` uses standard Responses requests. Luna is the cheap tier and Sol the explicit analysis/draft tier. Prices were checked against [official pricing](https://developers.openai.com/api/docs/pricing) on 2 October 2026; recheck before changing models. A custom paid model requires both declared input/output prices. `AI_PROVIDER=compatible` targets an HTTPS OpenAI-compatible JSON-schema endpoint; `local` targets a loopback compatible server with zero provider cost. Native APIs can be added at `providers.py` without changing the ledger/domain. Alternate provider quality has not been benchmarked. No paid request was made during verification.

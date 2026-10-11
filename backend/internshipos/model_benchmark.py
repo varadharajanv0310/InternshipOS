@@ -59,7 +59,7 @@ def run(db, *, execute=False, maximum_usd=.25):
         provider=get_provider(strong)
         for case in CASES:
             size=len(json.dumps(case['context'],ensure_ascii=False,default=str).encode('utf-8'))
-            ceiling=(size+3000)*provider.rates[0]/1e6+2200*provider.rates[1]/1e6
+            ceiling=(size+3000)*provider.rates[0]/1e6+provider.max_output_tokens*provider.rates[1]/1e6
             # Bound the whole experiment, including failed/lost paid requests.
             if reserved_total+ceiling>maximum_usd:
                 return {'status':'budget_stopped','results':reports,'maximum_usd':maximum_usd,

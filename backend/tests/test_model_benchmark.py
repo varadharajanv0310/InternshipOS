@@ -25,7 +25,7 @@ def test_failed_request_stops_whole_experiment_without_calling_other_tier(monkey
     from types import SimpleNamespace
     calls=[]
     monkeypatch.setattr(bench.ai,'budget_status',lambda db:{'configured':True})
-    monkeypatch.setattr(bench,'get_provider',lambda strong:SimpleNamespace(model='fixture',rates=(.1,.5)))
+    monkeypatch.setattr(bench,'get_provider',lambda strong:SimpleNamespace(model='fixture',rates=(.1,.5),max_output_tokens=2200))
     def fail(*args,**kwargs):
         calls.append(kwargs['strong'])
         raise RuntimeError('Provider unavailable')

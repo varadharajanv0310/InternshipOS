@@ -230,6 +230,16 @@ def test_ai_zero_budget_blocks_paid_and_local_calls(db):
     with pytest.raises(HTTPException) as error:ai.reserve_usage(db,action='test',provider=Provider('local','test','','http://localhost',(0,0)),fingerprint='test',amount=0)
     assert error.value.status_code==402
 
+def test_deepseek_reservation_covers_its_entire_thinking_allowance(db,monkeypatch):
+    provider=Provider('deepseek','deepseek-flash','test-only','https://api.deepseek.com',(.3,1.2),8192)
+    monkeypatch.setattr(ai,'get_provider',lambda strong:provider)
+    monkeypatch.setattr(Provider,'generate',lambda *args:({'text':'Python project.','fact_ids':['fact-1'],'unknowns':[]},100,8000))
+    db.get(m.Setting,'ai_enabled').value=True;db.commit()
+    result=ai.grounded_response(db,'answer',{'facts':[{'id':'fact-1','text':'Python project.'}]})
+    assert result['cost']==pytest.approx((100*.3+8000*1.2)/1e6)
+    usage=db.scalar(select(m.AIUsage))
+    assert usage.status=='completed' and usage.reserved_usd==0
+
 def test_paid_custom_model_needs_prices(monkeypatch):
     monkeypatch.setenv('AI_PROVIDER','compatible');monkeypatch.setenv('AI_BASE_URL','https://example.test/v1');monkeypatch.setenv('AI_API_KEY','test-only');monkeypatch.setenv('AI_STRONG_MODEL','custom-fixture')
     with pytest.raises(HTTPException) as error:get_provider()
