@@ -144,17 +144,23 @@ def backfill_scoped_health(db):
     """
     from sqlalchemy import func
     from .source_health import _timestamp
+    candidates = [row for row in db.scalars(select(CompanySource).where(CompanySource.status == 'partial')
+        .order_by(CompanySource.id).with_for_update().execution_options(populate_existing=True)).all()
+        if not row.config.get('board_health') and not row.last_error]
+    if not candidates:
+        db.commit()  # Release any locks on partial sources that needed no correction.
+        return 0
     ranked = select(FetchRun.id.label('run_id'), FetchRun.company_source_id.label('source_id'),
         func.row_number().over(partition_by=FetchRun.company_source_id,
                               order_by=(FetchRun.created_at.desc(), FetchRun.id.desc())).label('position')
-        ).where(FetchRun.coverage_scope != 'targeted').subquery()
+        ).where(FetchRun.coverage_scope != 'targeted',
+                FetchRun.company_source_id.in_([row.id for row in candidates])).subquery()
     latest = {run.company_source_id: run for run in db.scalars(select(FetchRun).join(
         ranked, FetchRun.id == ranked.c.run_id).where(ranked.c.position == 1)).all()}
     corrections = []
-    for row in db.scalars(select(CompanySource).where(CompanySource.status == 'partial')
-                          .order_by(CompanySource.id).with_for_update().execution_options(populate_existing=True)).all():
+    for row in candidates:
         run = latest.get(row.id)
-        if not run or row.config.get('board_health') or row.last_error or run.error:
+        if not run or run.error:
             continue
         checked = _timestamp(row.config.get('board_checked_at')) or _timestamp(row.last_checked)
         evidence = run.data or {}

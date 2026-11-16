@@ -8,12 +8,14 @@ load_dotenv(Path(__file__).resolve().parents[2]/'.env')
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sqlalchemy.exc import OperationalError, TimeoutError as PoolTimeoutError
 from .db import init_db, SessionLocal, engine
 from .seed import seed_database
 from .jobs import worker_loop
 from .api import router, public
 
 logging.basicConfig(level=logging.INFO,format='%(asctime)s %(levelname)s %(name)s %(message)s')
+logger = logging.getLogger(__name__)
 stop=threading.Event()
 
 @asynccontextmanager
@@ -44,6 +46,25 @@ def health():
     from sqlalchemy import text
     with engine.connect() as connection:connection.execute(text('SELECT 1'))
     return {'status':'ok','database':engine.dialect.name,'scheduler':os.getenv('SCHEDULER_ENABLED','true'),'version':'0.1.0'}
+
+@app.exception_handler(OperationalError)
+@app.exception_handler(PoolTimeoutError)
+def database_unavailable(request: Request, exc: OperationalError | PoolTimeoutError):
+    reason = 'connection_unavailable'
+    detail = 'The workspace database is unavailable. Try again in a moment. If the problem persists, check the database provider.'
+    if isinstance(exc, OperationalError):
+        sqlstate = getattr(exc.orig, 'sqlstate', None) or ''
+        # A query error, such as a missing table, is not a connection outage.
+        if exc.statement is not None and not (exc.connection_invalidated or sqlstate.startswith('08')):
+            raise exc
+        if 'your account or project has exceeded the quota' in str(exc.orig).casefold():
+            reason = 'quota_exceeded'
+            detail = 'The workspace database has reached its provider quota. Check database usage and restore access, then try again.'
+    else:
+        reason = 'connection_pool_timeout'
+    # The original driver error can contain connection settings or query data.
+    logger.warning('Workspace database unavailable (%s)', reason)
+    return JSONResponse({'detail': detail, 'code': reason}, status_code=503)
 
 @app.exception_handler(ValueError)
 def validation_error(request:Request,exc:ValueError):return JSONResponse({'detail':str(exc)},status_code=422)

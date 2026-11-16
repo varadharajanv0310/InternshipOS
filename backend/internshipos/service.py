@@ -1,10 +1,11 @@
 """Transactional core services used by HTTP routes and bounded collection jobs."""
 from __future__ import annotations
 
-from collections import Counter
+from collections import Counter, defaultdict
 from datetime import timedelta
 import json
 import re
+from types import SimpleNamespace
 
 from sqlalchemy import func, or_, select, tuple_
 
@@ -928,8 +929,12 @@ def _histogram(values):
     return [{"range": key, "count": value} for key, value in bins.items()]
 
 
+_TECHNICAL_ROLES = ("SWE", "Data", "AI_ML", "Adjacent")
+_INTERNSHIP_TYPES = ("internship", "possible_internship", "apprenticeship")
+
+
 def _is_relevant(op):
-    return op.role_family in {"SWE", "Data", "AI_ML", "Adjacent"} and op.opportunity_type in {"internship", "possible_internship", "apprenticeship"}
+    return op.role_family in _TECHNICAL_ROLES and op.opportunity_type in _INTERNSHIP_TYPES
 
 def _in_primary_market(op):
     import re
@@ -1031,19 +1036,82 @@ def analytics(db, days=30, scope='all'):
                             "missingness": "Zero-denominator quality rates are null; unassessed scores remain Unknown."}}
 
 
-def dashboard(db):
-    now = utcnow()
-    settings=get_settings(db)
-    from .search_policy import TITLE_EXCLUSIONS
-    opportunities = db.scalars(select(m.Opportunity).options(joinedload(m.Opportunity.company),selectinload(m.Opportunity.sources).joinedload(m.JobSource.company_source))).all()
-    applications = db.scalars(select(m.Application)).all()
-    from .shortlist import assessment, exclusions, hidden, appearances_for
-    rules = exclusions(db)
-    opportunities = [o for o in opportunities if not hidden(o, rules)]
-    sources = db.scalars(select(m.CompanySource).options(joinedload(m.CompanySource.company))).all()
-    relevant = [o for o in opportunities if (not settings.get('personal_location_policy') or _personal_scope(o)) and _is_relevant(o) and _in_primary_market(o) and o.status == "active" and o.role_family in (settings.get('roles') or ['SWE','Data','AI_ML','Adjacent']) and (not settings.get('personal_target_filter') or not re.search(TITLE_EXCLUSIONS,o.title,re.I)) and assessment(o, appearances_for(db, o) if (o.data or {}).get("mirror_ids") else o.sources, rules, now=now)["recommended"]]
+def _dashboard_candidates(db, settings, rules, now):
     from .company_priority import priority
+    from .search_policy import TITLE_EXCLUSIONS
+    from .shortlist import assessment, hidden
+
+    # The shortlist only needs evidence clocks and whether a description exists.
+    # Leave descriptions, HTML and raw metadata on the database for non-top jobs.
+    op = m.Opportunity
+    fields = ("duplicate_of", "mirror_ids", "description_checked_at", "description_source_id", "identity_review", "deadline_precision")
+    candidates = select(
+        op.id, op.company_id, op.title, op.location, op.country, op.work_mode, op.eligibility,
+        op.status, op.risk_reasons, op.canonical_url, op.apply_url, op.first_seen, op.fit_score, op.deadline,
+        (op.description != "").label("description"),
+        *(op.data[key].label(key) for key in fields),
+        m.Company.name.label("company_name"), m.Company.metadata_json["company_priority"].label("company_priority"),
+    ).join(m.Company).where(
+        op.status == "active", op.opportunity_type.in_(_INTERNSHIP_TYPES),
+        op.role_family.in_([role for role in _TECHNICAL_ROLES if role in (settings.get("roles") or _TECHNICAL_ROLES)]),
+        op.id.not_in(rules["opportunity_ids"]), op.company_id.not_in(rules["company_ids"]),
+    )
+    visible = []
+    for row in db.execute(candidates).mappings():
+        values = dict(row)
+        data = {key: values.pop(key) for key in fields}
+        company = SimpleNamespace(name=values.pop("company_name"), metadata_json={"company_priority": values.pop("company_priority")})
+        item = SimpleNamespace(**values, data=data, company=company)
+        if (not hidden(item, rules) and _in_primary_market(item)
+                and (not settings.get("personal_location_policy") or _personal_scope(item))
+                and (not settings.get("personal_target_filter") or not re.search(TITLE_EXCLUSIONS, item.title, re.I))):
+            visible.append(item)
+
+    # One shared, narrow read per batch also includes proven mirror appearances.
+    # Keep all statuses here: an official inactive observation can outweigh an
+    # unverified live copy, and superseded sources are ignored by assessment().
+    ids = sorted({id for item in visible for id in (item.id, *(item.data["mirror_ids"] or []))})
+    appearances = defaultdict(list)
+    source = m.JobSource
+    observation = select(
+        source.opportunity_id, source.company_source_id, source.status, source.last_seen, source.last_detail_checked,
+        m.CompanySource.verified, m.CompanySource.config["replacement_state"].as_string().label("replacement_state"),
+    ).join(m.CompanySource)
+    for offset in range(0, len(ids), 500):
+        for row in db.execute(observation.where(source.opportunity_id.in_(ids[offset:offset + 500]))):
+            appearances[row.opportunity_id].append(SimpleNamespace(
+                company_source_id=row.company_source_id, status=row.status, last_seen=row.last_seen,
+                last_detail_checked=row.last_detail_checked,
+                company_source=SimpleNamespace(verified=row.verified, config={"replacement_state": row.replacement_state}),
+            ))
+    relevant = []
+    for item in visible:
+        item_ids = (item.id, *(item.data["mirror_ids"] or []))
+        observed = [appearance for id in item_ids for appearance in appearances[id]]
+        if assessment(item, observed, rules, now=now)["recommended"]:
+            relevant.append(item)
     relevant.sort(key=lambda o: (priority(o.company)["score"], o.fit_score if o.fit_score is not None else -1, aware(o.first_seen)), reverse=True)
+    return relevant
+
+
+def dashboard(db):
+    from .shortlist import exclusions, hidden
+
+    now = utcnow()
+    rules = exclusions(db)
+    relevant = _dashboard_candidates(db, get_settings(db), rules, now)
+    top_ids = [op.id for op in relevant[:8]]
+    top = {op.id: op for op in db.scalars(select(m.Opportunity).where(m.Opportunity.id.in_(top_ids))
+           .options(joinedload(m.Opportunity.company), selectinload(m.Opportunity.sources).joinedload(m.JobSource.company_source)))} if top_ids else {}
+    op = m.Opportunity
+    saved_rows = db.execute(select(op.id, op.company_id, op.data["duplicate_of"], op.data["mirror_ids"]).where(op.saved.is_(True)))
+    saved = sum(not hidden(SimpleNamespace(id=id, company_id=company_id, data={"duplicate_of": duplicate_of, "mirror_ids": mirror_ids}), rules)
+                for id, company_id, duplicate_of, mirror_ids in saved_rows)
+    application_counts = dict(db.execute(select(m.Application.stage, func.count()).group_by(m.Application.stage)).all())
+    source_rows = db.execute(select(m.CompanySource.id, m.CompanySource.status, m.Company.name).join(m.Company)).all()
+    source_ids = [s.id for s in sorted(source_rows, key=lambda s: (s.status == "complete", s.name))[:12]]
+    sources = {s.id: s for s in db.scalars(select(m.CompanySource).where(m.CompanySource.id.in_(source_ids))
+               .options(joinedload(m.CompanySource.company)))} if source_ids else {}
     deadline_rows = [task_dict(t) for t in db.scalars(select(m.Task).where(m.Task.completed.is_(False), m.Task.due_at.is_not(None)).order_by(m.Task.due_at).limit(10)).all()]
     due_ids = {x.get("opportunity_id") for x in deadline_rows}
     for opportunity in sorted((o for o in relevant if o.deadline and aware(o.deadline) >= now and o.id not in due_ids), key=lambda o: aware(o.deadline))[:10]:
@@ -1053,15 +1121,15 @@ def dashboard(db):
     deadline_rows.sort(key=lambda x: x.get("due_at") or "9999")
     history = Counter(aware(o.first_seen).date().isoformat() for o in relevant)
     return {"stats": {"new_opportunities": sum(aware(o.first_seen) >= now - timedelta(days=1) for o in relevant),
-                      "saved": sum(o.saved for o in opportunities), "applications": len(applications),
-                      "active_applications": sum(a.stage not in {"rejected", "withdrawn"} for a in applications),
-                      "interviews": sum(a.stage == "interview" for a in applications),
+                      "saved": saved, "applications": sum(application_counts.values()),
+                      "active_applications": sum(count for stage, count in application_counts.items() if stage not in {"rejected", "withdrawn"}),
+                      "interviews": application_counts.get("interview", 0),
                       "companies": db.scalar(select(func.count()).select_from(m.Company).where(m.Company.metadata_json["source_holder"].as_boolean().is_not(True))) or 0,
-                      "sources_healthy": sum(s.status == "complete" for s in sources)},
-            "top_opportunities": [opportunity_dict(db, o, detail=False, rules=rules) for o in relevant[:8]], "deadlines": deadline_rows[:10],
+                      "sources_healthy": sum(s.status == "complete" for s in source_rows)},
+            "top_opportunities": [opportunity_dict(db, top[id], detail=False, rules=rules) for id in top_ids if id in top], "deadlines": deadline_rows[:10],
             "recent_activity": [activity_dict(x) for x in db.scalars(select(m.Activity).order_by(m.Activity.created_at.desc()).limit(15)).all()],
-            "funnel": [{"stage": stage, "count": sum(a.stage == stage for a in applications)} for stage in ["ready", "applied", "oa", "interview", "offer", "rejected"]],
-            "source_health": [source_dict(s) for s in sorted(sources, key=lambda s: (s.status == "complete", s.company.name))[:12]],
+            "funnel": [{"stage": stage, "count": application_counts.get(stage, 0)} for stage in ["ready", "applied", "oa", "interview", "offer", "rejected"]],
+            "source_health": [source_dict(sources[id]) for id in source_ids if id in sources],
             "notifications": [row_dict(n) for n in db.scalars(select(m.Notification).where(m.Notification.read.is_(False)).order_by(m.Notification.created_at.desc()).limit(10)).all()],
             "daily_discoveries": [{"date": (now.date() - timedelta(days=i)).isoformat(), "count": history[(now.date() - timedelta(days=i)).isoformat()]} for i in range(13, -1, -1)]}
 

@@ -227,11 +227,12 @@ async def collect_boards(source_ids=None,limit=None,force=False,lease_token=None
             'results':results,'statuses':dict(Counter(o.get('status','unknown') for o in results)),
             'worker_errors':sum(o.get('status')=='worker_error' for o in results)+(1 if lease_lost else 0)}
 
-def morning_digest(db):
+def morning_digest(db, *, dashboard_data=None):
     from .service import dashboard
     tz=db.get(Setting,'timezone');local=utcnow().astimezone(ZoneInfo(str(tz.value) if tz else 'Asia/Kolkata'))
-    data=dashboard(db);today=local.date().isoformat();key='digest:'+today
+    today=local.date().isoformat();key='digest:'+today
     if db.get(Setting,key):return {'status':'already_created'}
+    data=dashboard(db) if dashboard_data is None else dashboard_data
     stats=data['stats'];opportunities=data['top_opportunities'][:5]
     text=f"{stats.get('new_opportunities',0)} new opportunities; {len(data.get('deadlines',[]))} upcoming tasks."
     notification=Notification(title='Your internship briefing',body=text,kind='digest',data={'date':today,'opportunity_ids':[o['id'] for o in opportunities]});db.add(notification);db.add(Setting(key=key,value={'created_at':utcnow().isoformat()}));db.commit();return {'status':'created','briefing':text}
@@ -329,9 +330,10 @@ def scheduled_notifications(db):
     enabled=db.get(Setting,'notifications_enabled')
     if enabled and not enabled.value:return
     now=utcnow();tz=db.get(Setting,'timezone');local=now.astimezone(ZoneInfo(str(tz.value) if tz else 'Asia/Kolkata'))
-    if local.hour>=7:morning_digest(db)
     from .service import dashboard
-    for op in dashboard(db)['top_opportunities']:
+    data=dashboard(db)
+    if local.hour>=7:morning_digest(db,dashboard_data=data)
+    for op in data['top_opportunities']:
         if (op.get('fit_score') or 0)<80 or (op.get('worth_score') or 0)<70 or op.get('application_id'):continue
         key='strong_opportunity:'+op['id']
         if not db.get(Setting,key):

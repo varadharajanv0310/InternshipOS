@@ -16,7 +16,7 @@ from sqlalchemy.orm import sessionmaker
 from internshipos import jobs,service,source_repairs
 from internshipos.db import Base
 from internshipos.ingestion import CollectionResult
-from internshipos.models import Company,CompanySource,Setting
+from internshipos.models import Company,CompanySource,Notification,Setting
 
 NOW=datetime(2026,10,8,8,tzinfo=timezone.utc)
 
@@ -128,6 +128,29 @@ def stub_persistence(monkeypatch):
         return {'source_id':ident,'status':'complete'}
     monkeypatch.setattr(service,'ingest_batch',ingest)
     monkeypatch.setattr(source_repairs,'retire_replaced_sources',lambda db,ident:0)
+
+
+def test_daily_digest_reuses_worker_dashboard_and_repeated_request_skips_read(factory,monkeypatch):
+    monkeypatch.setattr(jobs,'utcnow',lambda:NOW)
+    calls=[]
+    def dashboard(db):
+        calls.append(1)
+        return {'stats':{'new_opportunities':2},'deadlines':[],
+                'top_opportunities':[{'id':'sample','fit_score':84,'worth_score':72,
+                                      'company':{'name':'Example'},'title':'Engineer'}]}
+    monkeypatch.setattr(service,'dashboard',dashboard)
+    with factory() as db:
+        jobs.scheduled_notifications(db)
+        assert len(calls)==1  # One read serves both the briefing and strong-role alert.
+        assert jobs.morning_digest(db)=={'status':'already_created'}
+        assert len(calls)==1  # No dashboard fetch for a duplicate briefing request.
+        jobs.scheduled_notifications(db)
+        assert len(calls)==2
+        notifications={row.kind:row for row in db.scalars(select(Notification))}
+        assert set(notifications)=={'digest','opportunity'}
+        assert notifications['digest'].data['opportunity_ids']==['sample']
+        assert notifications['opportunity'].data['opportunity_id']=='sample'
+        assert len(db.scalars(select(Notification)).all())==2
 
 
 def test_worker_stops_new_waves_but_keeps_started_observations(factory,monkeypatch):

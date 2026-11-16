@@ -1,6 +1,7 @@
 """Inspect collection timeliness without contacting external schedulers."""
 from datetime import timedelta
 import math
+import os
 from sqlalchemy import select
 
 from .db import aware, utcnow
@@ -16,10 +17,12 @@ def collection_health(db, now=None):
     value = heartbeat.value if heartbeat and isinstance(heartbeat.value, dict) else {}
     stamp = _timestamp(value.get('at'))
     interval_setting = db.get(Setting, 'collection_worker_interval_hours')
+    # The hosted API monitors the two-hour GitHub Actions schedule.
+    default_interval = 2.0 if os.getenv('VERCEL') == '1' else 1.0
     try:
-        interval = max(0.25, float(interval_setting.value)) if interval_setting else 1.0
+        interval = max(0.25, float(interval_setting.value)) if interval_setting else default_interval
     except (TypeError, ValueError):
-        interval = 1.0
+        interval = default_interval
     grace = min(1.0, max(0.25, interval * 0.5))
     expected = stamp + timedelta(hours=interval) if stamp else None
     overdue = bool(stamp and now > expected + timedelta(hours=grace))

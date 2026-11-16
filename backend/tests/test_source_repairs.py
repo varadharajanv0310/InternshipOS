@@ -1,5 +1,5 @@
 """Endpoint repair rollout cannot fake success or rewrite historical identities."""
-from sqlalchemy import select
+from sqlalchemy import event, select
 from internshipos.models import CompanySource, JobSource, FetchRun
 from internshipos.source_repairs import apply_endpoint_repairs, retire_replaced_sources, backfill_scoped_health
 from internshipos.source_health import health
@@ -93,6 +93,21 @@ def test_historical_scope_correction_rejects_unfinished_or_mismatched_check(db):
     run=db.get(FetchRun,result['run_id']); run.data={**run.data,'requested_complete':True}; db.commit()
     old.config={'board_checked_at':'2020-01-01T00:00:00+00:00'}; db.commit()
     assert backfill_scoped_health(db)==0 and old.status=='partial'
+
+
+def test_historical_scope_backfill_skips_fetch_run_scan_for_modern_partial_source(db):
+    old = source(db)
+    ingest(db, old, complete=False, coverage_scope='query')
+    assert old.status == 'partial' and old.config.get('board_health')
+    statements = []
+    def collect_statement(_conn, _cursor, statement, _params, _context, _many):
+        statements.append(statement)
+    event.listen(db.bind, 'before_cursor_execute', collect_statement)
+    try:
+        assert backfill_scoped_health(db) == 0
+    finally:
+        event.remove(db.bind, 'before_cursor_execute', collect_statement)
+    assert not any('fetch_runs' in statement.lower() for statement in statements)
 
 
 def test_superseded_source_cannot_keep_matched_role_active_after_current_closure(db):
