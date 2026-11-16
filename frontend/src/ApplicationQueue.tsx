@@ -1,9 +1,10 @@
 import {useState} from 'react';
 import {items,useResource,type Row} from './api';
-import {Panel,Button,Badge,Field,useUI} from './ui';
+import {Panel,Button,Badge,ErrorPanel,Field,Skeleton,useUI} from './ui';
 
 export function ApplicationQueue(){
- const {data,refresh}=useResource('/application-queue');const {run}=useUI();const [reviewed,setReviewed]=useState<Record<string,boolean>>({});
+ const {data,loading,error,refresh}=useResource('/application-queue');const {run}=useUI();const [reviewed,setReviewed]=useState<Record<string,boolean>>({});
+ if(error||loading)return <Panel title="Approved application queue">{error?<ErrorPanel error={error} retry={refresh}/>:<Skeleton rows={2}/>}</Panel>;
  const rows=items(data).filter((a:Row)=>a.stage==='ready'||['in_progress','uncertain'].includes(a.state));
  return <Panel title="Approved application queue"><p className="muted">The browser extension executes approved packs. Automatic submission stays off until enabled in Settings. Changed jobs, answers or resume selections need review again.</p>{!rows.length?<p>No ready applications. Prepare a role and select an approved resume first.</p>:rows.map((a:Row)=><div className="source-evidence" key={a.id}><div><strong>{a.company} · {a.title}</strong><Badge>{a.state.replaceAll('_',' ')}</Badge>{a.blockers?.length>0&&<p className="small muted">{a.blockers.join(' ')}</p>}{a.state==='needs_review'||a.state==='revoked'?<><Field label="I reviewed this job's eligibility and application pack"><input type="checkbox" checked={!!reviewed[a.id]} onChange={e=>setReviewed({...reviewed,[a.id]:e.target.checked})}/></Field><Button disabled={!reviewed[a.id]} onClick={async()=>{await run(`/application-queue/${a.id}/approve`,'POST',{confirm:true,eligibility_reviewed:true},'Pack approved. Submission remains controlled by your extension.');refresh();}}>Approve this pack</Button></>:a.state==='approved'?<Button onClick={async()=>{await run(`/application-queue/${a.id}/revoke`,'POST',{},'Approval revoked');refresh();}}>Revoke approval</Button>:<p className="small">Check the employer confirmation before any further attempt. The queue will not retry automatically.</p>}</div></div>)}</Panel>;
 }
