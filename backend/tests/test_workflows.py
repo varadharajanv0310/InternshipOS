@@ -145,6 +145,48 @@ def test_capture_prepare_and_receipt_preserve_submission_truth(client,db):
     assert db.get(m.Application,app['id']).stage=='ready'
     assert db.scalar(select(func.count()).select_from(m.ApplicationEvent))>=3
 
+def test_mark_opportunity_applied_tracks_manual_submission_without_preparation(client, db):
+    company = m.Company(name='Manual tracking fixture')
+    db.add(company)
+    db.flush()
+    op = m.Opportunity(company_id=company.id, title='Software Development Intern', location='Chennai')
+    db.add(op)
+    db.commit()
+    detail_path = f'/api/opportunities/{op.id}'
+    mark_path = f'{detail_path}/mark-applied'
+    assert client.get(detail_path).json()['application_stage'] is None
+    assert client.post('/api/applications', json={'opportunity_id': op.id, 'stage': 'ready'}).status_code == 422
+
+    first = client.post(mark_path)
+    assert first.status_code == 200
+    app_id = first.json()['application_id']
+    assert first.json() == {'application_id': app_id, 'application_stage': 'applied', 'recorded': True}
+    app = db.get(m.Application, app_id)
+    assert app.submitted_at and app.attempt == 1
+    assert client.get(detail_path).json()['application_stage'] == 'applied'
+    assert client.post(mark_path).json() == {**first.json(), 'recorded': False}
+    assert db.scalar(select(func.count()).select_from(m.Application)) == 1
+
+    other = m.Opportunity(company_id=company.id, title='Existing prepared role', location='Chennai')
+    db.add(other)
+    db.flush()
+    resume = version(db)
+    ready = m.Application(opportunity_id=other.id, stage='ready', notes='Keep my notes', resume_version_id=resume['id'],
+                          data={'auto_apply': {'state': 'uncertain'}})
+    db.add(ready)
+    db.commit()
+    other_mark = f'/api/opportunities/{other.id}/mark-applied'
+    assert client.post(other_mark).status_code == 422
+    assert ready.stage == 'ready' and ready.submitted_at is None
+    ready.data = {}
+    db.commit()
+    assert client.post(other_mark).json() == {'application_id': ready.id, 'application_stage': 'applied', 'recorded': True}
+    assert ready.notes == 'Keep my notes' and ready.resume_version_id == resume['id'] and ready.submitted_at
+    service.update_application(db, ready.id, {'stage': 'interview'})
+    assert client.post(other_mark).json() == {'application_id': ready.id, 'application_stage': 'interview', 'recorded': False}
+    assert db.scalar(select(func.count()).select_from(m.Application)) == 2
+
+
 def test_receipt_cannot_use_other_host_or_regress_interview(client,db):
     app=application(db);service.update_application(db,app['id'],{'stage':'interview'})
     assert client.post('/api/extension/receipt',json={'application_id':app['id'],'url':'https://evil.example/jobs','evidence':'Application received'}).status_code==422

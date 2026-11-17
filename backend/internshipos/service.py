@@ -14,7 +14,7 @@ from . import models as m
 from .db import aware, utcnow
 from .domain import canonicalize_url, classify, evaluate, normalize_location, parse_date, stable_hash, text_only, transition
 from .seed import DEFAULT_SETTINGS, EMPTY_PROFILE
-from .serialize import activity_dict, application_dict, iso, json_value, opportunity_dict, row_dict, source_dict, task_dict
+from .serialize import activity_dict, application_dict, iso, json_value, latest_application, opportunity_dict, row_dict, source_dict, task_dict
 
 
 def _require(db, cls, id):
@@ -345,7 +345,10 @@ def list_applications(db):
 
 
 def create_application(db, payload):
-    opportunity = _require(db, m.Opportunity, payload.get("opportunity_id"))
+    opportunity_id = payload.get("opportunity_id")
+    opportunity = db.get(m.Opportunity, opportunity_id, with_for_update=True) if opportunity_id else None
+    if opportunity is None:
+        raise ValueError("Opportunity not found")
     if payload.get("stage","ready")=="ready" and get_settings(db).get("personal_location_policy") and not _personal_scope(opportunity):raise ValueError("This role is outside your location or eligibility policy.")
     attempt = max(1, int(payload.get("attempt", 1)))
     existing = db.scalar(select(m.Application).where(m.Application.opportunity_id == opportunity.id, m.Application.attempt == attempt))
@@ -368,6 +371,24 @@ def create_application(db, payload):
     _audit(db, "application.created", f"Application started: {opportunity.title}", "application", app.id, data={"stage": stage})
     db.commit()
     return application_dict(db, app)
+
+
+def mark_opportunity_applied(db, opportunity_id):
+    """Record an application the owner already submitted outside the app."""
+    # Serialize with other app creation requests, then with browser leases on the
+    # existing attempt. The current stage wins if it has advanced since the click.
+    if db.get(m.Opportunity, opportunity_id, with_for_update=True) is None:
+        raise ValueError("Opportunity not found")
+    app = latest_application(db, opportunity_id, for_update=True)
+    if app is None:
+        result = create_application(db, {"opportunity_id": opportunity_id, "stage": "applied"})
+    elif app.stage != "ready":
+        return {"application_id": app.id, "application_stage": app.stage, "recorded": False}
+    else:
+        if (app.data or {}).get("auto_apply", {}).get("state") in {"in_progress", "uncertain"}:
+            raise ValueError("An extension submission is in progress or needs review. Check the employer confirmation in Applications before changing its stage.")
+        result = update_application(db, app.id, {"stage": "applied", "event_type": "manually_applied"})
+    return {"application_id": result["id"], "application_stage": result["stage"], "recorded": True}
 
 
 def update_application(db, id, payload):

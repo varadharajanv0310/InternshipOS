@@ -51,6 +51,8 @@ def shortlist_exclude(payload:dict,db:Session=Depends(get_db)):return service.se
 def opportunity(id:str,db:Session=Depends(get_db)):return must(service.get_opportunity(db,id))
 @router.patch('/opportunities/{id}')
 def save_opportunity(id:str,payload:dict,db:Session=Depends(get_db)):return service.save_opportunity(db,id,payload)
+@router.post('/opportunities/{id}/mark-applied')
+def opportunity_mark_applied(id:str,db:Session=Depends(get_db)):return service.mark_opportunity_applied(db,id)
 @router.post('/opportunities/{id}/refresh',status_code=202)
 def refresh_opportunity(id:str,db:Session=Depends(get_db)):
     must(service.get_opportunity(db,id))

@@ -89,8 +89,9 @@ def opportunity_dict(db, obj, detail=True, *, rules=None):
         return result
     evaluation = db.scalar(select(m.Evaluation).where(m.Evaluation.opportunity_id == obj.id).order_by(m.Evaluation.created_at.desc()).limit(1))
     result["evaluation"] = evaluation.data if evaluation else {"fit_dimensions": [], "worth_dimensions": [], "unknowns": ["Not evaluated yet"], "evidence": []}
-    application = db.scalar(select(m.Application).where(m.Application.opportunity_id == obj.id).order_by(m.Application.created_at.desc()).limit(1))
+    application = latest_application(db, obj.id)
     result["application_id"] = application.id if application else None
+    result["application_stage"] = application.stage if application else None
     decisions = db.scalars(select(m.IdentityDecision).where(
         or_(m.IdentityDecision.opportunity_id == obj.id, m.IdentityDecision.candidate_id == obj.id),
         m.IdentityDecision.decision.in_(["probable", "possible"]), m.IdentityDecision.reversed_at.is_(None))).all()
@@ -99,6 +100,14 @@ def opportunity_dict(db, obj, detail=True, *, rules=None):
     evidence = db.scalars(select(m.Evidence).where(m.Evidence.opportunity_id == obj.id).order_by(m.Evidence.created_at.desc()).limit(80)).all()
     result["field_evidence"] = [row_dict(e) for e in evidence]
     return result
+
+
+def latest_application(db, opportunity_id, *, for_update=False):
+    query = select(m.Application).where(m.Application.opportunity_id == opportunity_id).order_by(
+        m.Application.created_at.desc(), m.Application.id.desc()).limit(1)
+    if for_update:
+        query = query.with_for_update().execution_options(populate_existing=True)
+    return db.scalar(query)
 
 
 def application_dict(db, obj):
